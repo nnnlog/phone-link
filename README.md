@@ -45,6 +45,8 @@ sponsored, or approved by, Microsoft Corporation.
   </tr>
 </table>
 
+More screenshots, including Settings, are in [docs/screenshots.md](docs/screenshots.md).
+
 ## Differences from Windows
 
 - You sign in to your Microsoft account in the app's own window.
