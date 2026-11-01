@@ -1,0 +1,46 @@
+syntax = "proto3";
+package phone_files.v1;
+import "phone_files/v1/metadata.proto";
+import "phone_files/v1/sync.proto";
+
+message StorageInfoPayload {
+  int64 available_size_bytes = 1;
+  int64 total_size_bytes = 2;
+}
+
+message FilesConfigurationPayload {
+  bool capability = 1;
+  bool permission = 2;
+  repeated phone_files.v1.FileType thumbnail_supported_file_types = 3;
+  repeated phone_files.v1.FilesThumbnailPrefetchMessage thumbnail_prefetch_config = 4;
+  int64 gigabyte_to_byte = 5;
+  string recycle_bin_path = 6;
+  bool batch_delete_capability = 7;
+  bool is_get_thumbnail_over_nano_mobile_enabled = 8;
+  bool is_prefetch_thumbnails_over_nano_mobile_enabled = 9;
+  bool is_files_request_over_nano_capable = 10;
+  bool is_wifip2p_permission_manager_capable = 11;
+  bool is_wifip2p_permissions_granted = 12;
+  bool is_image_semantic_search_permission_granted = 13;
+}
+
+message FilesThumbnailPrefetchMessage {
+  string name = 1;
+  string path = 2;
+  int32 prefetch_count = 3;
+  bool add_to_pictures_library = 4;
+}
+
+message FilesSyncUpdateMessage {
+  phone_files.v1.FilesSyncType sync_type = 1;
+  int64 seq_num = 2;
+}
+
+message FilesResponsePayload {
+  oneof payload {
+    phone_files.v1.FilesConfigurationPayload file_configuration = 1;
+    phone_files.v1.FilesSyncUpdateMessage file_sync_update = 2;
+    phone_files.v1.StorageInfoPayload storage_info = 3;
+  }
+}
+

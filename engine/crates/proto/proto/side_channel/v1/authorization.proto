@@ -1,0 +1,7 @@
+syntax = "proto3";
+package side_channel.v1;
+
+message SideChannelAuthorization {
+  string signed_jwt_payload = 1;
+}
+

@@ -1,0 +1,13 @@
+syntax = "proto3";
+package platform_sdk.v1;
+import "platform_sdk/v1/dcg_base_message.proto";
+
+message ProtoDcgAckMessage {
+  platform_sdk.v1.ProtoDcgBaseMessage base = 1;
+  int32 sequence_number = 2;
+  bool success = 3;
+  int32 error_no = 4;
+  string handler_type = 5;
+  optional string error_message = 6;
+}
+

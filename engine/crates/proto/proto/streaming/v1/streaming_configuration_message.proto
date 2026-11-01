@@ -1,0 +1,25 @@
+syntax = "proto3";
+package streaming.v1;
+
+enum StreamingCapabilityMask {
+  STREAMING_CAPABILITY_MASK_UNSPECIFIED = 0;
+  STREAMING_CAPABILITY_MASK_CAMERA = 1;
+}
+
+enum StreamingPermissionMask {
+  STREAMING_PERMISSION_MASK_UNSPECIFIED = 0;
+  STREAMING_PERMISSION_MASK_CAMERA = 1;
+}
+
+enum CorePermissionMask {
+  CORE_PERMISSION_MASK_UNSPECIFIED = 0;
+  CORE_PERMISSION_MASK_POST_NOTIFICATION = 1;
+}
+
+message StreamingConfigurationMessage {
+  uint32 is_capable = 1;
+  uint32 permissions_granted = 2;
+  uint32 core_permissions_granted = 3;
+  bool permissions_permanently_denied = 4;
+}
+

@@ -1,0 +1,39 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "NSBluetoothAlwaysUsageDescription" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Phone Link는 휴대폰과 페어링하고, Bluetooth로 동작하는 기능에서 휴대폰에 직접 연결하고, 휴대폰이 이 Mac에 연결되어 있는지 확인할 때 Bluetooth를 사용해요."
+          }
+        }
+      }
+    },
+    "NSHumanReadableCopyright" : {
+      "shouldTranslate" : false
+    },
+    "NSLocationUsageDescription" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Phone Link는 주변 Wi-Fi 네트워크에서 휴대폰 핫스팟을 찾아요. macOS는 위치 서비스 사용을 허용한 앱에만 주변 Wi-Fi 네트워크를 보여 줘요."
+          }
+        }
+      }
+    },
+    "NSLocationWhenInUseUsageDescription" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Phone Link는 주변 Wi-Fi 네트워크에서 휴대폰 핫스팟을 찾아요. macOS는 위치 서비스 사용을 허용한 앱에만 주변 Wi-Fi 네트워크를 보여 줘요."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

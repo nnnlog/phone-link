@@ -1,0 +1,91 @@
+syntax = "proto3";
+package side_channel.v1;
+
+enum SideChannelHotspotRequestType {
+  SIDE_CHANNEL_HOTSPOT_REQUEST_TYPE_UNSPECIFIED = 0;
+  SIDE_CHANNEL_HOTSPOT_REQUEST_TYPE_CAPABLE_STATUS = 1;
+  SIDE_CHANNEL_HOTSPOT_REQUEST_TYPE_CREDENTIALS = 2;
+  SIDE_CHANNEL_HOTSPOT_REQUEST_TYPE_ENCRYPTED_CREDENTIALS = 3;
+}
+
+enum SideChannelHotspotResponseStatus {
+  SIDE_CHANNEL_HOTSPOT_RESPONSE_STATUS_UNSPECIFIED = 0;
+  SIDE_CHANNEL_HOTSPOT_RESPONSE_STATUS_SUCCESS = 1;
+  SIDE_CHANNEL_HOTSPOT_RESPONSE_STATUS_ERROR_OTHER = 2;
+  SIDE_CHANNEL_HOTSPOT_RESPONSE_STATUS_UNTRUSTED = 3;
+  SIDE_CHANNEL_HOTSPOT_RESPONSE_STATUS_UNKNOWN_COMMAND = 4;
+  SIDE_CHANNEL_HOTSPOT_RESPONSE_STATUS_NOT_HOTSPOT_CAPABLE = 5;
+}
+
+enum SideChannelHotspotCapableStatus {
+  SIDE_CHANNEL_HOTSPOT_CAPABLE_STATUS_UNSPECIFIED = 0;
+  SIDE_CHANNEL_HOTSPOT_CAPABLE_STATUS_UNKNOWN = 1;
+  SIDE_CHANNEL_HOTSPOT_CAPABLE_STATUS_SUPPORTED = 2;
+  SIDE_CHANNEL_HOTSPOT_CAPABLE_STATUS_AIRPLANE_MODE = 3;
+  SIDE_CHANNEL_HOTSPOT_CAPABLE_STATUS_BLOCKED_BY_POLICY = 4;
+  SIDE_CHANNEL_HOTSPOT_CAPABLE_STATUS_DATA_NOT_ALLOWED = 5;
+  SIDE_CHANNEL_HOTSPOT_CAPABLE_STATUS_DATA_SAVER_IS_ENABLED = 6;
+  SIDE_CHANNEL_HOTSPOT_CAPABLE_STATUS_HOTSPOT_PASSWORD_NOT_SET = 7;
+  SIDE_CHANNEL_HOTSPOT_CAPABLE_STATUS_NO_HOTSPOT_SUPPORT_ON_PHONE = 8;
+  SIDE_CHANNEL_HOTSPOT_CAPABLE_STATUS_SIM_NOT_READY = 9;
+  SIDE_CHANNEL_HOTSPOT_CAPABLE_STATUS_SMART_VIEW_IN_USE = 10;
+  SIDE_CHANNEL_HOTSPOT_CAPABLE_STATUS_UNSUPPORTED_DATA_PLAN = 11;
+  SIDE_CHANNEL_HOTSPOT_CAPABLE_STATUS_WIFI_DIRECT_IN_USE = 12;
+  SIDE_CHANNEL_HOTSPOT_CAPABLE_STATUS_WIRELESS_DEX_IN_USE = 13;
+  SIDE_CHANNEL_HOTSPOT_CAPABLE_STATUS_LINK_TO_WINDOWS_NOT_TURNED_ON = 14;
+  SIDE_CHANNEL_HOTSPOT_CAPABLE_STATUS_BLUETOOTH_PERMISSION_NOT_GRANTED = 15;
+  SIDE_CHANNEL_HOTSPOT_CAPABLE_STATUS_HOTSPOT_MANAGER_IS_NULL = 16;
+  SIDE_CHANNEL_HOTSPOT_CAPABLE_STATUS_UNKNOWN_MAPPING = 17;
+}
+
+message SideChannelHotspotRequest {
+  side_channel.v1.SideChannelHotspotRequestType type = 1;
+}
+
+message SideChannelInstantHotspotRequest {
+  side_channel.v1.SideChannelHotspotRequestType type = 1;
+}
+
+message SideChannelHotspotReservation {
+  side_channel.v1.SideChannelHotspotCapableStatus status = 1;
+  string nonce = 3;
+  reserved 2;
+}
+
+message SideChannelHotspotResponse {
+  side_channel.v1.SideChannelHotspotResponseStatus status = 1;
+  side_channel.v1.SideChannelHotspotReservation reservation = 2;
+  side_channel.v1.SideChannelHotspotRequestType type = 3;
+}
+
+message SideChannelInstantHotspotResponse {
+  side_channel.v1.SideChannelHotspotResponseStatus status = 1;
+  side_channel.v1.SideChannelHotspotRequestType type = 2;
+  oneof payload {
+    side_channel.v1.SideChannelHotspotCapableStatus capable_status = 3;
+    side_channel.v1.SideChannelHotspotEncryptedCredentials encrypted_credentials = 4;
+  }
+}
+
+message SideChannelHotspotEncryptedResponse {
+  side_channel.v1.SideChannelHotspotResponseStatus status = 1;
+  side_channel.v1.SideChannelHotspotRequestType type = 2;
+  oneof credentials {
+    side_channel.v1.SideChannelHotspotEncryptedCredentials encrypted_credentials = 3;
+  }
+}
+
+message SideChannelInstantHotspotEncryptedResponse {
+  side_channel.v1.SideChannelHotspotResponseStatus status = 1;
+  side_channel.v1.SideChannelHotspotRequestType type = 2;
+  oneof credentials {
+    side_channel.v1.SideChannelHotspotEncryptedCredentials encrypted_credentials = 3;
+  }
+}
+
+message SideChannelHotspotEncryptedCredentials {
+  bytes ciphertext = 1;
+  bytes iv = 2;
+  optional bytes tag = 3;
+}
+

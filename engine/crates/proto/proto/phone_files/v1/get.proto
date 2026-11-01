@@ -1,0 +1,103 @@
+syntax = "proto3";
+package phone_files.v1;
+import "phone_files/v1/status.proto";
+import "phone_files/v1/metadata.proto";
+import "phone_files/v1/sync.proto";
+
+message FilesGetRequest {
+  oneof request {
+    phone_files.v1.GetThumbnailRequest thumbnail_request = 1;
+    phone_files.v1.GetFilesMetadataSyncRequest files_metadata_sync_request = 2;
+    phone_files.v1.PrefetchThumbnailRequest prefetch_thumbnail_request = 3;
+  }
+  string request_id = 4;
+}
+
+message PrefetchThumbnailRequest {
+  repeated phone_files.v1.FileMetadata metadata = 1;
+  string request_id = 2;
+  int32 width = 3;
+  int32 height = 4;
+}
+
+message GetFilesMetadataSyncRequest {
+  phone_files.v1.FilesSyncType sync_type = 1;
+  optional int64 seq_num = 2;
+  optional bool is_user_initiated = 3;
+  optional bool supports_batched_response = 4;
+  optional string batch_continuation_token = 5;
+  optional bool is_no_engagement_sync = 6;
+}
+
+message GetThumbnailRequest {
+  string target_uri = 1;
+  int64 target_checksum = 2;
+  int32 width = 3;
+  int32 height = 4;
+  string request_id = 5;
+}
+
+message FullFileSyncPayload {
+  repeated phone_files.v1.FileMetadata metadata = 1;
+  int64 ending_sequence_number = 2;
+  bool full_sync_max_capacity_reached = 3;
+  bool has_more_batches = 4;
+  string batch_continuation_token = 5;
+  int32 batch_index = 6;
+  int32 estimated_total_items = 7;
+  int64 provisional_ending_sequence_number = 8;
+}
+
+message FileSyncCreate {
+  phone_files.v1.FileMetadata metadata = 1;
+}
+
+message FileSyncUpdate {
+  phone_files.v1.FileMetadata metadata = 1;
+}
+
+message FileSyncDelete {
+  phone_files.v1.FileMetadata metadata = 1;
+}
+
+message IncrementalFileSync {
+  oneof operation {
+    phone_files.v1.FileSyncCreate create = 1;
+    phone_files.v1.FileSyncUpdate update = 2;
+    phone_files.v1.FileSyncDelete delete = 3;
+  }
+}
+
+message IncrementalFileSyncPayload {
+  repeated phone_files.v1.IncrementalFileSync sync_operation = 1;
+  int64 starting_sequence_number = 2;
+  int64 ending_sequence_number = 3;
+}
+
+message FilesGetResponse {
+  phone_files.v1.FilesResponseStatus status = 1;
+  oneof response {
+    phone_files.v1.GetThumbnailResponse thumbnail_response = 2;
+    phone_files.v1.GetFilesMetadataSyncResponse files_metadata_sync_response = 3;
+    phone_files.v1.PrefetchThumbnailResponse prefetch_thumbnail_response = 4;
+  }
+  string request_id = 5;
+}
+
+message GetThumbnailResponse {
+  phone_files.v1.FileMetadata metadata = 1;
+  bytes thumbnail = 2;
+  phone_files.v1.FilesResponseStatus status = 3;
+}
+
+message GetFilesMetadataSyncResponse {
+  oneof payload {
+    phone_files.v1.FullFileSyncPayload full_sync = 1;
+    phone_files.v1.IncrementalFileSyncPayload incremental_sync = 2;
+  }
+}
+
+message PrefetchThumbnailResponse {
+  repeated phone_files.v1.GetThumbnailResponse thumbnail_response = 1;
+}
+

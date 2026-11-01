@@ -1,0 +1,30 @@
+syntax = "proto3";
+package phone_mirroring.v1;
+
+message SendPinCodeMessage {
+  string pin_code = 1;
+}
+
+message RequestSettingMessage {
+  bool nearby_state = 1;
+  string transaction_id = 2;
+}
+
+message DeviceLockMessage {
+  optional bool is_locked = 1;
+  optional bool is_secure_locked = 2;
+}
+
+message RequestSettingResultMessage {
+  optional bool is_locked = 1;
+  optional bool is_secure_locked = 2;
+  optional bool skip_unlock = 3;
+  optional bool skip_verification = 4;
+  optional string transaction_id = 5;
+}
+
+message VerificationResultMessage {
+  optional bool is_qr_code = 1;
+  optional string expiry_token = 2;
+}
+

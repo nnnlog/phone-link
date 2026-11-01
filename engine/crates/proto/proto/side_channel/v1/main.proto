@@ -1,0 +1,41 @@
+syntax = "proto3";
+package side_channel.v1;
+import "side_channel/v1/error.proto";
+import "side_channel/v1/trace_context.proto";
+import "side_channel/v1/wake.proto";
+import "side_channel/v1/capability.proto";
+import "side_channel/v1/authorization.proto";
+import "side_channel/v1/hotspot.proto";
+
+message SideChannelClientRequest {
+  side_channel.v1.SideChannelTraceContext context = 1;
+  oneof request {
+    side_channel.v1.SideChannelWakeRequest wake_request = 2;
+    side_channel.v1.SideChannelCapabilityRequest capability_request = 3;
+    side_channel.v1.SideChannelHotspotRequest hotspot_request = 5;
+    side_channel.v1.SideChannelInstantHotspotRequest instant_hotspot_request = 6;
+  }
+  optional side_channel.v1.SideChannelAuthorization authorization = 4;
+}
+
+message SideChannelServerResponse {
+  bool ok = 1;
+  side_channel.v1.SideChannelError error = 2;
+  oneof response {
+    side_channel.v1.SideChannelWakeResponse wake_response = 3;
+    side_channel.v1.SideChannelCapabilityResponse capability_response = 4;
+    side_channel.v1.SideChannelHotspotResponse hotspot_response = 5;
+    side_channel.v1.SideChannelHotspotEncryptedResponse hotspot_encrypted_response = 8;
+    side_channel.v1.SideChannelInstantHotspotResponse instant_hotspot_response = 9;
+    side_channel.v1.SideChannelInstantHotspotEncryptedResponse instant_hotspot_encrypted_response = 10;
+  }
+  optional side_channel.v1.SideChannelAuthorization authorization = 6;
+  side_channel.v1.SideChannelTraceContext context = 7;
+}
+
+message SideChannelServerMessage {
+  oneof body {
+    side_channel.v1.SideChannelServerResponse request_response = 1;
+  }
+}
+

@@ -1,0 +1,12 @@
+# Settings for the lints `Cargo.toml` turns on.
+allow-unwrap-in-tests = true
+allow-expect-in-tests = true
+allow-panic-in-tests = true
+disallowed-methods = [
+    { path = "std::sync::Mutex::lock", reason = "say what a poisoned lock means: crate::sync::MutexExt" },
+    { path = "std::sync::RwLock::read", reason = "say what a poisoned lock means: crate::sync::RwLockExt" },
+    { path = "std::sync::RwLock::write", reason = "say what a poisoned lock means: crate::sync::RwLockExt" },
+]
+# The crate has no external API to keep stable (the uniffi names are checked by the bindings diff), so
+# the naming lints apply to exported items too, and both builds lint alike.
+avoid-breaking-exported-api = false

@@ -1,0 +1,53 @@
+syntax = "proto3";
+package platform_sdk.v1;
+import "platform_sdk/v1/trace_context.proto";
+
+enum ProtoPlatformChannelType {
+  PROTO_PLATFORM_CHANNEL_TYPE_UNSPECIFIED = 0;
+  PROTO_PLATFORM_CHANNEL_TYPE_NAMED_STREAMS_CHANNEL = 1;
+  PROTO_PLATFORM_CHANNEL_TYPE_VIDEO_STREAMING_CHANNEL = 2;
+  PROTO_PLATFORM_CHANNEL_TYPE_INTERNAL_MESSAGING_CHANNEL = 3;
+  PROTO_PLATFORM_CHANNEL_TYPE_MESSAGING_CHANNEL = 4;
+  PROTO_PLATFORM_CHANNEL_TYPE_VIDEO_TARGET_CHANNEL = 5;
+  PROTO_PLATFORM_CHANNEL_TYPE_BLOB_CHANNEL = 6;
+  PROTO_PLATFORM_CHANNEL_TYPE_INPUT_SOURCE_CHANNEL = 7;
+  PROTO_PLATFORM_CHANNEL_TYPE_AUDIO_TARGET_CHANNEL = 8;
+  PROTO_PLATFORM_CHANNEL_TYPE_APP_REMOTE_CHANNEL = 9;
+}
+
+enum ProtoCreatePlatformChannelStatus {
+  PROTO_CREATE_PLATFORM_CHANNEL_STATUS_UNSPECIFIED = 0;
+  PROTO_CREATE_PLATFORM_CHANNEL_STATUS_SUCCESS = 1;
+  PROTO_CREATE_PLATFORM_CHANNEL_STATUS_FAILURE = 2;
+  PROTO_CREATE_PLATFORM_CHANNEL_STATUS_NO_REMOTE_SCENARIO_AVAILABLE = 3;
+  PROTO_CREATE_PLATFORM_CHANNEL_STATUS_REMOTE_SCENARIO_REJECTED_CHANNEL = 4;
+}
+
+enum ChannelAcceptanceStatus {
+  CHANNEL_ACCEPTANCE_STATUS_UNSPECIFIED = 0;
+  CHANNEL_ACCEPTANCE_STATUS_SUCCESS = 1;
+  CHANNEL_ACCEPTANCE_STATUS_PERMISSION_REVOKED = 2;
+  CHANNEL_ACCEPTANCE_STATUS_APP_DISABLED = 3;
+  CHANNEL_ACCEPTANCE_STATUS_MOBILE_DATA_DISABLED = 4;
+  CHANNEL_ACCEPTANCE_STATUS_NOT_SUPPORTED = 5;
+  CHANNEL_ACCEPTANCE_STATUS_INVALID_SCENARIO = 6;
+  CHANNEL_ACCEPTANCE_STATUS_NO_CALLBACK_PROVIDED = 7;
+}
+
+message ProtoCreatePlatformChannelRequest {
+  platform_sdk.v1.ProtoPlatformChannelType type = 1;
+  string scenario_id = 2;
+  string channel_id = 3;
+  platform_sdk.v1.ProtoTraceContext trace_context = 4;
+  map<string, string> additional_properties = 5;
+}
+
+message ProtoPeerPlatformChannelCreationResult {
+  platform_sdk.v1.ProtoPlatformChannelType type = 1;
+  string scenario_id = 2;
+  platform_sdk.v1.ProtoCreatePlatformChannelStatus result_code = 3;
+  platform_sdk.v1.ProtoTraceContext trace_context = 4;
+  platform_sdk.v1.ChannelAcceptanceStatus result_reason = 5;
+  string channel_id = 6;
+}
+

@@ -1,0 +1,14 @@
+syntax = "proto3";
+package remotesnipping.v1;
+import "remotesnipping/v1/metadata.proto";
+
+enum MediaChangeType {
+  MEDIA_CHANGE_TYPE_UNSPECIFIED = 0;
+  MEDIA_CHANGE_TYPE_NEW_PHOTO = 1;
+}
+
+message MediaChangeMessage {
+  remotesnipping.v1.MediaChangeType change_type = 1;
+  repeated remotesnipping.v1.MediaMetadata changed_media = 2;
+}
+

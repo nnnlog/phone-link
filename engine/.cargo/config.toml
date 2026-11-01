@@ -1,0 +1,6 @@
+# The macOS app (gui/) targets macOS 14: the engine's Rust code and its C dependencies (ring,
+# SQLite) are built for the same minimum, so the app links them without "built for newer macOS"
+# warnings. Set here rather than in the environment so `cargo` in a shell and the Xcode build script
+# produce the same artifacts.
+[env]
+MACOSX_DEPLOYMENT_TARGET = "14.0"

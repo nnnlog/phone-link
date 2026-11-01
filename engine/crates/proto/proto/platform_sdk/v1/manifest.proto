@@ -1,0 +1,38 @@
+syntax = "proto3";
+package platform_sdk.v1;
+import "platform_sdk/v1/trace_context.proto";
+
+enum ProtoManifestStatus {
+  PROTO_MANIFEST_STATUS_UNSPECIFIED = 0;
+  PROTO_MANIFEST_STATUS_SUCCESS = 1;
+  PROTO_MANIFEST_STATUS_PARSE_ERROR = 2;
+  PROTO_MANIFEST_STATUS_STREAM_UNREADY_ERROR = 3;
+}
+
+message ProtoManifest {
+  map<string, platform_sdk.v1.ProtoManifestEntry> entries = 1;
+  platform_sdk.v1.ProtoTraceContext trace_context = 2;
+}
+
+message ProtoManifestEntry {
+  string id = 1;
+  uint64 size = 2;
+  map<string, string> metadata = 3;
+}
+
+message ProtoFile {
+  bytes data = 1;
+}
+
+message ProtoManifestStreamRequest {
+  string id = 1;
+}
+
+message ProtoTransferComplete {
+}
+
+message ProtoManifestAck {
+  platform_sdk.v1.ProtoManifestStatus status = 1;
+  platform_sdk.v1.ProtoTraceContext trace_context = 2;
+}
+

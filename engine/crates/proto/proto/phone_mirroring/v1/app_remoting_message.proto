@@ -1,0 +1,225 @@
+syntax = "proto3";
+package phone_mirroring.v1;
+
+message ConfigMessage {
+  int64 max_main_display_fps = 1;
+  int32 apps_feature_type = 2;
+  int32 width = 3;
+  int32 height = 4;
+  int32 dpi = 5;
+  int32 host_display_width = 6;
+  int32 host_display_height = 7;
+}
+
+message LaunchPhoneScreenAppMessage {
+  string package_name = 1;
+  string session_id = 2;
+  int32 launch_type = 3;
+}
+
+message LaunchAppMessage {
+  string package_name = 1;
+  string session_id = 2;
+  optional int32 target_screen_layout = 3;
+  optional int64 transfer_task_id = 4;
+  int32 flags = 5;
+}
+
+message BlackScreenMessage {
+  bool black_screen_toggle_state = 1;
+}
+
+message AppResumableMessage {
+  string transaction_id = 1;
+}
+
+message AlwaysInExpandedLayoutChangedMessage {
+  bool is_always_in_expand_layout = 1;
+}
+
+message AppLaunchResultMessage {
+  optional string session_id = 1;
+  optional string launch_result = 2;
+}
+
+message SetLockedStateMessage {
+  optional bool is_locked = 1;
+  bool is_folded = 2;
+  bool can_draw = 3;
+  optional bool is_secure_locked = 4;
+  optional bool is_screen_on = 5;
+  optional bool is_always_unlocked_display = 6;
+  optional bool is_virtual_device_streaming_supported = 7;
+}
+
+message AccessibilitySettingsMessage {
+  optional bool accessibility_service_enabled = 1;
+  optional bool accessibility_talkback_enabled = 2;
+  optional bool negative_filter_enabled = 3;
+}
+
+message AppResumableResultMessage {
+  optional bool is_app_resumable = 1;
+  string transaction_id = 2;
+}
+
+message BindAppRemoteChannelMessage {
+  string package_name = 1;
+  string session_id = 2;
+  string channel_id = 3;
+}
+
+message VolumeMessage {
+  string package_name = 1;
+  int32 volume = 2;
+}
+
+message PCStreamingAllowedMessage {
+  bool isAudioStreamingAllowed = 1;
+}
+
+message SilenceMessage {
+  string package_name = 1;
+  bool is_silent = 2;
+}
+
+message AudioCaptureAllowedMessage {
+  string package_name = 1;
+  bool is_audio_capture_allowed = 2;
+}
+
+message AudioStreamReadyMessage {
+  string package_name = 1;
+}
+
+message PhoneConfigMessage {
+  int32 frame_Length_ms = 1;
+}
+
+message DisconnectingMessage {
+  string transaction_id = 1;
+  string reason = 2;
+}
+
+message DisconnectingResultMessage {
+  string transaction_id = 1;
+}
+
+message ContainerClosedResultMessage {
+  string transaction_id = 1;
+}
+
+message ResolutionMessage {
+  int32 width = 1;
+  int32 height = 2;
+}
+
+message SecureContentChangeMessage {
+  bool is_secure_content = 1;
+}
+
+message OrientationChangedMessage {
+  int32 orientation_info = 1;
+}
+
+message AppReadyMessage {
+  int32 recent_task_id = 1;
+}
+
+message DragStartMessage {
+  string correlation_id = 1;
+  repeated string mime_types = 2;
+  optional string session_id = 3;
+}
+
+message DragPcClipItem {
+  string data_id = 1;
+  string mime_type = 2;
+  int64 file_size = 3;
+  string filename = 4;
+}
+
+message ClipDataItems {
+  repeated string data_ids = 1;
+  repeated string mime_types = 2;
+  repeated int64 file_sizes = 3;
+  repeated string filenames = 4;
+}
+
+message DragClipDataMessage {
+  string correlation_id = 1;
+  phone_mirroring.v1.ClipDataItems clip_data_items = 2;
+}
+
+message DragCompleteMessage {
+  string correlation_id = 1;
+  int32 dropped_item_count = 2;
+  string drop_target = 3;
+}
+
+message DragCancelMessage {
+  string correlation_id = 1;
+  int32 reason = 2;
+}
+
+message DragRequestOwnershipMessage {
+  string correlation_id = 1;
+}
+
+message DragStartPcMessage {
+  string correlation_id = 1;
+  repeated phone_mirroring.v1.DragPcClipItem clip_items = 2;
+}
+
+message DragDropPcMessage {
+  string correlation_id = 1;
+}
+
+message AppFocusableStateMessage {
+  string focusable_state = 1;
+}
+
+message BringToForegroundMessage {
+}
+
+message RequestMoveToVDMessage {
+  string transaction_id = 1;
+  bool remote_task_transfer_supported = 2;
+}
+
+message RequestMoveToVDResultMessage {
+  string transaction_id = 1;
+  bool result = 2;
+}
+
+message RequestDragDropItemMessage {
+  string item_id = 1;
+}
+
+message ScreenContentAreaMessage {
+  int32 left = 1;
+  int32 right = 2;
+  int32 top = 3;
+  int32 bottom = 4;
+}
+
+message NavigationModeChangedMessage {
+  int32 navigation_mode = 1;
+  string button_order = 2;
+}
+
+message RequestScreenLayoutMessage {
+  int32 target_screen_layout = 1;
+  string transaction_id = 2;
+  optional int32 width = 3;
+  optional int32 height = 4;
+  optional int32 dpi = 5;
+  optional int32 host_display_width = 6;
+  optional int32 host_display_height = 7;
+}
+
+message ScreenLayoutChangedMessage {
+  int32 current_screen_layout = 1;
+  string transaction_id = 2;
+}
+

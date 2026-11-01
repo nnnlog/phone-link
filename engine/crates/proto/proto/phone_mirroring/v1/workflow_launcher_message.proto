@@ -1,0 +1,18 @@
+syntax = "proto3";
+package phone_mirroring.v1;
+
+enum WorkflowType {
+  WORKFLOW_TYPE_EARLY_LAUNCH = 0;
+  WORKFLOW_TYPE_NEARBY = 1;
+  WORKFLOW_TYPE_PERMISSION = 2;
+  WORKFLOW_TYPE_APP_REMOTING = 3;
+}
+
+message WorkflowLaunchMessage {
+  phone_mirroring.v1.WorkflowType workflow_type = 1;
+}
+
+message WorkflowLaunchResultMessage {
+  phone_mirroring.v1.WorkflowType workflow_type = 1;
+}
+

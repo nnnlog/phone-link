@@ -1,0 +1,10 @@
+syntax = "proto3";
+package hotspot.v1;
+
+message HotspotTraceContext {
+  string trace_id = 1;
+  string parent_id = 2;
+  string correlation_id = 3;
+  map<string, string> trace_state = 4;
+}
+

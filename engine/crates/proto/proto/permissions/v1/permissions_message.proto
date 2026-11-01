@@ -1,0 +1,45 @@
+syntax = "proto3";
+package permissions.v1;
+
+enum CorePermissions {
+  CORE_PERMISSIONS_UNSPECIFIED = 0;
+  CORE_PERMISSIONS_POST_NOTIFICATIONS = 1;
+}
+
+enum FeaturePermissions {
+  FEATURE_PERMISSIONS_UNSPECIFIED = 0;
+  FEATURE_PERMISSIONS_CAMERA = 1;
+  FEATURE_PERMISSIONS_FILES = 2;
+  FEATURE_PERMISSIONS_PHOTOS = 3;
+  FEATURE_PERMISSIONS_WIFIP2P = 4;
+  FEATURE_PERMISSIONS_DO_NOT_DISTURB = 5;
+  FEATURE_PERMISSIONS_BLUETOOTH_DISCOVERABLE = 6;
+  FEATURE_PERMISSIONS_IMAGE_SEMANTIC_SEARCH = 7;
+}
+
+enum PermissionsRequestStatus {
+  PERMISSIONS_REQUEST_STATUS_UNSPECIFIED = 0;
+  PERMISSIONS_REQUEST_STATUS_ACCEPTED = 1;
+  PERMISSIONS_REQUEST_STATUS_TYPE_UNSUPPORTED = 2;
+  PERMISSIONS_REQUEST_STATUS_OTHER_FAILURE = 3;
+}
+
+message PermissionsRequestMessage {
+  repeated permissions.v1.FeaturePermissions feature_permissions = 1;
+}
+
+message PermissionsResponseMessage {
+  permissions.v1.PermissionsRequestStatus request_status = 1;
+  repeated permissions.v1.CorePermissions core_permissions = 2;
+  repeated permissions.v1.FeaturePermissions feature_permissions = 3;
+  optional string qr_code_uri = 4;
+  repeated permissions.v1.FeaturePermissions permanently_denied_permissions = 5;
+  oneof response_details {
+    permissions.v1.BluetoothDiscoverableDetails bluetooth_discoverable_details = 6;
+  }
+}
+
+message BluetoothDiscoverableDetails {
+  string bluetooth_name = 1;
+}
+

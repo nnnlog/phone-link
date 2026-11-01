@@ -1,0 +1,36 @@
+[package]
+name = "phonelink-remote-snipping"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+description = "The remote_snipping feature of the Phone Link engine"
+
+[lib]
+doctest = false
+
+[features]
+# The fakes and builders other crates' tests use; this crate's own tests turn it on through the
+# dev-dependency on itself below.
+test-support = ["phonelink-core/test-support", "phonelink-features/test-support", "phonelink-proto/test-support", "phonelink-transport/test-support"]
+
+[dependencies]
+phonelink-core.workspace = true
+phonelink-features.workspace = true
+phonelink-proto.workspace = true
+phonelink-transport.workspace = true
+prost.workspace = true
+rusqlite.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+phonelink-remote-snipping = { path = ".", features = ["test-support"] }
+prost-types.workspace = true
+tokio = { workspace = true, features = ["test-util"] }
+
+[lints]
+workspace = true

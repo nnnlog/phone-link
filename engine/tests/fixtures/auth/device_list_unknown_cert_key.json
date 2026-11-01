@@ -1,0 +1,13 @@
+[
+  {
+    "id": "{{OWN_ID}}",
+    "isLinked": true,
+    "certificates": { "SelfSigned": ["{{OWN_CERT}}"] }
+  },
+  {
+    "id": "{{PHONE_A}}",
+    "isLinked": true,
+    "osName": "Android",
+    "certificates": { "SelfSigned": ["{{PHONE_A_CERT}}"], "EncryptionKey": ["AAAA"] }
+  }
+]

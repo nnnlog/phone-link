@@ -1,0 +1,31 @@
+syntax = "proto3";
+package remote_control.v1;
+
+enum RemoteControlType {
+  REMOTE_CONTROL_TYPE_UNSPECIFIED = 0;
+  REMOTE_CONTROL_TYPE_LOCK = 1;
+  REMOTE_CONTROL_TYPE_TRIGGER_TOGGLE_ON = 2;
+  REMOTE_CONTROL_TYPE_SLEEP = 3;
+  REMOTE_CONTROL_TYPE_SHUTDOWN = 4;
+  REMOTE_CONTROL_TYPE_RESTART = 5;
+  REMOTE_CONTROL_TYPE_UPDATE_AND_SHUTDOWN = 6;
+  REMOTE_CONTROL_TYPE_UPDATE_AND_RESTART = 7;
+  REMOTE_CONTROL_TYPE_QUERY_UPDATE_AVAILABILITY = 8;
+}
+
+enum RemoteControlResult {
+  REMOTE_CONTROL_RESULT_UNSPECIFIED = 0;
+  REMOTE_CONTROL_RESULT_SUCCESS = 1;
+  REMOTE_CONTROL_RESULT_FAILED = 2;
+  REMOTE_CONTROL_RESULT_DISABLED = 3;
+}
+
+message RemoteControlRequestMessage {
+  remote_control.v1.RemoteControlType control_type = 1;
+}
+
+message RemoteControlResponseMessage {
+  remote_control.v1.RemoteControlResult control_result = 1;
+  optional bool pc_update_available = 2;
+}
+

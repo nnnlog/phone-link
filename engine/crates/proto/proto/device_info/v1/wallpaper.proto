@@ -1,0 +1,36 @@
+syntax = "proto3";
+package device_info.v1;
+
+enum WallpaperType {
+  WALLPAPER_TYPE_UNSPECIFIED = 0;
+  WALLPAPER_TYPE_HOMESCREEN = 1;
+  WALLPAPER_TYPE_LOCKSCREEN = 2;
+}
+
+enum WallpaperResponseStatus {
+  WALLPAPER_RESPONSE_STATUS_UNSPECIFIED = 0;
+  WALLPAPER_RESPONSE_STATUS_OK = 1;
+  WALLPAPER_RESPONSE_STATUS_SYNC_DISABLED = 2;
+  WALLPAPER_RESPONSE_STATUS_NEED_PERMISSIONS = 3;
+}
+
+message WallpaperRequestMetadata {
+  int64 id = 1;
+  device_info.v1.WallpaperType wallpaper_type = 2;
+}
+
+message WallpaperResponseMetadata {
+  int64 id = 1;
+  device_info.v1.WallpaperType wallpaper_type = 2;
+  optional bytes payload = 3;
+}
+
+message WallpaperRequestMessage {
+  repeated device_info.v1.WallpaperRequestMetadata current_wallpapers = 1;
+}
+
+message WallpaperResponseMessage {
+  repeated device_info.v1.WallpaperResponseMetadata wallpapers = 1;
+  device_info.v1.WallpaperResponseStatus status = 2;
+}
+

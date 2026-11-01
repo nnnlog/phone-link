@@ -1,0 +1,8 @@
+syntax = "proto3";
+package platform_sdk.v1;
+
+message PubSubPayload {
+  bytes data = 1;
+  bytes additional = 2;
+}
+

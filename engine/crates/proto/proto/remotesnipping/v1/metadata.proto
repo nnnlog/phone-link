@@ -1,0 +1,12 @@
+syntax = "proto3";
+package remotesnipping.v1;
+import "google/protobuf/timestamp.proto";
+
+message MediaMetadata {
+  int64 media_id = 1;
+  google.protobuf.Timestamp date_modified = 2;
+  google.protobuf.Timestamp date_taken = 3;
+  optional bytes thumbnail = 4;
+  optional bytes photo = 5;
+}
+

@@ -1,0 +1,23 @@
+syntax = "proto3";
+package phone_files.v1;
+import "phone_files/v1/status.proto";
+
+enum FilesSyncType {
+  FILES_SYNC_TYPE_UNSPECIFIED = 0;
+  FILES_SYNC_TYPE_FULL_SYNC = 1;
+  FILES_SYNC_TYPE_INCREMENTAL_SYNC = 2;
+}
+
+message FilesSyncRequest {
+  oneof request {
+    phone_files.v1.FilesConfigurationSyncRequest config_sync_request = 1;
+  }
+}
+
+message FilesConfigurationSyncRequest {
+}
+
+message FilesSyncResponse {
+  phone_files.v1.FilesResponseStatus status = 1;
+}
+

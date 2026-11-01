@@ -1,0 +1,36 @@
+syntax = "proto3";
+package phone_mirroring.v1;
+
+message LaunchCustomIntentMessage {
+  string intent_key = 1;
+}
+
+message LaunchNotificationMessage {
+  string key = 1;
+  int32 action_index = 2;
+}
+
+message LaunchNotificationMessageV2 {
+  string transaction_id = 1;
+  string key = 2;
+  int32 action_index = 3;
+}
+
+message RequestSessionResultMessage {
+  string session_id = 1;
+  string transaction_id = 2;
+  bool session_already_exists = 3;
+  int32 target_screen_layout = 4;
+}
+
+message LaunchNotificationResultMessage {
+  optional string transaction_id = 1;
+  optional string key = 2;
+  optional int32 launch_result = 3;
+}
+
+message RequestSessionMessage {
+  optional string package_name = 1;
+  optional string transaction_id = 2;
+}
+

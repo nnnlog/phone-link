@@ -1,0 +1,29 @@
+syntax = "proto3";
+package file_transfer.v1;
+
+enum FileShareFileStatus {
+  FILE_SHARE_FILE_STATUS_UNSPECIFIED = 0;
+  FILE_SHARE_FILE_STATUS_NOT_STARTED = 1;
+  FILE_SHARE_FILE_STATUS_IN_PROGRESS = 2;
+  FILE_SHARE_FILE_STATUS_COMPLETED = 3;
+}
+
+message FileShareContentMessage {
+  string file_id = 1;
+  string file_name = 2;
+  int64 file_size = 3;
+  string file_hash = 4;
+  file_transfer.v1.FileShareFileStatus file_status = 5;
+}
+
+message FileShareMessage {
+  string transfer_id = 1;
+  string scenario = 2;
+  string sender_name = 3;
+  int32 received_file_count = 4;
+  repeated file_transfer.v1.FileShareContentMessage content = 5;
+  string pc_folder = 6;
+  int32 session_try_count = 7;
+  bool is_concurrent_mode = 8;
+}
+

@@ -1,0 +1,38 @@
+syntax = "proto3";
+package image.v1;
+
+enum ImageSemanticSearchResultStatus {
+  IMAGE_SEMANTIC_SEARCH_RESULT_STATUS_UNSPECIFIED = 0;
+  IMAGE_SEMANTIC_SEARCH_RESULT_STATUS_SUCCESS = 1;
+  IMAGE_SEMANTIC_SEARCH_RESULT_STATUS_FAILURE = 2;
+  IMAGE_SEMANTIC_SEARCH_RESULT_STATUS_NO_PERMISSION = 3;
+  IMAGE_SEMANTIC_SEARCH_RESULT_STATUS_IN_INDEXING = 4;
+}
+
+message ImageSemanticSearchRequest {
+  string query = 1;
+  int32 max_results = 2;
+}
+
+message ImageGetRequestMessage {
+  oneof request {
+    image.v1.ImageSemanticSearchRequest semantic_search_request = 1;
+  }
+}
+
+message ImageSemanticSearchItem {
+  int64 image_id = 1;
+  float score = 2;
+}
+
+message ImageSemanticSearchResponse {
+  image.v1.ImageSemanticSearchResultStatus status = 1;
+  repeated image.v1.ImageSemanticSearchItem items = 2;
+}
+
+message ImageGetResponseMessage {
+  oneof response {
+    image.v1.ImageSemanticSearchResponse semantic_search_response = 1;
+  }
+}
+

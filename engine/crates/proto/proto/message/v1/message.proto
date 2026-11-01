@@ -1,0 +1,39 @@
+syntax = "proto3";
+package message.v1;
+
+enum SendMessageResponseStatus {
+  SEND_MESSAGE_RESPONSE_STATUS_UNSPECIFIED = 0;
+  SEND_MESSAGE_RESPONSE_STATUS_OK = 1;
+  SEND_MESSAGE_RESPONSE_STATUS_INVALID_REQUEST = 2;
+  SEND_MESSAGE_RESPONSE_STATUS_PERMISSION_NOT_GRANTED = 3;
+  SEND_MESSAGE_RESPONSE_STATUS_SEND_FAILED = 4;
+  SEND_MESSAGE_RESPONSE_STATUS_UNKNOWN_ERROR = 5;
+  SEND_MESSAGE_RESPONSE_STATUS_NO_SIM = 6;
+  SEND_MESSAGE_RESPONSE_STATUS_AIRPLANE_MODE = 7;
+  SEND_MESSAGE_RESPONSE_STATUS_NO_SERVICE = 8;
+  SEND_MESSAGE_RESPONSE_STATUS_TIMEOUT = 9;
+  SEND_MESSAGE_RESPONSE_STATUS_MESSAGE_SIZE_EXCEEDED = 10;
+  SEND_MESSAGE_RESPONSE_STATUS_BLUETOOTH_NOT_CONNECTED = 11;
+}
+
+message SendMessageAttachment {
+  string name = 1;
+  string content_id = 2;
+  string content_type = 3;
+  bytes data = 4;
+}
+
+message SendMessageRequestMessage {
+  repeated string recipients = 1;
+  string body = 2;
+  int32 subscription_id = 3;
+  int64 thread_id = 4;
+  repeated .message.v1.SendMessageAttachment attachments = 5;
+}
+
+message SendMessageResponseMessage {
+  .message.v1.SendMessageResponseStatus status = 1;
+  string message_id = 2;
+  string error_detail = 3;
+}
+

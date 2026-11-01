@@ -1,0 +1,10 @@
+// The app's identity. Every target's bundle identifier, the app groups and the Info.plist entries start
+// with PHONELINK_BUNDLE_ID, and the code reads it back from each bundle's Info.plist (PhoneLinkBundleID).
+// A different value makes a different app to macOS: the Keychain item holding the app's keys, its
+// data folder, its log folder and the camera's device ID all start over.
+PHONELINK_BUNDLE_ID = dev.nlog.PhoneLink
+
+// The GitHub repository, as owner/name, whose releases the app's updater offers (Settings › General ›
+// Updates) and that the About panel links to. Empty turns the updater off and leaves out the links: a fork
+// that publishes no releases of its own sets it empty or to its own repository.
+PHONELINK_UPDATE_REPOSITORY = nnnlog/phone-link

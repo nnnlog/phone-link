@@ -1,0 +1,30 @@
+syntax = "proto3";
+package file_transfer.v1;
+
+enum NanoDelegateInitResponseStatus {
+  NANO_DELEGATE_INIT_RESPONSE_STATUS_UNSPECIFIED = 0;
+  NANO_DELEGATE_INIT_RESPONSE_STATUS_OK = 1;
+  NANO_DELEGATE_INIT_RESPONSE_STATUS_UNRECOGNIZED_PAYLOAD = 2;
+  NANO_DELEGATE_INIT_RESPONSE_STATUS_EMPTY_PAYLOAD = 3;
+  NANO_DELEGATE_INIT_RESPONSE_STATUS_INVALID_DEVICE_RESOURCE_REQUEST_TYPE = 4;
+  NANO_DELEGATE_INIT_RESPONSE_STATUS_INVALID_DEVICE_RESOURCE_REQUEST_PATH = 5;
+}
+
+message DdpsPayloadItem {
+  string file_transfer_session_id = 1;
+  repeated string file_ids = 2;
+  string tag = 3;
+  int32 version_code = 4;
+  string sender_id = 5;
+}
+
+message NanoDelegateInitRequest {
+  string file_transfer_session_id = 1;
+}
+
+message NanoDelegateInitResponse {
+  string file_transfer_session_id = 1;
+  file_transfer.v1.NanoDelegateInitResponseStatus status = 2;
+  string message = 3;
+}
+

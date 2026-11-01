@@ -1,0 +1,40 @@
+[package]
+name = "phonelink-connected-camera"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+description = "The connected_camera feature of the Phone Link engine"
+
+[lib]
+doctest = false
+
+[features]
+# The fakes and builders other crates' tests use; this crate's own tests turn it on through the
+# dev-dependency on itself below.
+test-support = ["phonelink-core/test-support", "phonelink-features/test-support", "phonelink-nano/test-support", "phonelink-proto/test-support", "phonelink-transport/test-support"]
+
+[dependencies]
+phonelink-core.workspace = true
+phonelink-features.workspace = true
+phonelink-nano.workspace = true
+phonelink-proto.workspace = true
+phonelink-transport.workspace = true
+async-trait.workspace = true
+prost.workspace = true
+rusqlite.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+tracing.workspace = true
+uniffi.workspace = true
+
+[dev-dependencies]
+phonelink-connected-camera = { path = ".", features = ["test-support"] }
+tokio = { workspace = true, features = ["test-util"] }
+
+[lints]
+workspace = true

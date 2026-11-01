@@ -1,0 +1,39 @@
+[package]
+name = "phonelink-features"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+description = "What the features of the Phone Link engine share"
+
+[lib]
+doctest = false
+
+[features]
+# The fakes and builders other crates' tests use; this crate's own tests turn it on through the
+# dev-dependency on itself below.
+test-support = ["phonelink-app/test-support", "phonelink-core/test-support", "phonelink-nano/test-support", "phonelink-proto/test-support", "phonelink-transport/test-support"]
+
+[dependencies]
+phonelink-app.workspace = true
+phonelink-core.workspace = true
+phonelink-nano.workspace = true
+phonelink-proto.workspace = true
+phonelink-transport.workspace = true
+async-trait.workspace = true
+phonenumber.workspace = true
+prost.workspace = true
+rusqlite.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+uniffi.workspace = true
+
+[dev-dependencies]
+phonelink-features = { path = ".", features = ["test-support"] }
+tempfile.workspace = true
+tokio = { workspace = true, features = ["test-util"] }
+
+[lints]
+workspace = true

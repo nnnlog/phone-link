@@ -1,0 +1,16 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "NSSystemExtensionUsageDescription" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Phone Link는 휴대폰 카메라를 이 Mac에서 카메라로 쓸 수 있게 해 줘요."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

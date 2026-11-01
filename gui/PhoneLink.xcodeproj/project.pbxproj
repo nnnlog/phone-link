@@ -1,0 +1,941 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		D00000000000000000000041 /* phonelink_engine.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00000000000000000000021 /* phonelink_engine.swift */; };
+		D00000000000000000000140 /* phonelink_core.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00000000000000000000100 /* phonelink_core.swift */; };
+		D00000000000000000000141 /* phonelink_features.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00000000000000000000101 /* phonelink_features.swift */; };
+		D00000000000000000000142 /* phonelink_phone_apps.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00000000000000000000102 /* phonelink_phone_apps.swift */; };
+		D00000000000000000000143 /* phonelink_device_status.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00000000000000000000103 /* phonelink_device_status.swift */; };
+		D00000000000000000000144 /* phonelink_bluetooth.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00000000000000000000104 /* phonelink_bluetooth.swift */; };
+		D00000000000000000000145 /* phonelink_hotspot.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00000000000000000000105 /* phonelink_hotspot.swift */; };
+		D00000000000000000000146 /* phonelink_screen_mirroring.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00000000000000000000106 /* phonelink_screen_mirroring.swift */; };
+		D00000000000000000000147 /* phonelink_clipboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00000000000000000000107 /* phonelink_clipboard.swift */; };
+		D00000000000000000000148 /* phonelink_connected_camera.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00000000000000000000108 /* phonelink_connected_camera.swift */; };
+		D00000000000000000000149 /* phonelink_messaging.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00000000000000000000109 /* phonelink_messaging.swift */; };
+		D0000000000000000000014A /* phonelink_remote_control.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000010A /* phonelink_remote_control.swift */; };
+		D0000000000000000000014B /* phonelink_wallpaper.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000010B /* phonelink_wallpaper.swift */; };
+		D00000000000000000000042 /* libPhoneLinkEngine.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D00000000000000000000031 /* libPhoneLinkEngine.a */; };
+		D00000000000000000000043 /* libPhoneLinkKit.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D00000000000000000000032 /* libPhoneLinkKit.a */; };
+		D00000000000000000000044 /* libPhoneLinkEngine.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D00000000000000000000031 /* libPhoneLinkEngine.a */; };
+		D00000000000000000000045 /* libPhoneLinkKit.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D00000000000000000000032 /* libPhoneLinkKit.a */; };
+		D00000000000000000000046 /* PhoneFilesProvider.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D00000000000000000000035 /* PhoneFilesProvider.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		D00000000000000000000047 /* $(PHONELINK_BUNDLE_ID).CameraExtension.systemextension in Embed System Extensions */ = {isa = PBXBuildFile; fileRef = D00000000000000000000036 /* $(PHONELINK_BUNDLE_ID).CameraExtension.systemextension */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		D000000000000000000000A1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D00000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D00000000000000000000051;
+			remoteInfo = PhoneLinkEngine;
+		};
+		D000000000000000000000A2 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D00000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D00000000000000000000052;
+			remoteInfo = PhoneLinkKit;
+		};
+		D000000000000000000000A3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D00000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D00000000000000000000051;
+			remoteInfo = PhoneLinkEngine;
+		};
+		D000000000000000000000A4 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D00000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D00000000000000000000052;
+			remoteInfo = PhoneLinkKit;
+		};
+		D000000000000000000000A5 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D00000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D00000000000000000000051;
+			remoteInfo = PhoneLinkEngine;
+		};
+		D000000000000000000000A6 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D00000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D00000000000000000000055;
+			remoteInfo = PhoneFilesProvider;
+		};
+		D000000000000000000000A7 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D00000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D00000000000000000000056;
+			remoteInfo = PhoneCameraExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		D00000000000000000000095 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				D00000000000000000000046 /* PhoneFilesProvider.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D00000000000000000000096 /* Embed System Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(SYSTEM_EXTENSIONS_FOLDER_PATH)";
+			dstSubfolderSpec = 16;
+			files = (
+				D00000000000000000000047 /* $(PHONELINK_BUNDLE_ID).CameraExtension.systemextension in Embed System Extensions */,
+			);
+			name = "Embed System Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		D00000000000000000000026 /* Identity.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Identity.xcconfig; sourceTree = "<group>"; };
+		D00000000000000000000027 /* Version.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Version.xcconfig; sourceTree = "<group>"; };
+		D00000000000000000000025 /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
+		D00000000000000000000021 /* phonelink_engine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = phonelink_engine.swift; sourceTree = "<group>"; };
+		D00000000000000000000100 /* phonelink_core.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = phonelink_core.swift; sourceTree = "<group>"; };
+		D00000000000000000000101 /* phonelink_features.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = phonelink_features.swift; sourceTree = "<group>"; };
+		D00000000000000000000102 /* phonelink_phone_apps.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = phonelink_phone_apps.swift; sourceTree = "<group>"; };
+		D00000000000000000000103 /* phonelink_device_status.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = phonelink_device_status.swift; sourceTree = "<group>"; };
+		D00000000000000000000104 /* phonelink_bluetooth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = phonelink_bluetooth.swift; sourceTree = "<group>"; };
+		D00000000000000000000105 /* phonelink_hotspot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = phonelink_hotspot.swift; sourceTree = "<group>"; };
+		D00000000000000000000106 /* phonelink_screen_mirroring.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = phonelink_screen_mirroring.swift; sourceTree = "<group>"; };
+		D00000000000000000000107 /* phonelink_clipboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = phonelink_clipboard.swift; sourceTree = "<group>"; };
+		D00000000000000000000108 /* phonelink_connected_camera.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = phonelink_connected_camera.swift; sourceTree = "<group>"; };
+		D00000000000000000000109 /* phonelink_messaging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = phonelink_messaging.swift; sourceTree = "<group>"; };
+		D0000000000000000000010A /* phonelink_remote_control.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = phonelink_remote_control.swift; sourceTree = "<group>"; };
+		D0000000000000000000010B /* phonelink_wallpaper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = phonelink_wallpaper.swift; sourceTree = "<group>"; };
+		D00000000000000000000031 /* libPhoneLinkEngine.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libPhoneLinkEngine.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		D00000000000000000000032 /* libPhoneLinkKit.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libPhoneLinkKit.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		D00000000000000000000033 /* PhoneLink.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PhoneLink.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D00000000000000000000034 /* PhoneLinkKitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PhoneLinkKitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		D00000000000000000000035 /* PhoneFilesProvider.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PhoneFilesProvider.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		D00000000000000000000036 /* $(PHONELINK_BUNDLE_ID).CameraExtension.systemextension */ = {isa = PBXFileReference; explicitFileType = "wrapper.system-extension"; includeInIndex = 0; path = "$(PHONELINK_BUNDLE_ID).CameraExtension.systemextension"; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		D00000000000000000000011 /* PhoneLink */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = PhoneLink;
+			sourceTree = "<group>";
+		};
+		D00000000000000000000012 /* PhoneLinkKit */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = PhoneLinkKit;
+			sourceTree = "<group>";
+		};
+		D00000000000000000000013 /* PhoneLinkKitTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = PhoneLinkKitTests;
+			sourceTree = "<group>";
+		};
+		D00000000000000000000014 /* PhoneFilesShared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = PhoneFilesShared;
+			sourceTree = "<group>";
+		};
+		D00000000000000000000015 /* PhoneFilesProvider */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = PhoneFilesProvider;
+			sourceTree = "<group>";
+		};
+		D00000000000000000000016 /* PhoneCameraShared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = PhoneCameraShared;
+			sourceTree = "<group>";
+		};
+		D00000000000000000000017 /* PhoneCameraExtension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = PhoneCameraExtension;
+			sourceTree = "<group>";
+		};
+		D00000000000000000000018 /* PhoneLinkShared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = PhoneLinkShared;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		D00000000000000000000081 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D00000000000000000000082 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D00000000000000000000083 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D00000000000000000000043 /* libPhoneLinkKit.a in Frameworks */,
+				D00000000000000000000042 /* libPhoneLinkEngine.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D00000000000000000000084 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D00000000000000000000045 /* libPhoneLinkKit.a in Frameworks */,
+				D00000000000000000000044 /* libPhoneLinkEngine.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D00000000000000000000085 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D00000000000000000000086 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		D00000000000000000000002 = {
+			isa = PBXGroup;
+			children = (
+				D00000000000000000000011 /* PhoneLink */,
+				D00000000000000000000012 /* PhoneLinkKit */,
+				D00000000000000000000013 /* PhoneLinkKitTests */,
+				D00000000000000000000014 /* PhoneFilesShared */,
+				D00000000000000000000015 /* PhoneFilesProvider */,
+				D00000000000000000000016 /* PhoneCameraShared */,
+				D00000000000000000000017 /* PhoneCameraExtension */,
+				D00000000000000000000018 /* PhoneLinkShared */,
+				D00000000000000000000004 /* Generated */,
+				D00000000000000000000003 /* Products */,
+				D00000000000000000000025 /* Signing.xcconfig */,
+				D00000000000000000000026 /* Identity.xcconfig */,
+				D00000000000000000000027 /* Version.xcconfig */,
+			);
+			sourceTree = "<group>";
+		};
+		D00000000000000000000004 /* Generated */ = {
+			isa = PBXGroup;
+			children = (
+				D00000000000000000000021 /* phonelink_engine.swift */,
+				D00000000000000000000100 /* phonelink_core.swift */,
+				D00000000000000000000101 /* phonelink_features.swift */,
+				D00000000000000000000102 /* phonelink_phone_apps.swift */,
+				D00000000000000000000103 /* phonelink_device_status.swift */,
+				D00000000000000000000104 /* phonelink_bluetooth.swift */,
+				D00000000000000000000105 /* phonelink_hotspot.swift */,
+				D00000000000000000000106 /* phonelink_screen_mirroring.swift */,
+				D00000000000000000000107 /* phonelink_clipboard.swift */,
+				D00000000000000000000108 /* phonelink_connected_camera.swift */,
+				D00000000000000000000109 /* phonelink_messaging.swift */,
+				D0000000000000000000010A /* phonelink_remote_control.swift */,
+				D0000000000000000000010B /* phonelink_wallpaper.swift */,
+			);
+			path = Generated;
+			sourceTree = "<group>";
+		};
+		D00000000000000000000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				D00000000000000000000033 /* PhoneLink.app */,
+				D00000000000000000000032 /* libPhoneLinkKit.a */,
+				D00000000000000000000031 /* libPhoneLinkEngine.a */,
+				D00000000000000000000034 /* PhoneLinkKitTests.xctest */,
+				D00000000000000000000035 /* PhoneFilesProvider.appex */,
+				D00000000000000000000036 /* $(PHONELINK_BUNDLE_ID).CameraExtension.systemextension */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		D00000000000000000000053 /* PhoneLink */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D000000000000000000000C3;
+			buildPhases = (
+				D00000000000000000000073 /* Sources */,
+				D00000000000000000000083 /* Frameworks */,
+				D00000000000000000000091 /* Resources */,
+				D00000000000000000000095 /* Embed Foundation Extensions */,
+				D00000000000000000000096 /* Embed System Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D000000000000000000000B2 /* PBXTargetDependency */,
+				D000000000000000000000B3 /* PBXTargetDependency */,
+				D000000000000000000000B6 /* PBXTargetDependency */,
+				D000000000000000000000B7 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				D00000000000000000000011 /* PhoneLink */,
+			);
+			name = PhoneLink;
+			productName = PhoneLink;
+			productReference = D00000000000000000000033;
+			productType = "com.apple.product-type.application";
+		};
+		D00000000000000000000051 /* PhoneLinkEngine */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D000000000000000000000C1;
+			buildPhases = (
+				D00000000000000000000061 /* Build Rust engine and bindings */,
+				D00000000000000000000071 /* Sources */,
+				D00000000000000000000081 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = PhoneLinkEngine;
+			productName = PhoneLinkEngine;
+			productReference = D00000000000000000000031;
+			productType = "com.apple.product-type.library.static";
+		};
+		D00000000000000000000052 /* PhoneLinkKit */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D000000000000000000000C2;
+			buildPhases = (
+				D00000000000000000000072 /* Sources */,
+				D00000000000000000000082 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D000000000000000000000B1 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				D00000000000000000000012 /* PhoneLinkKit */,
+				D00000000000000000000014 /* PhoneFilesShared */,
+				D00000000000000000000016 /* PhoneCameraShared */,
+				D00000000000000000000018 /* PhoneLinkShared */,
+			);
+			name = PhoneLinkKit;
+			productName = PhoneLinkKit;
+			productReference = D00000000000000000000032;
+			productType = "com.apple.product-type.library.static";
+		};
+		D00000000000000000000054 /* PhoneLinkKitTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D000000000000000000000C4;
+			buildPhases = (
+				D00000000000000000000074 /* Sources */,
+				D00000000000000000000084 /* Frameworks */,
+				D00000000000000000000092 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D000000000000000000000B4 /* PBXTargetDependency */,
+				D000000000000000000000B5 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				D00000000000000000000013 /* PhoneLinkKitTests */,
+			);
+			name = PhoneLinkKitTests;
+			productName = PhoneLinkKitTests;
+			productReference = D00000000000000000000034;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		D00000000000000000000055 /* PhoneFilesProvider */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D000000000000000000000C5;
+			buildPhases = (
+				D00000000000000000000075 /* Sources */,
+				D00000000000000000000085 /* Frameworks */,
+				D00000000000000000000093 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				D00000000000000000000015 /* PhoneFilesProvider */,
+				D00000000000000000000014 /* PhoneFilesShared */,
+				D00000000000000000000018 /* PhoneLinkShared */,
+			);
+			name = PhoneFilesProvider;
+			productName = PhoneFilesProvider;
+			productReference = D00000000000000000000035;
+			productType = "com.apple.product-type.app-extension";
+		};
+		D00000000000000000000056 /* PhoneCameraExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D000000000000000000000C6;
+			buildPhases = (
+				D00000000000000000000076 /* Sources */,
+				D00000000000000000000086 /* Frameworks */,
+				D00000000000000000000094 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				D00000000000000000000017 /* PhoneCameraExtension */,
+				D00000000000000000000016 /* PhoneCameraShared */,
+				D00000000000000000000018 /* PhoneLinkShared */,
+			);
+			name = PhoneCameraExtension;
+			productName = PhoneCameraExtension;
+			productReference = D00000000000000000000036;
+			productType = "com.apple.product-type.system-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		D00000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2710;
+				LastUpgradeCheck = 2710;
+			};
+			buildConfigurationList = D000000000000000000000C0 /* Build configuration list for PBXProject "PhoneLink" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				ko,
+				Base,
+			);
+			mainGroup = D00000000000000000000002;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = D00000000000000000000003 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				D00000000000000000000053 /* PhoneLink */,
+				D00000000000000000000052 /* PhoneLinkKit */,
+				D00000000000000000000051 /* PhoneLinkEngine */,
+				D00000000000000000000054 /* PhoneLinkKitTests */,
+				D00000000000000000000055 /* PhoneFilesProvider */,
+				D00000000000000000000056 /* PhoneCameraExtension */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		D00000000000000000000091 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D00000000000000000000092 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D00000000000000000000093 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D00000000000000000000094 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		D00000000000000000000061 /* Build Rust engine and bindings */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Build Rust engine and bindings";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(SRCROOT)/Generated/phonelink_engine.swift",
+				"$(SRCROOT)/Generated/phonelink_engineFFI.h",
+				"$(SRCROOT)/Generated/phonelink_engineFFI.modulemap",
+				"$(SRCROOT)/Generated/phonelink_core.swift",
+				"$(SRCROOT)/Generated/phonelink_coreFFI.h",
+				"$(SRCROOT)/Generated/phonelink_features.swift",
+				"$(SRCROOT)/Generated/phonelink_featuresFFI.h",
+				"$(SRCROOT)/Generated/phonelink_phone_apps.swift",
+				"$(SRCROOT)/Generated/phonelink_phone_appsFFI.h",
+				"$(SRCROOT)/Generated/phonelink_device_status.swift",
+				"$(SRCROOT)/Generated/phonelink_device_statusFFI.h",
+				"$(SRCROOT)/Generated/phonelink_bluetooth.swift",
+				"$(SRCROOT)/Generated/phonelink_bluetoothFFI.h",
+				"$(SRCROOT)/Generated/phonelink_hotspot.swift",
+				"$(SRCROOT)/Generated/phonelink_hotspotFFI.h",
+				"$(SRCROOT)/Generated/phonelink_screen_mirroring.swift",
+				"$(SRCROOT)/Generated/phonelink_screen_mirroringFFI.h",
+				"$(SRCROOT)/Generated/phonelink_clipboard.swift",
+				"$(SRCROOT)/Generated/phonelink_clipboardFFI.h",
+				"$(SRCROOT)/Generated/phonelink_connected_camera.swift",
+				"$(SRCROOT)/Generated/phonelink_connected_cameraFFI.h",
+				"$(SRCROOT)/Generated/phonelink_messaging.swift",
+				"$(SRCROOT)/Generated/phonelink_messagingFFI.h",
+				"$(SRCROOT)/Generated/phonelink_remote_control.swift",
+				"$(SRCROOT)/Generated/phonelink_remote_controlFFI.h",
+				"$(SRCROOT)/Generated/phonelink_wallpaper.swift",
+				"$(SRCROOT)/Generated/phonelink_wallpaperFFI.h",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "\"$SRCROOT/scripts/build-engine.sh\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		D00000000000000000000071 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D00000000000000000000041 /* phonelink_engine.swift in Sources */,
+				D00000000000000000000140 /* phonelink_core.swift in Sources */,
+				D00000000000000000000141 /* phonelink_features.swift in Sources */,
+				D00000000000000000000142 /* phonelink_phone_apps.swift in Sources */,
+				D00000000000000000000143 /* phonelink_device_status.swift in Sources */,
+				D00000000000000000000144 /* phonelink_bluetooth.swift in Sources */,
+				D00000000000000000000145 /* phonelink_hotspot.swift in Sources */,
+				D00000000000000000000146 /* phonelink_screen_mirroring.swift in Sources */,
+				D00000000000000000000147 /* phonelink_clipboard.swift in Sources */,
+				D00000000000000000000148 /* phonelink_connected_camera.swift in Sources */,
+				D00000000000000000000149 /* phonelink_messaging.swift in Sources */,
+				D0000000000000000000014A /* phonelink_remote_control.swift in Sources */,
+				D0000000000000000000014B /* phonelink_wallpaper.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D00000000000000000000072 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D00000000000000000000073 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D00000000000000000000074 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D00000000000000000000075 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D00000000000000000000076 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		D000000000000000000000B1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D00000000000000000000051 /* PhoneLinkEngine */;
+			targetProxy = D000000000000000000000A1 /* PBXContainerItemProxy */;
+		};
+		D000000000000000000000B2 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D00000000000000000000052 /* PhoneLinkKit */;
+			targetProxy = D000000000000000000000A2 /* PBXContainerItemProxy */;
+		};
+		D000000000000000000000B3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D00000000000000000000051 /* PhoneLinkEngine */;
+			targetProxy = D000000000000000000000A3 /* PBXContainerItemProxy */;
+		};
+		D000000000000000000000B4 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D00000000000000000000052 /* PhoneLinkKit */;
+			targetProxy = D000000000000000000000A4 /* PBXContainerItemProxy */;
+		};
+		D000000000000000000000B5 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D00000000000000000000051 /* PhoneLinkEngine */;
+			targetProxy = D000000000000000000000A5 /* PBXContainerItemProxy */;
+		};
+		D000000000000000000000B6 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D00000000000000000000055 /* PhoneFilesProvider */;
+			targetProxy = D000000000000000000000A6 /* PBXContainerItemProxy */;
+		};
+		D000000000000000000000B7 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D00000000000000000000056 /* PhoneCameraExtension */;
+			targetProxy = D000000000000000000000A7 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		D000000000000000000000E0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = D00000000000000000000025 /* Signing.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = arm64;
+				CLANG_ENABLE_MODULES = YES;
+				DEAD_CODE_STRIPPING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				OTHER_SWIFT_FLAGS = "$(inherited) -Xcc -fmodule-map-file=$(SRCROOT)/Generated/phonelink_engineFFI.modulemap";
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/Generated";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				ENGINE_PROFILE = debug;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		D000000000000000000000E1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = D00000000000000000000025 /* Signing.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = arm64;
+				CLANG_ENABLE_MODULES = YES;
+				DEAD_CODE_STRIPPING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				OTHER_SWIFT_FLAGS = "$(inherited) -Xcc -fmodule-map-file=$(SRCROOT)/Generated/phonelink_engineFFI.modulemap";
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/Generated";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENGINE_PROFILE = release;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+			};
+			name = Release;
+		};
+		D000000000000000000000E2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		D000000000000000000000E3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		D000000000000000000000E4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		D000000000000000000000E5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		D000000000000000000000E6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "PhoneLink-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Phone Link";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_LSUIElement = YES;
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Phone Link uses Bluetooth to pair with your phone, to connect to it directly for the features that work over Bluetooth, and to check whether it's connected to this Mac.";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Chansol Park (nlog)";
+				INFOPLIST_KEY_NSLocationUsageDescription = "Phone Link looks for your phone's hotspot among nearby Wi-Fi networks, which macOS shows only to apps allowed to use Location Services.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Phone Link looks for your phone's hotspot among nearby Wi-Fi networks, which macOS shows only to apps allowed to use Location Services.";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				CODE_SIGN_ENTITLEMENTS = "$(PHONELINK_APP_ENTITLEMENTS)";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(PHONELINK_BUNDLE_ID)";
+				PRODUCT_NAME = PhoneLink;
+				PROVISIONING_PROFILE_SPECIFIER = "$(PHONELINK_APP_PROFILE)";
+				SWIFT_VERSION = 6.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"$(SRCROOT)/../engine/target/app/$(ENGINE_PROFILE)/libphonelink_engine.a",
+					"-liconv",
+				);
+			};
+			name = Debug;
+		};
+		D000000000000000000000E7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "PhoneLink-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Phone Link";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_LSUIElement = YES;
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Phone Link uses Bluetooth to pair with your phone, to connect to it directly for the features that work over Bluetooth, and to check whether it's connected to this Mac.";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Chansol Park (nlog)";
+				INFOPLIST_KEY_NSLocationUsageDescription = "Phone Link looks for your phone's hotspot among nearby Wi-Fi networks, which macOS shows only to apps allowed to use Location Services.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Phone Link looks for your phone's hotspot among nearby Wi-Fi networks, which macOS shows only to apps allowed to use Location Services.";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				CODE_SIGN_ENTITLEMENTS = "$(PHONELINK_APP_ENTITLEMENTS)";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(PHONELINK_BUNDLE_ID)";
+				PRODUCT_NAME = PhoneLink;
+				PROVISIONING_PROFILE_SPECIFIER = "$(PHONELINK_APP_PROFILE)";
+				SWIFT_VERSION = 6.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"$(SRCROOT)/../engine/target/app/$(ENGINE_PROFILE)/libphonelink_engine.a",
+					"-liconv",
+				);
+			};
+			name = Release;
+		};
+		D000000000000000000000E8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(PHONELINK_BUNDLE_ID).kit-tests";
+				INFOPLIST_FILE = "PhoneLinkKitTests-Info.plist";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "";
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"$(SRCROOT)/../engine/target/app/$(ENGINE_PROFILE)/libphonelink_engine.a",
+					"-liconv",
+				);
+			};
+			name = Debug;
+		};
+		D000000000000000000000E9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(PHONELINK_BUNDLE_ID).kit-tests";
+				INFOPLIST_FILE = "PhoneLinkKitTests-Info.plist";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "";
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"$(SRCROOT)/../engine/target/app/$(ENGINE_PROFILE)/libphonelink_engine.a",
+					"-liconv",
+				);
+			};
+			name = Release;
+		};
+		D000000000000000000000EA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = PhoneFilesProvider.entitlements;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "PhoneFilesProvider-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Phone Link Phone Files";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(PHONELINK_BUNDLE_ID).PhoneFilesProvider";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		D000000000000000000000EB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = PhoneFilesProvider.entitlements;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "PhoneFilesProvider-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Phone Link Phone Files";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(PHONELINK_BUNDLE_ID).PhoneFilesProvider";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		D000000000000000000000EC /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = PhoneCameraExtension.entitlements;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "PhoneCameraExtension-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Phone Link Camera";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(PHONELINK_BUNDLE_ID).CameraExtension";
+				PRODUCT_NAME = "$(PRODUCT_BUNDLE_IDENTIFIER)";
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		D000000000000000000000ED /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = PhoneCameraExtension.entitlements;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "PhoneCameraExtension-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Phone Link Camera";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(PHONELINK_BUNDLE_ID).CameraExtension";
+				PRODUCT_NAME = "$(PRODUCT_BUNDLE_IDENTIFIER)";
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		D000000000000000000000C0 /* Build configuration list for PBXProject "PhoneLink" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D000000000000000000000E0 /* Debug */,
+				D000000000000000000000E1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D000000000000000000000C1 /* Build configuration list for PBXNativeTarget "PhoneLinkEngine" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D000000000000000000000E2 /* Debug */,
+				D000000000000000000000E3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D000000000000000000000C2 /* Build configuration list for PBXNativeTarget "PhoneLinkKit" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D000000000000000000000E4 /* Debug */,
+				D000000000000000000000E5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D000000000000000000000C3 /* Build configuration list for PBXNativeTarget "PhoneLink" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D000000000000000000000E6 /* Debug */,
+				D000000000000000000000E7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D000000000000000000000C4 /* Build configuration list for PBXNativeTarget "PhoneLinkKitTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D000000000000000000000E8 /* Debug */,
+				D000000000000000000000E9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D000000000000000000000C5 /* Build configuration list for PBXNativeTarget "PhoneFilesProvider" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D000000000000000000000EA /* Debug */,
+				D000000000000000000000EB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D000000000000000000000C6 /* Build configuration list for PBXNativeTarget "PhoneCameraExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D000000000000000000000EC /* Debug */,
+				D000000000000000000000ED /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = D00000000000000000000001 /* Project object */;
+}

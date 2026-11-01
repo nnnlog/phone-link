@@ -1,0 +1,37 @@
+syntax = "proto3";
+package remotesnipping.v1;
+import "remotesnipping/v1/metadata.proto";
+
+enum MediaRequestType {
+  MEDIA_REQUEST_TYPE_UNSPECIFIED = 0;
+  MEDIA_REQUEST_TYPE_CAPABILITIES = 1;
+  MEDIA_REQUEST_TYPE_THUMBNAIL = 2;
+  MEDIA_REQUEST_TYPE_PHOTO = 3;
+}
+
+enum MediaResponseStatus {
+  MEDIA_RESPONSE_STATUS_UNSPECIFIED = 0;
+  MEDIA_RESPONSE_STATUS_OK = 1;
+  MEDIA_RESPONSE_STATUS_BAD_REQUEST = 2;
+  MEDIA_RESPONSE_STATUS_NOT_FOUND = 3;
+  MEDIA_RESPONSE_STATUS_MISSING_PERMISSIONS = 4;
+  MEDIA_RESPONSE_STATUS_SYNC_DISABLED = 5;
+}
+
+enum MediaCapability {
+  MEDIA_CAPABILITY_UNSPECIFIED = 0;
+  MEDIA_CAPABILITY_NEW_MEDIA_NOTIFICATIONS = 1;
+}
+
+message MediaRequestMessage {
+  remotesnipping.v1.MediaRequestType request_type = 1;
+  optional int64 media_id = 2;
+}
+
+message MediaResponseMessage {
+  repeated remotesnipping.v1.MediaCapability capabilities = 1;
+  bool has_permissions = 2;
+  remotesnipping.v1.MediaResponseStatus status = 3;
+  optional remotesnipping.v1.MediaMetadata item = 4;
+}
+

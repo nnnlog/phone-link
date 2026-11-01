@@ -1,0 +1,21 @@
+syntax = "proto3";
+package platform_sdk.v1;
+import "platform_sdk/v1/dcg_base_message.proto";
+
+enum ProtoTransportMessageType {
+  PROTO_TRANSPORT_MESSAGE_TYPE_UNSPECIFIED = 0;
+  PROTO_TRANSPORT_MESSAGE_TYPE_APP = 1;
+  PROTO_TRANSPORT_MESSAGE_TYPE_PLATFORM = 2;
+}
+
+message ProtoDcgFragmentMessage {
+  platform_sdk.v1.ProtoDcgBaseMessage base = 1;
+  int32 sequence_number = 2;
+  int32 message_id = 3;
+  int32 fragment_id = 4;
+  int32 fragment_count = 5;
+  platform_sdk.v1.ProtoTransportMessageType message_type = 6;
+  string handler_type = 7;
+  bytes raw = 8;
+}
+

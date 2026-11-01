@@ -1,0 +1,50 @@
+syntax = "proto3";
+package phoneapps.v1;
+import "google/protobuf/timestamp.proto";
+import "sync/v1/metadata.proto";
+
+enum PhoneAppsResponseStatus {
+  PHONE_APPS_RESPONSE_STATUS_UNSPECIFIED = 0;
+  PHONE_APPS_RESPONSE_STATUS_OK = 1;
+  PHONE_APPS_RESPONSE_STATUS_UNKNOWN_ERROR = 2;
+  PHONE_APPS_RESPONSE_STATUS_BAD_REQUEST = 3;
+  PHONE_APPS_RESPONSE_STATUS_NOT_FOUND = 4;
+  PHONE_APPS_RESPONSE_STATUS_SYNC_DISABLED = 5;
+}
+
+message PhoneAppMetadata {
+  repeated sync.v1.SyncMetadata content = 1;
+}
+
+message PhoneApp {
+  int64 id = 1;
+  string app_package_name = 2;
+  google.protobuf.Timestamp last_updated_time = 3;
+  string app_name = 4;
+  optional string app_version = 5;
+  int64 favorite_rank = 6;
+  bytes app_icon = 7;
+  int64 checksum = 8;
+}
+
+message PhoneAppCreateOrUpdate {
+  phoneapps.v1.PhoneApp item = 1;
+}
+
+message PhoneAppDelete {
+  int64 id = 1;
+}
+
+message PhoneAppSync {
+  oneof operation {
+    phoneapps.v1.PhoneAppCreateOrUpdate create_or_update = 1;
+    phoneapps.v1.PhoneAppDelete delete = 2;
+  }
+}
+
+message PhoneAppsResponseMessage {
+  phoneapps.v1.PhoneAppsResponseStatus status = 1;
+  phoneapps.v1.PhoneAppMetadata metadata = 2;
+  repeated phoneapps.v1.PhoneAppSync items = 3;
+}
+

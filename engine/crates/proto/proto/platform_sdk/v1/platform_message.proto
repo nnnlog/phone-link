@@ -1,0 +1,19 @@
+syntax = "proto3";
+package platform_sdk.v1;
+import "platform_sdk/v1/trace_context.proto";
+
+enum PlatformDisconnectRequestReason {
+  PLATFORM_DISCONNECT_REQUEST_REASON_UNSPECIFIED = 0;
+  PLATFORM_DISCONNECT_REQUEST_REASON_USER_REQUESTED = 1;
+  PLATFORM_DISCONNECT_REQUEST_REASON_ALL_SYNC_DISABLED = 2;
+  PLATFORM_DISCONNECT_REQUEST_REASON_METERED_SYNC_DISABLED = 3;
+  PLATFORM_DISCONNECT_REQUEST_REASON_ACTIVE_SESSION_REPLACED = 4;
+  PLATFORM_DISCONNECT_REQUEST_REASON_NON_DEFAULT_USER_OR_PROFILE = 5;
+  PLATFORM_DISCONNECT_REQUEST_REASON_TWO_PHONE_MODE_ENABLED = 6;
+}
+
+message PlatformDisconnectRequest {
+  platform_sdk.v1.ProtoTraceContext trace_context = 1;
+  platform_sdk.v1.PlatformDisconnectRequestReason reason = 2;
+}
+

@@ -1,0 +1,28 @@
+syntax = "proto3";
+package phone_files.v1;
+import "phone_files/v1/status.proto";
+
+message BatchedDeleteRequest {
+  string target_uri = 1;
+  int64 target_checksum = 2;
+}
+
+message BatchedDeleteResponse {
+  string target_uri = 1;
+  phone_files.v1.FilesResponseStatus status = 2;
+}
+
+message FilesDeleteRequest {
+  string target_uri = 1;
+  int64 target_checksum = 2;
+  bool is_batch = 3;
+  repeated phone_files.v1.BatchedDeleteRequest batch_requests = 4;
+}
+
+message FilesDeleteResponse {
+  phone_files.v1.FilesResponseStatus status = 1;
+  string target_uri = 2;
+  bool is_batch = 3;
+  repeated phone_files.v1.BatchedDeleteResponse batch_responses = 4;
+}
+

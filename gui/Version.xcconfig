@@ -1,0 +1,11 @@
+// The app's version, for every target: the one place it is set.
+//
+// MARKETING_VERSION (CFBundleShortVersionString) is a Semantic Version, X.Y.Z or X.Y.Z-<pre-release>
+// such as 0.2.0-beta.1. The GitHub release of a build is tagged v<MARKETING_VERSION> and carries
+// PhoneLink-<MARKETING_VERSION>.dmg; the app's updater reads the version from that tag.
+//
+// CURRENT_PROJECT_VERSION (CFBundleVersion) is a whole number raised by one for every build that leaves
+// this Mac. macOS replaces an installed camera extension only with one of a different version, and the
+// updater installs a download only when its build number is higher than the running app's.
+MARKETING_VERSION = 0.1.0
+CURRENT_PROJECT_VERSION = 1

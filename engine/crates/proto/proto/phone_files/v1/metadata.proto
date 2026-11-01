@@ -1,0 +1,28 @@
+syntax = "proto3";
+package phone_files.v1;
+import "google/protobuf/timestamp.proto";
+
+enum FileType {
+  FILE_TYPE_UNSPECIFIED = 0;
+  FILE_TYPE_IMAGE = 1;
+  FILE_TYPE_VIDEO = 2;
+  FILE_TYPE_AUDIO = 3;
+  FILE_TYPE_DOCUMENT = 4;
+  FILE_TYPE_PLAYLIST = 5;
+  FILE_TYPE_SUBTITLE = 6;
+  FILE_TYPE_NONE = 7;
+}
+
+message FileMetadata {
+  int64 id = 1;
+  string uri = 2;
+  string name = 3;
+  string path = 4;
+  phone_files.v1.FileType file_type = 5;
+  int64 size = 6;
+  google.protobuf.Timestamp created_time = 7;
+  google.protobuf.Timestamp modified_time = 8;
+  int64 checksum = 9;
+  bool is_directory = 10;
+}
+

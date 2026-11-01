@@ -1,0 +1,64 @@
+syntax = "proto3";
+package device_info.v1;
+import "google/protobuf/timestamp.proto";
+
+enum DeviceStatusResponseStatus {
+  DEVICE_STATUS_RESPONSE_STATUS_UNSPECIFIED = 0;
+  DEVICE_STATUS_RESPONSE_STATUS_OK = 1;
+  DEVICE_STATUS_RESPONSE_STATUS_UNKNOWN_ERROR = 2;
+  DEVICE_STATUS_RESPONSE_STATUS_BAD_REQUEST = 3;
+  DEVICE_STATUS_RESPONSE_STATUS_NOT_FOUND = 4;
+  DEVICE_STATUS_RESPONSE_STATUS_SYNC_DISABLED = 5;
+  DEVICE_STATUS_RESPONSE_STATUS_FEATURE_NOT_SUPPORTED = 6;
+  DEVICE_STATUS_RESPONSE_STATUS_UNRECOGNIZED_PAYLOAD = 7;
+  DEVICE_STATUS_RESPONSE_STATUS_INVALID_REQUEST_TYPE = 8;
+  DEVICE_STATUS_RESPONSE_STATUS_NEEDS_PERMISSION = 9;
+}
+
+enum NetworkType {
+  NETWORK_TYPE_UNSPECIFIED = 0;
+  NETWORK_TYPE_WIFI = 1;
+  NETWORK_TYPE_ETHERNET = 2;
+  NETWORK_TYPE_CELLULAR = 3;
+}
+
+enum DeviceStatusRequestType {
+  DEVICE_STATUS_REQUEST_TYPE_UNSPECIFIED = 0;
+  DEVICE_STATUS_REQUEST_TYPE_GET = 1;
+  DEVICE_STATUS_REQUEST_TYPE_SET_DO_NOT_DISTURB_ON = 2;
+  DEVICE_STATUS_REQUEST_TYPE_SET_DO_NOT_DISTURB_OFF = 3;
+  DEVICE_STATUS_REQUEST_TYPE_SET_RINGER_NORMAL = 4;
+  DEVICE_STATUS_REQUEST_TYPE_SET_RINGER_VIBRATE = 5;
+  DEVICE_STATUS_REQUEST_TYPE_SET_RINGER_SILENT = 6;
+}
+
+message DeviceStatus {
+  int32 battery_percent = 1;
+  bool battery_charging = 2;
+  bool battery_power_save = 3;
+  int32 bluetooth_state = 4;
+  int32 do_not_disturb_status = 5;
+  string network_operator = 6;
+  int32 network_signal_strength = 7;
+  int32 network_signal_strength_max = 8;
+  int32 mobile_data_status = 9;
+  int32 ringer_mode = 10;
+  int32 wifi_signal_level = 11;
+  bool wifi_state = 12;
+  int32 network_data_type = 13;
+  bool sync_over_metered_connection = 14;
+  bool airplane_mode = 15;
+  device_info.v1.NetworkType network_type = 16;
+  bool is_connection_metered = 17;
+  optional bool do_not_disturb_rule_enabled = 18;
+}
+
+message DeviceStatusRequestMessage {
+  optional device_info.v1.DeviceStatusRequestType request_type = 1;
+}
+
+message DeviceStatusResponseMessage {
+  device_info.v1.DeviceStatusResponseStatus status = 1;
+  optional device_info.v1.DeviceStatus info = 2;
+}
+

@@ -1,0 +1,50 @@
+syntax = "proto3";
+package phone_files.v1;
+import "phone_files/v1/status.proto";
+import "phone_files/v1/metadata.proto";
+
+message FilesUpdateRequest {
+  oneof request {
+    phone_files.v1.CreateFileRequest create_file_request = 1;
+    phone_files.v1.CreateFolderRequest create_folder_request = 2;
+    phone_files.v1.RenameRequest rename_request = 3;
+    phone_files.v1.MoveFileRequest move_file_request = 4;
+    phone_files.v1.MoveFolderRequest move_folder_request = 5;
+  }
+}
+
+message CreateFileRequest {
+  string folder_uri = 1;
+  int64 folder_checksum = 2;
+  string file_name = 3;
+}
+
+message CreateFolderRequest {
+  string folder_uri = 1;
+  int64 folder_checksum = 2;
+  string folder_name = 3;
+}
+
+message RenameRequest {
+  string target_uri = 1;
+  int64 target_checksum = 2;
+  string target_path = 3;
+}
+
+message MoveFileRequest {
+  string src_file_uri = 1;
+  int64 src_file_checksum = 2;
+  string target_folder_uri = 3;
+}
+
+message MoveFolderRequest {
+  string src_folder_uri = 1;
+  int64 src_folder_checksum = 2;
+  string target_folder_uri = 3;
+}
+
+message FilesUpdateResponse {
+  phone_files.v1.FilesResponseStatus status = 1;
+  optional phone_files.v1.FileMetadata target_metadata = 2;
+}
+

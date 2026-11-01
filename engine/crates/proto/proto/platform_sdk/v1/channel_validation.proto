@@ -1,0 +1,22 @@
+syntax = "proto3";
+package platform_sdk.v1;
+import "platform_sdk/v1/trace_context.proto";
+
+enum ProtoOffloadAvailability {
+  PROTO_OFFLOAD_AVAILABILITY_UNSPECIFIED = 0;
+  PROTO_OFFLOAD_AVAILABILITY_ENABLED = 1;
+  PROTO_OFFLOAD_AVAILABILITY_DISABLED = 2;
+  PROTO_OFFLOAD_AVAILABILITY_NO_PROVISIONED_ACCOUNT = 3;
+  PROTO_OFFLOAD_AVAILABILITY_TRUST_FAILURE = 4;
+  PROTO_OFFLOAD_AVAILABILITY_MORE_THAN_ONE_PARTNERS = 5;
+}
+
+message ProtoPlatformChannelValidation {
+  platform_sdk.v1.ProtoTraceContext trace_context = 1;
+  bool is_offload_enabled = 2;
+  platform_sdk.v1.ProtoOffloadAvailability offload_availability = 3;
+  int32 offload_version = 4;
+  bool support_multiple_partners = 5;
+  bool support_device_proxy = 6;
+}
+

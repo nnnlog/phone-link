@@ -1,0 +1,67 @@
+[
+  {
+    "id": "{{OWN_ID}}",
+    "isLinked": true,
+    "name": "test-mac",
+    "osName": "Windows",
+    "clientType": "WEA",
+    "distinguishedDeviceId": "l:1234567890123456",
+    "certificates": { "SelfSigned": ["{{OWN_CERT}}"] }
+  },
+  {
+    "id": "{{PHONE_A}}",
+    "isLinked": true,
+    "name": "Pixel 8",
+    "osName": "Android",
+    "osVersion": "14",
+    "clientType": "LTW",
+    "clientVersion": "1.24012.100.0",
+    "capabilities": ["DEVICE_STATUS", "RINGER_MODE", "CLIPBOARD", "PHONE_FILES"],
+    "customData": "{\"yppCapabilities\":127,\"yppVersion\":8}",
+    "consentVersion": 0,
+    "distinguishedDeviceId": "dd-phone-a",
+    "globalDeviceId": "g-phone-a",
+    "isEnabled": true,
+    "lastSeenTime": 1792450000,
+    "manufacture": "Google",
+    "modelName": "Pixel 8",
+    "modelVersion": "1",
+    "registrationTime": 1790000000,
+    "certificates": { "SelfSigned": ["{{PHONE_A_CERT}}"] }
+  },
+  {
+    "id": "{{PHONE_B}}",
+    "isLinked": true,
+    "name": "Galaxy",
+    "osName": "android",
+    "clientType": "LTW",
+    "certificates": {
+      "CTSelfSigned": ["{{JUNK_CERT}}"],
+      "SelfSigned": ["{{PHONE_B_SELF_SIGNED}}"],
+      "PKI": ["{{PHONE_B_PKI}}"]
+    }
+  },
+  {
+    "id": "{{OLD_PC}}",
+    "isLinked": false,
+    "name": "old-desktop",
+    "osName": "Windows",
+    "clientType": "PL",
+    "certificates": { "SelfSigned": ["{{OLD_PC_CERT}}"] }
+  },
+  {
+    "id": "{{NO_CERT}}",
+    "isLinked": true,
+    "name": "tablet",
+    "osName": "Android",
+    "certificates": { "CTSelfSigned": ["{{JUNK_CERT}}"] }
+  },
+  {
+    "id": "{{NULLS}}",
+    "isLinked": null,
+    "certificates": null,
+    "capabilities": null,
+    "customData": null,
+    "consentVersion": null
+  }
+]

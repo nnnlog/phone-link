@@ -1,0 +1,26 @@
+[package]
+name = "phonelink-proto"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+description = "The Phone Link engine's protobuf schemas, compiled by prost-build"
+
+[lib]
+doctest = false
+
+[features]
+# Nothing to turn on; present so every engine crate forwards `test-support` the same way.
+test-support = []
+
+[dependencies]
+prost.workspace = true
+prost-types.workspace = true
+
+[build-dependencies]
+prost-build.workspace = true
+protox.workspace = true
+
+[lints]
+workspace = true

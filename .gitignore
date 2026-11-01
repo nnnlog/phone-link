@@ -1,0 +1,16 @@
+# Build output. gui/Generated/ holds the uniffi Swift bindings gui/scripts/build-engine.sh writes on
+# every build.
+/engine/target/
+/gui/build/
+/gui/DerivedData/
+/gui/Generated/
+xcuserdata/
+
+# This Mac's signing identity and team (gui/Signing.xcconfig).
+/gui/Signing.local.xcconfig
+
+# The CLI's default state and data directories: enrollment keys and phone content.
+/.local/
+
+# macOS cruft.
+.DS_Store

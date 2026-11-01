@@ -1,0 +1,41 @@
+syntax = "proto3";
+package phone_mirroring.v1;
+
+message RequestPermissionMessage {
+  string permission = 1;
+}
+
+message CheckPermissionMessage {
+  string permission = 1;
+  string transaction_id = 2;
+}
+
+message ShowPermissionMessage {
+  string permission = 1;
+  string transaction_id = 2;
+}
+
+message LaunchSettingsMessage {
+  string permission = 1;
+  string transaction_id = 2;
+}
+
+message PermissionStatusMessage {
+  string status = 1;
+}
+
+message CheckPermissionResultMessage {
+  string transaction_id = 1;
+  string status = 2;
+}
+
+message ShowPermissionResultMessage {
+  string transaction_id = 1;
+  string status = 2;
+}
+
+message LaunchSettingsResultMessage {
+  string transaction_id = 1;
+  string status = 2;
+}
+

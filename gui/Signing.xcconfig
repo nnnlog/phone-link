@@ -1,0 +1,29 @@
+#include "Identity.xcconfig"
+#include "Version.xcconfig"
+
+// Code signing for every target. Ad-hoc by default, so a fresh checkout builds with no certificate.
+//
+// An ad-hoc signature identifies the app by its code hash alone, which changes with every build, so the
+// Keychain asks again after each rebuild for the item the app stores its keys in. A gitignored
+// Signing.local.xcconfig beside this file names a team-signed identity instead, which keeps the app's
+// identity stable across builds:
+//
+//     CODE_SIGN_IDENTITY = Apple Development
+//     DEVELOPMENT_TEAM = <your team ID>
+
+CODE_SIGN_STYLE = Manual
+CODE_SIGN_IDENTITY = -
+
+// The app's entitlements. Installing the camera extension (the phone as a Mac camera) needs the
+// system-extension entitlement, which macOS honours only with a provisioning profile that grants it
+// (a Developer ID or Apple Development profile with the System Extension capability). Without one the
+// app keeps these and the camera is unavailable. With one, name it in Signing.local.xcconfig:
+//
+//     PHONELINK_APP_ENTITLEMENTS = PhoneLink-SystemExtension.entitlements
+//     PHONELINK_APP_PROFILE = <the app's profile>
+//
+// Only the app target takes PHONELINK_APP_PROFILE; the extensions hold no entitlement a profile must grant.
+PHONELINK_APP_ENTITLEMENTS = PhoneLink.entitlements
+PHONELINK_APP_PROFILE =
+
+#include? "Signing.local.xcconfig"

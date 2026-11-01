@@ -1,0 +1,25 @@
+syntax = "proto3";
+package ring_my_phone.v1;
+
+enum RingMyPhoneRequestType {
+  RING_MY_PHONE_REQUEST_TYPE_UNSPECIFIED = 0;
+  RING_MY_PHONE_REQUEST_TYPE_ON = 1;
+  RING_MY_PHONE_REQUEST_TYPE_OFF = 2;
+}
+
+enum RingMyPhoneResponseStatus {
+  RING_MY_PHONE_RESPONSE_STATUS_UNSPECIFIED = 0;
+  RING_MY_PHONE_RESPONSE_STATUS_OK = 1;
+  RING_MY_PHONE_RESPONSE_STATUS_FEATURE_NOT_SUPPORT = 2;
+  RING_MY_PHONE_RESPONSE_STATUS_UNRECOGNIZED_PAYLOAD = 3;
+  RING_MY_PHONE_RESPONSE_STATUS_INVALID_REQUEST_TYPE = 4;
+}
+
+message RingMyPhoneRequestMessage {
+  ring_my_phone.v1.RingMyPhoneRequestType request_type = 1;
+}
+
+message RingMyPhoneResponseMessage {
+  ring_my_phone.v1.RingMyPhoneResponseStatus status = 1;
+}
+

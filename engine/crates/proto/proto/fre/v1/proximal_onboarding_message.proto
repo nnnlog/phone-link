@@ -1,0 +1,7 @@
+syntax = "proto3";
+package fre.v1;
+
+message ProximalOnboardingMessage {
+  string device_name = 1;
+}
+

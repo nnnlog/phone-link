@@ -1,0 +1,51 @@
+EdgeError::Store: store failure: <x>
+EdgeError::Unexpected: unexpected failure in the foreign implementation: <x>
+WebSignInError::Declined: the sign-in was declined
+WebSignInError::Failed: the sign-in could not run: <x>
+WifiError::Unavailable: Wi-Fi is unavailable
+WifiError::Failed: <x>
+WifiError::Unexpected: unexpected failure in the foreign implementation: <x>
+PairingError::NotFound: the phone was not found
+PairingError::Failed: pairing failed: <x>
+PairingError::Unexpected: unexpected failure in the foreign implementation: <x>
+RfcommError::Unreachable: the device is unreachable
+RfcommError::ServiceNotFound: the service is not offered
+RfcommError::ConnectFailed: connect failed: <x>
+RfcommError::Io: send or receive failed: <x>
+RfcommError::TimedOut: timed out
+RfcommError::Unexpected: unexpected failure in the foreign implementation: <x>
+FeatureApiError::NotStarted: the engine is not started
+FeatureApiError::NoPhone: no phone is selected
+FeatureApiError::UnknownItem: unknown <x>
+FeatureApiError::NotAvailable: not available: <x>
+FeatureApiError::InvalidInput: invalid input: <x>
+FeatureApiError::Store: store: <x>
+FeatureApiError::Internal: internal: <x>
+HotspotError::Feature: not available: <x>
+HotspotError::Busy: a connect is already running
+HotspotError::NotSupported: the phone does not support instant hotspot
+HotspotError::Bluetooth: Bluetooth is off
+HotspotError::ConsentTimedOut: the phone did not answer the request
+HotspotError::NotTrusted: the phone does not trust this Mac: <x>
+HotspotError::Unreachable: the phone could not be reached: <x>
+HotspotError::SideChannelNotOpen: the phone's side channel is not open
+HotspotError::NoAnswer: the phone did not answer
+HotspotError::PhoneError: the phone answered with an error: <x>
+HotspotError::Unavailable: the phone cannot share its connection
+HotspotError::NoCredentials: the phone sent no credentials
+HotspotError::InvalidCredentials: the credentials are invalid: <x>
+HotspotError::NotVisible: the hotspot is not visible
+HotspotError::JoinFailed: joining the hotspot failed: <x>
+HotspotError::LeaveFailed: leaving the hotspot failed: <x>
+HotspotError::Internal: internal: <x>
+PhoneFileError::Failure: <x>
+BluetoothError::BluetoothOff: Bluetooth is off
+BluetoothError::PermissionNotGranted: the phone did not grant its Bluetooth permission
+BluetoothError::NotDiscoverable: the phone did not become discoverable
+BluetoothError::PhoneNotFound: the phone was not found
+BluetoothError::PairingFailed: pairing failed: <x>
+BluetoothError::Internal: internal: <x>
+EngineError::Auth: auth: <x>
+EngineError::NoPhone: no linked phone in the account's device list
+EngineError::Setup: setup: <x>
+EngineError::NotStarted: the engine is not started
