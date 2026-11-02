@@ -136,7 +136,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         super.init()
 
         updates.presentWindow = { [weak self] in self?.showUpdateWindow() }
-        updates.terminate = { NSApp.terminate(nil) }
+        // The updater quits from a main-actor task. Quitting waits for applicationShouldTerminate's
+        // reply in a nested run loop, and that reply comes from main-actor tasks, which cannot run while
+        // the updater's task holds the main actor: the app would hang on "Installing". So the quit runs
+        // from the run loop, after that task has returned.
+        updates.terminate = { NSApp.perform(#selector(NSApplication.terminate(_:)), with: nil, afterDelay: 0) }
 
         mirrorWindows = MirrorWindows(model: mirroring, presenter: edges.mirrorPresenter) { [unowned self] view in
             AnyView(self.environments(view))
