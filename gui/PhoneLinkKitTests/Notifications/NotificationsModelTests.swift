@@ -405,7 +405,7 @@ import PhoneLinkEngine
     @Test(arguments: [
         (NotificationOpenTarget.messaging, AppSection.messages, nil as String?),
         (.notifications, .notifications, "kakao"),
-        (.calls, .notifications, "kakao"),
+        (.calls, .calls, nil),
     ])
     func aClickedBannerOpensItsView(target: NotificationOpenTarget, section: AppSection, request: String?) {
         start([kakao])

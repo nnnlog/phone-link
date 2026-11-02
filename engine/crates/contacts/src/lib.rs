@@ -439,6 +439,16 @@ impl ContactDirectory for Contacts {
         }
     }
 
+    fn sync_allowed(&self, phone: &DcgClient) -> bool {
+        match self.prompt(phone) {
+            Ok(prompt) => prompt == ContactsPrompt::None,
+            Err(e) => {
+                error!(error = %e, "contacts state not read; no contacts sync follows");
+                false
+            }
+        }
+    }
+
     fn request_sync(&self, user_initiated: bool) {
         let shared = self.shared.clone();
         self.shared.runtime.spawn(async move {

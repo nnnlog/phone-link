@@ -1,5 +1,6 @@
 mod audio;
 mod bluetooth;
+mod calling;
 mod clipboard;
 mod connected_camera;
 mod contacts;

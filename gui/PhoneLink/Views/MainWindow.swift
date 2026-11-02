@@ -3,8 +3,8 @@ import PhoneLinkKit
 import SwiftUI
 
 /// The main window: a sidebar of the phone and its sections, then the section's own columns — Messages,
-/// Notifications and Contacts are list-detail (three columns with the sidebar), Photos and Apps are grids
-/// (two).
+/// Notifications, Calls and Contacts are list-detail (three columns with the sidebar), Photos and Apps
+/// are grids (two).
 /// Until the engine runs, the window shows where the start is instead.
 struct MainWindow: View {
     @Environment(EngineController.self) private var controller
@@ -30,6 +30,14 @@ struct MainWindow: View {
                         NotificationListColumn()
                     } detail: {
                         NotificationDetailColumn()
+                    }
+                case .calls:
+                    NavigationSplitView {
+                        Sidebar(selection: $navigator.section)
+                    } content: {
+                        CallListColumn()
+                    } detail: {
+                        CallDetailColumn()
                     }
                 case .contacts:
                     NavigationSplitView {
@@ -71,12 +79,14 @@ private struct Sidebar: View {
     @Environment(NotificationsModel.self) private var notifications
     @Environment(PhoneAppsModel.self) private var phoneApps
     @Environment(ContactsModel.self) private var contacts
+    @Environment(CallsModel.self) private var calls
 
-    /// The sections listed: Contacts only for a phone that syncs its contacts, Apps only while the
-    /// phone opens its apps on this Mac.
+    /// The sections listed: Calls only for an Android phone with calling, Contacts only for a phone
+    /// that syncs its contacts, Apps only while the phone opens its apps on this Mac.
     private var sections: [AppSection] {
         AppSection.allCases.filter { section in
             switch section {
+            case .calls: calls.isViewVisible
             case .contacts: contacts.isViewVisible
             case .apps: phoneApps.isViewVisible
             case .notifications, .messages, .photos: true
@@ -105,6 +115,11 @@ private struct Sidebar: View {
                 selection = .messages
             }
         }
+        .onChange(of: calls.isViewVisible) { _, visible in
+            if !visible && selection == .calls {
+                selection = .messages
+            }
+        }
         .onChange(of: contacts.isViewVisible) { _, visible in
             if !visible && selection == .contacts {
                 selection = .messages
@@ -116,6 +131,7 @@ private struct Sidebar: View {
         switch section {
         case .messages: messages.unreadCount
         case .notifications: notifications.badgeCount
+        case .calls: calls.badgeCount
         case .contacts, .photos, .apps: 0
         }
     }

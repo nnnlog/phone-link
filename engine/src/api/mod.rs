@@ -14,6 +14,7 @@
 
 pub mod audio;
 pub mod bluetooth;
+pub mod calling;
 pub mod clipboard;
 pub mod connected_camera;
 pub mod contacts;
@@ -189,6 +190,7 @@ pub enum FeatureKind {
     DeviceStatus,
     Messaging,
     Contacts,
+    Calling,
     Photos,
     Wallpaper,
     RemoteSnipping,

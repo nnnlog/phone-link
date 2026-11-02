@@ -6,6 +6,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
 use crate::api::audio::AudioApi;
+use crate::api::calling::CallingApi;
 use crate::api::clipboard::ClipboardApi;
 use crate::api::connected_camera::ConnectedCameraApi;
 use crate::api::contacts::ContactsApi;
@@ -399,6 +400,11 @@ impl Engine {
     /// The contacts feature: the selected phone's contacts.
     pub fn contacts(self: Arc<Self>) -> Arc<ContactsApi> {
         ContactsApi::new(self)
+    }
+
+    /// The calling feature: the selected phone's call history.
+    pub fn calling(self: Arc<Self>) -> Arc<CallingApi> {
+        CallingApi::new(self)
     }
 
     /// The photos feature: the selected phone's recent photos.

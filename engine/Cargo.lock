@@ -1754,6 +1754,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "phonelink-calling"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "phonelink-app",
+ "phonelink-calling",
+ "phonelink-core",
+ "phonelink-features",
+ "rusqlite",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "phonelink-clipboard"
 version = "0.1.0"
 dependencies = [
@@ -1876,6 +1890,7 @@ dependencies = [
  "phonelink-app",
  "phonelink-audio",
  "phonelink-bluetooth",
+ "phonelink-calling",
  "phonelink-clipboard",
  "phonelink-connected-camera",
  "phonelink-contacts",

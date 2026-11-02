@@ -8,6 +8,7 @@ import SwiftUI
 struct ContactListColumn: View {
     @Environment(ContactsModel.self) private var model
     @Environment(EngineController.self) private var controller
+    @Environment(AppNavigator.self) private var navigator
 
     var body: some View {
         @Bindable var model = model
@@ -23,6 +24,13 @@ struct ContactListColumn: View {
                             .help("Syncing contacts…")
                     }
                 }
+            }
+            // A call's Contact button selects that contact, with the search cleared so the list shows it.
+            .onChange(of: navigator.contactRequest, initial: true) { _, id in
+                guard let id else { return }
+                model.searchText = ""
+                model.selection = id
+                navigator.contactRequest = nil
             }
             // Outermost: under `searchable` and `toolbar` the split view left the column at its minimum.
             .navigationSplitViewColumnWidth(min: 260, ideal: 300, max: 420)

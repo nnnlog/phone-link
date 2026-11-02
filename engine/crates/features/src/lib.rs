@@ -97,12 +97,16 @@ pub struct ContactMatch {
     pub photo_contact_id: Option<i64>,
 }
 
-/// What other features read from contacts: the local lookup by address, and the `/contacts/v2` sync
-/// request that messaging's permission flow sends.
+/// What other features read from contacts.
+///
+/// The local lookup by address, whether contacts may be synced, and the `/contacts/v2` sync request
+/// that messaging's permission flow and the call-history refresh send.
 pub trait ContactDirectory: Send + Sync {
     /// The contact `address` resolves to on `phone`, by the engine's single lookup rule; `region` is
     /// the country of the message's SIM subscription when the caller has one.
     fn lookup(&self, phone: &DcgClient, address: &str, region: Option<&str>) -> Option<ContactMatch>;
+    /// The contacts PC consent and the contacts device permission of `phone` are both on.
+    fn sync_allowed(&self, phone: &DcgClient) -> bool;
     /// Starts the `/contacts/v2` sync request with `isuserinitiated = user_initiated` without waiting
     /// for it; its outcome is applied by contacts.
     fn request_sync(&self, user_initiated: bool);

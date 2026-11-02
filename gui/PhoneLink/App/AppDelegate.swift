@@ -20,6 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let deviceStatus: DeviceStatusModel
     let messages: MessagesModel
     let contacts: ContactsModel
+    let calls: CallsModel
     let photos: PhotosModel
     let wallpaper: WallpaperModel
     let remoteSnipping: RemoteSnippingModel
@@ -93,6 +94,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         deviceStatus = DeviceStatusModel(api: controller.deviceStatus, hub: hub)
         messages = MessagesModel(api: controller.messaging, contacts: controller.contacts, hub: hub, navigator: navigator)
         contacts = ContactsModel(api: controller.contacts, hub: hub, navigator: navigator)
+        calls = CallsModel(api: controller.calling, hub: hub, navigator: navigator)
         photos = PhotosModel(api: controller.photos, hub: hub)
         wallpaper = WallpaperModel(api: controller.wallpaper, hub: hub)
         remoteSnipping = RemoteSnippingModel(api: controller.remoteSnipping, hub: hub)
@@ -104,6 +106,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             notifications: controller.notifications,
             messaging: controller.messaging,
             contacts: controller.contacts,
+            calling: controller.calling,
             photos: controller.photos,
             clipboard: controller.clipboard,
             deviceStatus: controller.deviceStatus,
@@ -206,6 +209,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .environment(deviceStatus)
             .environment(messages)
             .environment(contacts)
+            .environment(calls)
             .environment(photos)
             .environment(wallpaper)
             .environment(remoteSnipping)

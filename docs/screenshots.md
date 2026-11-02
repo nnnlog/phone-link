@@ -10,6 +10,8 @@
 
 ![Messages](images/messages.png)
 
+![Calls](images/calls.png)
+
 ![Contacts](images/contacts.png)
 
 ![Photos](images/photos.png)

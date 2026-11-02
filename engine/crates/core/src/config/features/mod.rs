@@ -3,6 +3,7 @@
 
 mod audio;
 mod bluetooth;
+mod calling;
 mod clipboard;
 mod connected_camera;
 mod contacts;
@@ -21,6 +22,7 @@ mod wallpaper;
 
 pub use audio::AudioConfig;
 pub use bluetooth::BluetoothConfig;
+pub use calling::CallingConfig;
 pub use clipboard::{ClipboardConfig, MAX_PASSES, PNG_LIMIT};
 pub use connected_camera::ConnectedCameraConfig;
 pub use contacts::ContactsConfig;
@@ -42,6 +44,7 @@ pub use wallpaper::WallpaperConfig;
 #[derive(Debug, Clone, Default)]
 pub struct FeaturesConfig {
     pub audio: AudioConfig,
+    pub calling: CallingConfig,
     pub clipboard: ClipboardConfig,
     pub connected_camera: ConnectedCameraConfig,
     pub contacts: ContactsConfig,

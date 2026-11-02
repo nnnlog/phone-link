@@ -220,6 +220,7 @@ fakes of the generated `…ApiProtocol`s.
 | The sidebar's phone area (status and control tiles), the menu bar extra and the main menu's Phone menu | `DeviceStatusModel`, `HotspotModel` | `Views/Sidebar/PhoneArea`, `Views/MenuBar/PhoneMenu` | `DeviceStatusApi`, `HotspotApi` |
 | Notifications section | `NotificationsModel` | `Views/Notifications/` | `NotificationsApi` |
 | Messages section | `MessagesModel` | `Views/Messages/` | `MessagingApi`, `ContactsApi` |
+| Calls section (call history; Settings › Messages › Calls) | `CallsModel` | `Views/Calls/`, `Views/Settings/SettingsMessagesPane` | `CallingApi` |
 | Contacts section | `ContactsModel` | `Views/Contacts/` | `ContactsApi` |
 | Photos section | `PhotosModel` | `Views/Photos/` | `PhotosApi` |
 | What plays on the phone: the menu bar extra, the main menu's Phone menu, the bottom of the sidebar, macOS's Now Playing (opt-in); the General pane's media switches | `MediaControlsModel` | `Views/MenuBar/MediaControlItems`, `Views/Sidebar/SidebarActivity`, `Views/Settings/SettingsMediaControlsRows` | `AudioApi` |
@@ -236,7 +237,7 @@ fakes of the generated `…ApiProtocol`s.
 | Main window shell, sign-in window | `EngineController`, `AppNavigator` | `Views/MainWindow`, `Views/SignIn/` | `Engine`, `PhoneApi` |
 
 A click on a system notification reaches the engine, which answers with the owning feature's event:
-`OpenRequested` shows the notification (a messaging notification: the Messages section; there is no calls view, so a call's shows the notification), `OpenConversation` the conversation, `OpenImage` opens the photo
+`OpenRequested` shows the notification (a messaging notification: the Messages section; a phone call's: the Calls section), `OpenConversation` the conversation, `OpenImage` opens the photo
 in its default app, `LowBatteryNotificationActivated` opens Settings, and `BringWindowForward` brings the
 main window to the front.
 

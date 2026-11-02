@@ -59,6 +59,7 @@ public final class EngineController {
     public let notifications: any NotificationsApiProtocol
     public let messaging: any MessagingApiProtocol
     public let contacts: any ContactsApiProtocol
+    public let calling: any CallingApiProtocol
     public let photos: any PhotosApiProtocol
     public let remoteSnipping: any RemoteSnippingApiProtocol
     public let fileTransfer: any FileTransferApiProtocol
@@ -93,6 +94,7 @@ public final class EngineController {
         notifications = engine.notifications()
         messaging = engine.messaging()
         contacts = engine.contacts()
+        calling = engine.calling()
         photos = engine.photos()
         remoteSnipping = engine.remoteSnipping()
         fileTransfer = engine.fileTransfer()
@@ -349,7 +351,7 @@ public final class EngineController {
             } else {
                 connectFailure = nil
             }
-        case .notifications, .clipboard, .deviceStatus, .messaging, .contacts, .photos, .remoteControl, .wallpaper, .remoteSnipping, .fileTransfer, .phoneFiles, .connectedCamera, .phoneApps, .screenMirroring, .audio, .pairing, .resync:
+        case .notifications, .clipboard, .deviceStatus, .messaging, .contacts, .calling, .photos, .remoteControl, .wallpaper, .remoteSnipping, .fileTransfer, .phoneFiles, .connectedCamera, .phoneApps, .screenMirroring, .audio, .pairing, .resync:
             break
         }
     }

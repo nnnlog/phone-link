@@ -308,6 +308,7 @@ private final class FakeEngine: EngineProtocol, Sendable {
 
     func clipboard() -> ClipboardApi { ClipboardApi(noPointer: .init()) }
     func contacts() -> ContactsApi { ContactsApi(noPointer: .init()) }
+    func calling() -> CallingApi { CallingApi(noPointer: .init()) }
     func deviceStatus() -> DeviceStatusApi { DeviceStatusApi(noPointer: .init()) }
     func messaging() -> MessagingApi { MessagingApi(noPointer: .init()) }
     func notifications() -> NotificationsApi { NotificationsApi(noPointer: .init()) }

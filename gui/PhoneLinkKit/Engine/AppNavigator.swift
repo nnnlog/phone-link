@@ -5,6 +5,8 @@ import Observation
 public enum AppSection: String, CaseIterable, Identifiable, Sendable {
     case notifications
     case messages
+    /// The phone's recent calls; listed only for an Android phone that has calling.
+    case calls
     /// The phone's contacts; listed only for a phone that syncs its contacts.
     case contacts
     case photos
@@ -16,6 +18,7 @@ public enum AppSection: String, CaseIterable, Identifiable, Sendable {
     public var title: String {
         switch self {
         case .messages: String(localized: "Messages")
+        case .calls: String(localized: "Calls")
         case .contacts: String(localized: "Contacts")
         case .photos: String(localized: "Photos")
         case .notifications: String(localized: "Notifications")
@@ -27,6 +30,7 @@ public enum AppSection: String, CaseIterable, Identifiable, Sendable {
     public var symbol: String {
         switch self {
         case .messages: "message"
+        case .calls: "phone"
         case .contacts: "person.crop.circle"
         case .photos: "photo.on.rectangle"
         case .notifications: "bell"
@@ -63,6 +67,8 @@ public final class AppNavigator {
     public var messageRequest: MessagesRecipient?
     /// A phone notification to show.
     public var notificationRequest: String?
+    /// A contact to show (a call's Contact button).
+    public var contactRequest: Int64?
     /// Opens the main window and brings it to the front (set by the app).
     @ObservationIgnored public var presentWindow: () -> Void = {}
     /// Opens the sign-in window (set by the app).
@@ -103,6 +109,11 @@ public final class AppNavigator {
     public func showMessage(to recipient: MessagesRecipient) {
         messageRequest = recipient
         show(.messages)
+    }
+
+    public func showContact(_ id: Int64) {
+        contactRequest = id
+        show(.contacts)
     }
 
     public func showNotification(_ key: String) {

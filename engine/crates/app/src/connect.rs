@@ -100,6 +100,8 @@ pub enum ConnectProvider {
     /// Android only.
     SyncNotifications,
     PhoneApps,
+    /// Call history, Android only.
+    Calling,
     Contacts,
 }
 
@@ -115,6 +117,7 @@ impl ConnectProvider {
             ConnectProvider::Messaging => 10,
             ConnectProvider::SyncNotifications => 11,
             ConnectProvider::PhoneApps => 12,
+            ConnectProvider::Calling => 13,
             ConnectProvider::Contacts => 14,
         }
     }
@@ -129,6 +132,7 @@ impl ConnectProvider {
             ConnectProvider::Messaging => "Messaging",
             ConnectProvider::SyncNotifications => "SyncNotifications",
             ConnectProvider::PhoneApps => "PhoneApps",
+            ConnectProvider::Calling => "Calling",
             ConnectProvider::Contacts => "Contacts",
         }
     }
@@ -361,8 +365,11 @@ impl AppLayer {
             }
         }
 
-        // Calling — calls turned off on the PC.
-        d.configuration("Calling", "CallLogs", false)?;
+        // Calling; without its feature, calls turned off on the PC: `false`, no sequence number.
+        match contributor(ConnectProvider::Calling) {
+            Some(c) => d.merge(ConnectProvider::Calling.name(), c.contribute(ctx).await)?,
+            None => d.configuration("Calling", "CallLogs", false)?,
+        }
 
         // Contacts.
         if let Some(c) = contributor(ConnectProvider::Contacts) {

@@ -3,6 +3,7 @@
 
 pub mod app_world;
 pub mod auth_world;
+pub mod calling_world;
 pub mod camera_world;
 pub mod clipboard_world;
 pub mod common;

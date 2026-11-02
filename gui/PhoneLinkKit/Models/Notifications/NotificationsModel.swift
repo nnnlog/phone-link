@@ -365,13 +365,15 @@ public final class NotificationsModel {
         replyFocusRequest = notification.key
     }
 
-    /// The user clicked a notification the engine posted: messages open in Messages, the rest here
-    /// (the app has no calls view, so a call's notification opens here too).
+    /// The user clicked a notification the engine posted: messages open in Messages, a phone call's
+    /// in Calls, the rest here.
     private func open(_ key: String, _ target: NotificationOpenTarget) {
         switch target {
         case .messaging:
             navigator.show(.messages)
-        case .notifications, .calls:
+        case .calls:
+            navigator.show(.calls)
+        case .notifications:
             navigator.showNotification(key)
         }
     }

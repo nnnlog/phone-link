@@ -301,7 +301,7 @@ private struct NotificationContextMenu: View {
 /// only the phone can allow it, so the sheet shows the link that opens the setting there — as a code
 /// to scan and in its short form. It sends nothing, and closes by itself once the phone reports the
 /// permission.
-private struct PostNotificationSheet: View {
+struct PostNotificationSheet: View {
     let help: PostNotificationHelp
     let phoneName: String
     private let code: CGImage

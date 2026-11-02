@@ -17,6 +17,7 @@ sponsored, or approved by, Microsoft Corporation.
 
 - See your phone's notifications on your Mac and reply to them. You choose which apps can send them.
 - Read and send SMS, MMS and RCS messages.
+- See your phone's recent calls. Placing and answering calls is not supported.
 - Browse your phone's contacts and write to them.
 - Browse recent photos.
 - Mirror your phone's screen, or one app, in a window.
@@ -36,8 +37,12 @@ sponsored, or approved by, Microsoft Corporation.
     <td><img src="docs/images/messages.png" alt="Messages"></td>
   </tr>
   <tr>
+    <td><img src="docs/images/calls.png" alt="Calls"></td>
     <td><img src="docs/images/contacts.png" alt="Contacts"></td>
+  </tr>
+  <tr>
     <td><img src="docs/images/photos.png" alt="Photos"></td>
+    <td><img src="docs/images/apps.png" alt="Apps"></td>
   </tr>
   <tr>
     <td><img src="docs/images/mirroring.png" alt="Phone screen and apps"></td>
@@ -51,7 +56,7 @@ More screenshots, including Settings, are in [docs/screenshots.md](docs/screensh
 
 - You sign in to your Microsoft account in the app's own window.
 - Your phone can't wake your Mac or start a connection to it.
-- Calls are not supported.
+- You can see your phone's call history, but you can't place or answer calls on your Mac.
 
 ## Install
 

@@ -356,7 +356,6 @@ async fn content_types_without_a_processor_are_answered_2_and_1_with_every_featu
         "contacts",
         "messageAck",
         "messagesMms",
-        "callLogs",
         "thumbnails",
         "sharedContent",
         "copypaste_metadata",

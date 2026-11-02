@@ -448,6 +448,22 @@ struct SettingsModelTests {
         #expect(model.pendingRequests.isEmpty)
         #expect(world.engine.writes == ["requestAccess", "requestSensitiveAccess", "requestPermission", "requestPermission"])
     }
+
+    @Test func callHistoryIsSwitchedOnThenAllowedOnThePhone() async {
+        let world = SettingsWorld()
+        let model = world.makeModel()
+        model.reload()
+        #expect(model.callingState?.access == .pcConsentRequired)
+        #expect(!model.showsCallHistory)
+
+        model.showsCallHistory = true
+        #expect(model.callingState?.access == .devicePermissionRequired)
+
+        await model.requestCallHistoryAccess()
+        #expect(model.callingState?.access == .granted)
+        #expect(model.failure == nil)
+        #expect(world.engine.writes == ["calling.setPcConsent(true)", "calling.requestPermission"])
+    }
 }
 
 // MARK: - Fixtures
@@ -823,6 +839,49 @@ private final class SettingsFakeContacts: ContactsApiProtocol, @unchecked Sendab
     }
 }
 
+private final class SettingsFakeCalling: CallingApiProtocol, @unchecked Sendable {
+    let engine: SettingsFakeEngine
+    var current = CallingState(
+        access: .pcConsentRequired, pcConsent: false, upToDate: true, lastUpdatedMs: nil, refreshing: false, unseenMissed: 0
+    )
+    var permission = CallsPermissionResult(outcome: .accepted, timedOut: false, refresh: .success)
+
+    init(engine: SettingsFakeEngine) {
+        self.engine = engine
+    }
+
+    func state() throws -> CallingState {
+        try engine.check()
+        return current
+    }
+
+    func setPcConsent(consent: Bool) throws {
+        try engine.write("calling.setPcConsent(\(consent))")
+        current.pcConsent = consent
+        current.access = consent ? .devicePermissionRequired : .pcConsentRequired
+    }
+
+    func requestPermission() async throws -> CallsPermissionResult {
+        try engine.write("calling.requestPermission")
+        if permission.outcome == .accepted {
+            current.access = .granted
+        }
+        return permission
+    }
+
+    func history() throws -> [CallHistoryItem] {
+        preconditionFailure("the settings do not call \(#function)")
+    }
+
+    func markSeen() throws {
+        preconditionFailure("the settings do not call \(#function)")
+    }
+
+    func refreshIfEmpty() async throws -> RequestOutcome? {
+        preconditionFailure("the settings do not call \(#function)")
+    }
+}
+
 private final class SettingsFakePhotos: PhotosApiProtocol, @unchecked Sendable {
     let engine: SettingsFakeEngine
     var current = PhotosState(
@@ -1020,6 +1079,7 @@ private final class SettingsWorld {
     let notifications: SettingsFakeNotifications
     let messaging: SettingsFakeMessaging
     let contacts: SettingsFakeContacts
+    let calling: SettingsFakeCalling
     let photos: SettingsFakePhotos
     let clipboard: SettingsFakeClipboard
     let deviceStatus: SettingsFakeDeviceStatus
@@ -1036,6 +1096,7 @@ private final class SettingsWorld {
         notifications = SettingsFakeNotifications(engine: engine)
         messaging = SettingsFakeMessaging(engine: engine)
         contacts = SettingsFakeContacts(engine: engine)
+        calling = SettingsFakeCalling(engine: engine)
         photos = SettingsFakePhotos(engine: engine)
         clipboard = SettingsFakeClipboard(engine: engine)
         deviceStatus = SettingsFakeDeviceStatus(engine: engine)
@@ -1053,6 +1114,7 @@ private final class SettingsWorld {
             notifications: notifications,
             messaging: messaging,
             contacts: contacts,
+            calling: calling,
             photos: photos,
             clipboard: clipboard,
             deviceStatus: deviceStatus,

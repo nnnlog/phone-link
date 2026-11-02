@@ -5,6 +5,7 @@
 //! |---|---|
 //! | [`audio`] | media controls: the phone's media sessions from its stored media-style notifications, the `/command/audio` request, the per-phone audio-controls setting |
 //! | [`bluetooth`] | the phone's Bluetooth Classic device for every feature that reaches the phone over Bluetooth: the phone app's Bluetooth facts from the App layer, which paired device is the phone, the pairing a feature runs when the user starts it and none is; the Bluetooth OS edge |
+//! | [`calling`] | call history: the `callLogs` sync, `/calling`, the call-log `/permission`, the connect provider, the per-phone store and the missed-call badge |
 //! | [`clipboard`] | the cross-device clipboard: tag-9 announcements both ways, the `/clipboard` content pull and receiver, the feature-state sync; the pasteboard and image-codec OS edges |
 //! | [`connected_camera`] | the phone's camera as a Mac camera: tags 2 and 3 and the context handle, the `CAMERA_METADATA` sync and auto-prompt, the camera `PERMISSIONS` request, the camera's lifecycle, the stream over a Nano `VideoStreaming` channel, its control messages and state; the camera OS edge |
 //! | [`contacts`] | contacts: `contactsV2` sync, `/contacts/v2`, the contacts `/permission`, the connect provider, the lookup by address |
@@ -38,6 +39,7 @@ pub use phonelink_features::*;
 
 pub use phonelink_audio as audio;
 pub use phonelink_bluetooth as bluetooth;
+pub use phonelink_calling as calling;
 pub use phonelink_clipboard as clipboard;
 pub use phonelink_connected_camera as connected_camera;
 pub use phonelink_contacts as contacts;

@@ -115,6 +115,10 @@ pub enum EngineEvent {
     Contacts {
         change: crate::api::contacts::ContactsChange,
     },
+    /// Call history: the selected phone's calls or their state changed.
+    Calling {
+        change: crate::api::calling::CallingChange,
+    },
     Photos {
         change: crate::api::photos::PhotosChange,
     },
@@ -242,6 +246,9 @@ impl CoreEvents for EventBridge {
             change: e.into(),
         });
         forward(features.contacts.subscribe(), events.clone(), FeatureKind::Contacts, |e| EngineEvent::Contacts {
+            change: e.into(),
+        });
+        forward(features.calling.subscribe(), events.clone(), FeatureKind::Calling, |e| EngineEvent::Calling {
             change: e.into(),
         });
         forward(features.photos.subscribe(), events.clone(), FeatureKind::Photos, |e| EngineEvent::Photos {

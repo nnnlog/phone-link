@@ -158,6 +158,9 @@ EngineConfig {
         audio: AudioConfig {
             command_busy: 20s,
         },
+        calling: CallingConfig {
+            request_every_listed_id: true,
+        },
         clipboard: ClipboardConfig {
             poll_interval: 250ms,
             debounce: 200ms,
@@ -490,6 +493,9 @@ EngineConfig {
     features: FeaturesConfig {
         audio: AudioConfig {
             command_busy: 20s,
+        },
+        calling: CallingConfig {
+            request_every_listed_id: true,
         },
         clipboard: ClipboardConfig {
             poll_interval: 250ms,

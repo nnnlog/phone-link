@@ -680,6 +680,16 @@
         }
       }
     },
+    "A private number can't be messaged" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "발신자 표시 제한 번호에는 메시지를 보낼 수 없어요"
+          }
+        }
+      }
+    },
     "About Phone Link" : {
       "localizations" : {
         "ko" : {
@@ -800,6 +810,16 @@
         }
       }
     },
+    "Allow Call History on Your Phone" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "휴대폰에서 통화 기록 접근을 허용해 주세요"
+          }
+        }
+      }
+    },
     "Allow Contacts on Your Phone" : {
       "localizations" : {
         "ko" : {
@@ -866,6 +886,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "휴대폰에서 Windows와 연결 앱이 파일을 받도록 허용한 다음 다시 보내 주세요."
+          }
+        }
+      }
+    },
+    "Allow Link to Windows to send notifications on %@ to see your recent calls and use other Phone Link features." : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@에서 Link to Windows의 알림을 허용하면 최근 통화를 보고 다른 휴대폰과 연결 기능도 사용할 수 있어요."
           }
         }
       }
@@ -1395,6 +1425,66 @@
         }
       }
     },
+    "Call History Is Off on This Mac" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 Mac에서 통화 기록이 꺼져 있어요"
+          }
+        }
+      }
+    },
+    "Call History Not Allowed" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "통화 기록 접근이 허용되지 않았어요"
+          }
+        }
+      }
+    },
+    "Call History Not Turned On" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "통화 기록을 켜지 못했어요"
+          }
+        }
+      }
+    },
+    "Call history access" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "통화 기록 접근 권한"
+          }
+        }
+      }
+    },
+    "Calls" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "통화"
+          }
+        }
+      }
+    },
+    "Calls from your phone appear here." : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "휴대폰의 통화 기록이 여기에 표시돼요."
+          }
+        }
+      }
+    },
     "Camera" : {
       "localizations" : {
         "ko" : {
@@ -1631,6 +1721,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "휴대폰을 확인하고 Windows와 연결 앱이 모든 파일을 관리하도록 허용해 주세요."
+          }
+        }
+      }
+    },
+    "Check your phone for a permission request…" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "휴대폰에서 권한 요청을 확인해 주세요…"
           }
         }
       }
@@ -2170,6 +2270,16 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "Copy Number" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "번호 복사"
           }
         }
       }
@@ -2928,6 +3038,16 @@
         }
       }
     },
+    "Declined" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "거절됨"
+          }
+        }
+      }
+    },
     "Delete" : {
       "localizations" : {
         "ko" : {
@@ -3610,6 +3730,16 @@
         }
       }
     },
+    "Incoming" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "수신"
+          }
+        }
+      }
+    },
     "Install and Relaunch" : {
       "localizations" : {
         "ko" : {
@@ -3662,6 +3792,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "키보드 설정"
+          }
+        }
+      }
+    },
+    "Last 30 Days" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "지난 30일"
           }
         }
       }
@@ -4063,6 +4203,16 @@
         }
       }
     },
+    "Missed" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "부재중"
+          }
+        }
+      }
+    },
     "Mobile" : {
       "comment" : "Phone number type",
       "localizations" : {
@@ -4215,6 +4365,16 @@
         }
       }
     },
+    "No Call Selected" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "선택된 통화 없음"
+          }
+        }
+      }
+    },
     "No Contact Selected" : {
       "localizations" : {
         "ko" : {
@@ -4312,6 +4472,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "사진 없음"
+          }
+        }
+      }
+    },
+    "No Recent Calls" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "최근 통화 없음"
           }
         }
       }
@@ -4637,6 +4807,16 @@
         }
       }
     },
+    "Older" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이전"
+          }
+        }
+      }
+    },
     "On" : {
       "comment" : "Control state",
       "localizations" : {
@@ -4949,6 +5129,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "기타…"
+          }
+        }
+      }
+    },
+    "Outgoing" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "발신"
           }
         }
       }
@@ -5665,6 +5855,16 @@
         }
       }
     },
+    "Private Number" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "발신자 정보 없음"
+          }
+        }
+      }
+    },
     "Protected Content" : {
       "localizations" : {
         "ko" : {
@@ -5775,6 +5975,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "최근 앱"
+          }
+        }
+      }
+    },
+    "Recent calls from %@ appear here after you allow access on the phone." : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "휴대폰에서 접근을 허용하면 %@의 최근 통화가 여기에 표시돼요."
           }
         }
       }
@@ -6320,6 +6530,16 @@
         }
       }
     },
+    "Send Message" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "메시지 보내기"
+          }
+        }
+      }
+    },
     "Send Request to Phone" : {
       "localizations" : {
         "ko" : {
@@ -6496,12 +6716,32 @@
         }
       }
     },
+    "Show Contact" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "연락처 보기"
+          }
+        }
+      }
+    },
     "Show Conversation" : {
       "localizations" : {
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "대화 보기"
+          }
+        }
+      }
+    },
+    "Show Me How" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "방법 보기"
           }
         }
       }
@@ -6552,6 +6792,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "새 코드 보기"
+          }
+        }
+      }
+    },
+    "Show call history on this Mac" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 Mac에서 통화 기록 보기"
+          }
+        }
+      }
+    },
+    "Show in Contacts" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "연락처에서 보기"
           }
         }
       }
@@ -7599,6 +7859,16 @@
         }
       }
     },
+    "This Week" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이번 주"
+          }
+        }
+      }
+    },
     "This app can't receive files from this Mac." : {
       "localizations" : {
         "ko" : {
@@ -7781,6 +8051,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "이 Mac에서 %1$@ 소리를 들으려면 %2$@에서 Windows와 연결이 오디오를 공유하도록 허용해 주세요."
+          }
+        }
+      }
+    },
+    "To see recent calls, update Link to Windows on %@, then reconnect." : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "최근 통화를 보려면 %@에서 Link to Windows를 업데이트한 다음 다시 연결해 주세요."
           }
         }
       }
@@ -7997,6 +8277,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@에 있는 최근 사진을 보려면 사진을 켜 주세요."
+          }
+        }
+      }
+    },
+    "Turn on call history to see your phone's recent calls on this Mac." : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "통화 기록을 켜면 이 Mac에서 휴대폰의 최근 통화를 볼 수 있어요."
           }
         }
       }
@@ -8397,6 +8687,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "업데이트"
+          }
+        }
+      }
+    },
+    "Updating call history…" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "통화 기록을 업데이트하는 중…"
           }
         }
       }

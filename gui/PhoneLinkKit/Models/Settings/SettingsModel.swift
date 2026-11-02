@@ -57,6 +57,7 @@ public enum SettingsPhoneRequest: Hashable, Sendable {
     case notificationAccess
     case sensitiveContent
     case contactsAccess
+    case callHistoryAccess
 }
 
 /// A change the user made that did not take, for an alert.
@@ -84,6 +85,7 @@ public final class SettingsModel {
     public private(set) var notificationApps: [SettingsNotificationApp] = []
     public private(set) var messagingSettings: MessagingSettings?
     public private(set) var contactsState: ContactsState?
+    public private(set) var callingState: CallingState?
     public private(set) var photosState: PhotosState?
     /// `nil` also while the phone is not in the account's device list.
     public private(set) var clipboardState: ClipboardPhoneState?
@@ -96,6 +98,7 @@ public final class SettingsModel {
     private let notifications: any NotificationsApiProtocol
     private let messaging: any MessagingApiProtocol
     private let contacts: any ContactsApiProtocol
+    private let calling: any CallingApiProtocol
     private let photos: any PhotosApiProtocol
     private let clipboard: any ClipboardApiProtocol
     private let deviceStatus: any DeviceStatusApiProtocol
@@ -124,6 +127,7 @@ public final class SettingsModel {
         notifications: any NotificationsApiProtocol,
         messaging: any MessagingApiProtocol,
         contacts: any ContactsApiProtocol,
+        calling: any CallingApiProtocol,
         photos: any PhotosApiProtocol,
         clipboard: any ClipboardApiProtocol,
         deviceStatus: any DeviceStatusApiProtocol,
@@ -135,6 +139,7 @@ public final class SettingsModel {
         self.notifications = notifications
         self.messaging = messaging
         self.contacts = contacts
+        self.calling = calling
         self.photos = photos
         self.clipboard = clipboard
         self.deviceStatus = deviceStatus
@@ -305,6 +310,28 @@ public final class SettingsModel {
         reloadContacts()
     }
 
+    /// "Show call history on this Mac".
+    public var showsCallHistory: Bool {
+        get { callingState?.pcConsent ?? false }
+        set {
+            change { try calling.setPcConsent(consent: newValue) }
+            reloadCalling()
+        }
+    }
+
+    /// Asks the phone to allow its call history; a grant is followed by a refresh.
+    public func requestCallHistoryAccess() async {
+        await request(.callHistoryAccess) {
+            let result = try await calling.requestPermission()
+            if let refresh = result.refresh, UserText.failure(refresh) != nil {
+                Self.log.notice("call history not refreshed after the grant: \(refresh, privacy: .public)")
+            }
+            return result.timedOut ? .timedOut : result.outcome
+        }
+
+        reloadCalling()
+    }
+
     /// The engine takes the messaging settings whole: they are written back with one field changed.
     private func changeMessagingSettings(_ edit: (inout MessagingSettings) -> Void) {
         change {
@@ -372,6 +399,7 @@ public final class SettingsModel {
         reloadLowBattery()
         reloadMessaging()
         reloadContacts()
+        reloadCalling()
         reloadPhotos()
         reloadClipboard()
     }
@@ -393,6 +421,8 @@ public final class SettingsModel {
             reloadMessaging()
         case .contacts(.stateChanged):
             reloadContacts()
+        case .calling(.stateChanged):
+            reloadCalling()
         case .photos(.stateChanged):
             reloadPhotos()
         case .clipboard(.globalSwitchChanged), .clipboard(.phoneChanged):
@@ -405,6 +435,7 @@ public final class SettingsModel {
             case .deviceStatus: reloadLowBattery()
             case .messaging: reloadMessaging()
             case .contacts: reloadContacts()
+            case .calling: reloadCalling()
             case .photos: reloadPhotos()
             case .clipboard: reloadClipboard()
             case .wallpaper: break
@@ -439,6 +470,12 @@ public final class SettingsModel {
     private func reloadContacts() {
         if let state = read("contacts state not read", { try contacts.state() }) {
             contactsState = state
+        }
+    }
+
+    private func reloadCalling() {
+        if let state = read("call history state not read", { try calling.state() }) {
+            callingState = state
         }
     }
 
@@ -611,6 +648,7 @@ public final class SettingsModel {
         notificationApps = []
         messagingSettings = nil
         contactsState = nil
+        callingState = nil
         photosState = nil
         clipboardState = nil
     }

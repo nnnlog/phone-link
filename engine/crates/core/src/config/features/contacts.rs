@@ -4,10 +4,9 @@ use std::time::Duration;
 
 /// The flags, timers and limits of contacts, at their defaults.
 ///
-/// The app has no contacts browser; its prompts — the new-message composer's and Settings ›
-/// Messages' — ask for contacts access instead (`/permission` 2048, then `/contacts/v2`) and are
-/// offered for every contacts-capable phone ([`Contacts::request_device_permission`]) (Phone Link on
-/// Windows asks from its contacts view).
+/// The contacts view, the new-message composer and Settings › Messages ask for contacts access
+/// (`/permission` 2048, then `/contacts/v2`) for every contacts-capable phone
+/// ([`Contacts::request_device_permission`]); Phone Link on Windows asks from its contacts view only.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ContactsConfig {
     /// The messaging birthday banner, and the order in which contacts sharing an address are taken

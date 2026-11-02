@@ -8,8 +8,8 @@ import PhoneLinkEngine
 public final class BluetoothProximity: PhoneProximity {
     public init() {}
 
-    /// The phone is the first paired device whose name is one of the phone's names: which paired
-    /// device is the phone is the page's open question, and the name is all both sides know.
+    /// The phone is the first paired device whose name is one of the phone's names: nothing the phone
+    /// sends says which paired device it is, and the name is all both sides know.
     public func state(phone: ProximityPhone) -> ProximityState {
         guard let controller = IOBluetoothHostController.default(),
               controller.powerState == kBluetoothHCIPowerStateON

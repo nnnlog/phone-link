@@ -28,6 +28,7 @@ phonelink-hotspot = { path = "crates/hotspot" }
 phonelink-screen-mirroring = { path = "crates/screen-mirroring" }
 phonelink-clipboard = { path = "crates/clipboard" }
 phonelink-connected-camera = { path = "crates/connected-camera" }
+phonelink-calling = { path = "crates/calling" }
 phonelink-contacts = { path = "crates/contacts" }
 phonelink-file-transfer = { path = "crates/file-transfer" }
 phonelink-messaging = { path = "crates/messaging" }
@@ -138,6 +139,7 @@ test-support = [
     "phonelink-screen-mirroring/test-support",
     "phonelink-clipboard/test-support",
     "phonelink-connected-camera/test-support",
+    "phonelink-calling/test-support",
     "phonelink-contacts/test-support",
     "phonelink-file-transfer/test-support",
     "phonelink-messaging/test-support",
@@ -165,6 +167,7 @@ phonelink-hotspot.workspace = true
 phonelink-screen-mirroring.workspace = true
 phonelink-clipboard.workspace = true
 phonelink-connected-camera.workspace = true
+phonelink-calling.workspace = true
 phonelink-contacts.workspace = true
 phonelink-file-transfer.workspace = true
 phonelink-messaging.workspace = true

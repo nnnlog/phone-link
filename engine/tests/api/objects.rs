@@ -264,6 +264,7 @@ async fn the_other_feature_objects_answer_once_started() {
     let phone_files = engine.clone().phone_files();
     let file_transfer = engine.clone().file_transfer();
     let camera = engine.clone().connected_camera();
+    let calling = engine.clone().calling();
 
     let not_started = |what: &str, e: FeatureApiError| assert_eq!(e, FeatureApiError::NotStarted, "{what}");
     not_started("audio", audio.controls().unwrap_err());
@@ -275,6 +276,7 @@ async fn the_other_feature_objects_answer_once_started() {
     not_started("phone files", phone_files.state().unwrap_err());
     not_started("file transfer", file_transfer.settings().unwrap_err());
     not_started("connected camera", camera.status("en".into()).unwrap_err());
+    not_started("calling", calling.state().unwrap_err());
 
     engine.start().await.expect("start");
     audio.controls().expect("audio");
@@ -286,4 +288,8 @@ async fn the_other_feature_objects_answer_once_started() {
     phone_files.state().expect("phone files");
     file_transfer.settings().expect("file transfer");
     camera.status("en".into()).expect("connected camera");
+    let calls = calling.state().expect("calling");
+    assert!(!calls.pc_consent, "call history is off on a new Mac");
+    assert!(calling.history().expect("call history").is_empty(), "history behind the prompt");
+    assert_eq!(calling.refresh_if_empty().await.expect("refresh"), None, "refreshed without the consent");
 }

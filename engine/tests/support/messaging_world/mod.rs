@@ -50,6 +50,10 @@ impl ContactDirectory for FakeContacts {
         })
     }
 
+    fn sync_allowed(&self, _phone: &DcgClient) -> bool {
+        true
+    }
+
     fn request_sync(&self, user_initiated: bool) {
         self.syncs.lock().unwrap().push(user_initiated);
     }

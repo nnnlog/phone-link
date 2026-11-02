@@ -1,10 +1,11 @@
 //! The decode seam for observing live traffic: every layer reports what it sends and receives as a
 //! [`TapEvent`], already unwrapped to plaintext inside the process.
 //!
-//! The CLI writes them as JSON lines into a directory the caller chooses (a gitignored `raw/`
-//! dump), and so does the app when it is launched with `PHONELINK_TAP_DIR` set ([`tap_from_env`]);
-//! tests collect them in memory. Events are **unredacted** except for bearer tokens, which no
-//! analysis needs: [`redact_secret_header`] replaces them before an event is built.
+//! The CLI writes them as JSON lines into a directory the caller chooses, and so does the app when it
+//! is launched with `PHONELINK_TAP_DIR` set ([`tap_from_env`]); tests collect them in memory. Events
+//! are **unredacted** except for bearer tokens, which no reader of the traffic needs:
+//! [`redact_secret_header`] replaces them before an event is built. Keep the directory out of any
+//! repository: it holds the account's and the phone's content.
 
 use std::io::Write;
 use std::sync::atomic::{AtomicBool, Ordering};

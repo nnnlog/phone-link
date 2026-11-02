@@ -22,6 +22,35 @@ CREATE TABLE phone_setting (
         name TEXT NOT NULL PRIMARY KEY,
         value INTEGER NOT NULL
     );
+== phone calling: 1 migrations
+-- 0
+
+CREATE TABLE call_history (
+    call_id INTEGER PRIMARY KEY,
+    phone_number TEXT NOT NULL,
+    duration INTEGER NOT NULL,
+    call_type INTEGER NOT NULL,
+    start_time INTEGER NOT NULL,
+    is_read INTEGER NOT NULL,
+    phone_account_id TEXT NOT NULL,
+    last_updated_time INTEGER NOT NULL
+);
+CREATE INDEX call_history_by_start ON call_history (start_time);
+CREATE TABLE sequence (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    current INTEGER NOT NULL DEFAULT -1,
+    expected INTEGER NOT NULL DEFAULT -1
+);
+INSERT INTO sequence (id) VALUES (1);
+CREATE TABLE state (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    pc_consent INTEGER NOT NULL DEFAULT 0,
+    auto_refresh_done INTEGER NOT NULL DEFAULT 0,
+    last_updated_ms INTEGER,
+    badge_mark_ms INTEGER
+);
+INSERT INTO state (id) VALUES (1);
+
 == phone contacts: 1 migrations
 -- 0
 

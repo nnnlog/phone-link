@@ -2,7 +2,7 @@
 //! part of [`crate::config::EngineConfig`]) and their OS edges ([`FeatureEdges`]).
 //!
 //! The install order follows what the features read from one another: contacts before messaging
-//! (its [`super::ContactDirectory`]), messaging before notifications (its
+//! and calling (its [`super::ContactDirectory`]), messaging before notifications (its
 //! [`super::MessagingAlerts`]), phone apps before notifications (its [`super::PhoneAppDirectory`]),
 //! notifications before audio (its store holds the media sessions).
 
@@ -11,6 +11,7 @@ use std::sync::Arc;
 
 use super::audio::Audio;
 use super::bluetooth::{Bluetooth, PhoneBluetooth};
+use super::calling::Calling;
 use super::clipboard::{Clipboard, ClipboardImageCodec, ClipboardPasteboard};
 use super::connected_camera::{CameraChannels, ConnectedCamera, PhoneCamera};
 use super::contacts::Contacts;
@@ -91,6 +92,7 @@ impl FeatureEdges {
 /// lifetime.
 pub struct Features {
     pub audio: Arc<Audio>,
+    pub calling: Arc<Calling>,
     pub clipboard: Arc<Clipboard>,
     pub connected_camera: Arc<ConnectedCamera>,
     pub contacts: Arc<Contacts>,
@@ -163,6 +165,7 @@ impl Features {
 
         let contacts = Contacts::install(env, config.contacts.clone())?;
         let messaging = install_messaging(env, config, edges, &contacts)?;
+        let calling = Calling::install(env, config.calling.clone(), Some(contacts.directory()))?;
         let phone_apps = PhoneApps::install(env, config.phone_apps.clone(), edges.phone_apps_host.clone())?;
         let notifications = super::notifications::install(env, config.notifications.clone(), Some(messaging.alerts()))?;
         // The notification list and banners name and picture an app from the phone's app list.
@@ -212,6 +215,7 @@ impl Features {
 
         Ok(Arc::new(Self {
             audio,
+            calling,
             clipboard,
             connected_camera,
             contacts,

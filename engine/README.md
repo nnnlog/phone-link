@@ -4,7 +4,7 @@ A Cargo workspace: the `phonelink-engine` package in this directory and the crat
 `crates/` (*Crate map*, below). `phonelink-engine` builds the library that `gui/` links through `uniffi`
 as one static library, with every crate beneath it, and the headless `phonelink` CLI. It holds the
 protocol layers and the features — notifications, media controls, clipboard, device status (with ring my
-phone), remote control, messaging, contacts, photos, wallpaper, new-photo notifications (remote
+phone), remote control, messaging, call history, contacts, photos, wallpaper, new-photo notifications (remote
 snipping), instant hotspot, file transfer, phone files — and the `uniffi` surface the macOS app drives
 them through (`api`). Toolchain: stable Rust; no `protoc`.
 
@@ -57,6 +57,7 @@ test, and each crate's are one test binary: `cargo test -p phonelink-clipboard` 
 | `tests/features/clipboard/` (`support/clipboard_world`: the platform world with a `FeatureEnv`, an in-memory pasteboard with a read hook, a vanishing device list, a fake codec) | announcements both ways, the content pull, the `/clipboard` receiver, the feature-state sync, the feature's stop |
 | `tests/features/device_status/` (`support/device_status_world`) | the CDEH pull, push and `/remotedevicestatus`; the Phone Link contract; the DND and ringer controls; ring my phone (the capability, the control, the `RING_MY_PHONE` request and its outcomes, the countdown, the two-step stop); both contracts on one session |
 | `tests/features/messaging/` (`support/messaging_world`) | the `messaging` exchanges and their validation, the connect contribution, `/chat/v1` requests and sending, new-message notifications |
+| `tests/features/calling/` (`support/calling_world`) | the `callLogs` sync (metadata, items, incremental pushes, refusals), the connect contribution, `/calling` and its triggers, the call-log `/permission`, the access states, the history's names and the badge |
 | `tests/features/contacts/` (`support/contacts_world`) | `contactsV2` sync, the connect contribution, `/contacts/v2` and the contacts `/permission` |
 | `tests/features/photos/` (`support/photos_world`) | the `mediaInfo` sync, the connect contribution, the fetch dispatchers, the delete and permission flows |
 | `tests/features/remote_control/` (`support/remote_control_world`: the device-status session world, a recording power edge, a scripted device-list refresh) | the `/remotecontrol` receiver's actions, answers and gates, the refresh before a capability failure, the addresses that reach it; the `remoteControl` processor and its value rules; both through `EngineCore` with the cloud refresh. No test can lock, sleep, shut down or restart the machine: the engine has no implementation of the power edge of its own |
@@ -153,6 +154,7 @@ that feature's crate and the ones above it, not the layers below.
 | `features::clipboard` | tag-9 announcements both ways, the `/clipboard` content pull and receiver, the feature-state sync; the `ClipboardPasteboard` and `ClipboardImageCodec` OS edges |
 | `features::device_status` | the CDEH pull, push and `/remotedevicestatus` (OS edge `PcStatusSource`); the Phone Link connect flags, sync request, `deviceStatus` content and commands 2/3/9; the status per phone; the DND and ringer controls; ring my phone (`ring`: the ring control, its 20 s countdown and two-step stop, the `RING_MY_PHONE` request sent with `AppLayer::request_drm`); the low-battery notification. The Phone Link model is the phone record's `StatusKeys` |
 | `features::messaging` | the `messaging` exchange, connect provider #10, `/chat/v1` requests, the messages prompt, new-message notifications; the `AttachmentImaging`, `MessagingFileTypes` and `PhoneProximity` OS edges |
+| `features::calling` | call history: the `callLogs` processor, `/calling` and the call-log `/permission`, connect provider #13, the per-phone store, the calls view's access states and the missed-call badge; no Bluetooth call control |
 | `features::contacts` | the `contactsV2` processor, `/contacts/v2` and the contacts `/permission`, connect provider #14, the lookup by address (`ContactDirectory`) |
 | `features::photos` | the `mediaInfo` sync, connect provider #9, the thumbnail and full-resolution dispatchers, the media sync, delete and permission flows, cache maintenance, the new-photo notification (skipped for a phone `features::remote_snipping` covers) |
 | `features::remote_control` | the `/remotecontrol` receiver and its gates, the `remoteControl` processor, the per-phone toggle, the `REMOTE_CONTROL`/`REMOTE_CONTROL_V2` capabilities; the `PcPowerControl` OS edge |
@@ -174,12 +176,13 @@ marked where it is implemented ("differs from Phone Link on Windows").
 | Sign-in | A device-bound Microsoft-account sign-in the engine runs itself, not through the OS's account manager: the Mac registers once as a Microsoft-account device, the user signs in once in a web view (`InlineLogin.srf`) for both identities, and each identity exchanges its own tokens under its own client id; there is no refresh token | `auth::live`, `auth::msa` |
 | Identity | Its own values where Windows derives one from the OS: a random `DCG-LogicalDeviceId` minted once and stored; the display name is the host name cut before its first `.` | `config`, `identification` |
 | Sign-out | Local only: deletes the stored identity and every feature store (Phone Link on Windows keeps the feature data); no unlink action | `auth`, `engine`, `features::db` |
-| Connect message | PhoneApps is sent off, without sequence numbers; TelemetryInfo is omitted | `app::connect` |
+| Connect message | TelemetryInfo is omitted | `app::connect` |
 | Malformed inbound content | Answered `{ result: 1 }` and dropped; Phone Link on Windows does not answer it | `codec::valueset`, `app` |
 | Partner-disconnect breaker | `partner_disconnect_ack_timeouts` (5) consecutive `TimedOut` messages remove the partner | `dcg::sender` |
 | Media controls | A stored item counts as updated only when its JSON text changed; the audio-controls setting is never turned off by a lost notification permission; no audio connection (the Mac is not made the phone's A2DP sink) | `features::audio` |
 | Clipboard | The macOS pasteboard rules; a `/clipboard` request that fails the strict proto3 decode is answered `UNRECOGNIZED_PAYLOAD`; a failed image encode is answered `INVALID_CONTENT` | `features::clipboard` |
-| Contacts | No contacts view: the composer's and Settings' prompts ask for contacts access; the birthday banner reads fewer date forms | `features::contacts`, `api::contacts` |
+| Call history | Shown without Bluetooth calling: no OS calling check before items are stored, no calls setup before the history or the missed-call badge show; the consent is switched on directly | `features::calling`, `api::calling` |
+| Contacts | Besides the contacts view, the composer's and Settings' prompts ask for contacts access; the birthday banner reads fewer date forms | `features::contacts`, `api::contacts` |
 | Messaging | A send an earlier run left sending is marked failed and can be retried | `features::messaging` |
 | Notifications | The action queue persists and is drained when its sender starts; triggers run whether or not a list is shown; a key of another JSON type reads as absent | `features::notifications` |
 | Photos | The new-photo notification opens the image in the default macOS viewer; none is posted for a phone whose new photos remote snipping notifies (Phone Link on Windows can show both) | `features::photos` |

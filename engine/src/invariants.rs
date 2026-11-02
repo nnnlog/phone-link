@@ -46,6 +46,7 @@ fn store_migrations_are_unchanged() {
         ("global", f::clipboard::store::FEATURE, f::clipboard::store::GLOBAL_MIGRATIONS),
         ("phone", f::clipboard::store::FEATURE, f::clipboard::store::PHONE_MIGRATIONS),
         ("phone", f::audio::FEATURE, f::audio::store::PHONE_MIGRATIONS),
+        ("phone", f::calling::store::FEATURE, f::calling::store::MIGRATIONS),
         ("phone", f::contacts::store::FEATURE, f::contacts::store::MIGRATIONS),
         ("phone", f::connected_camera::store::FEATURE, f::connected_camera::store::MIGRATIONS),
         ("phone", f::device_status::FEATURE, f::device_status::battery::MIGRATIONS),
