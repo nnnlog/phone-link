@@ -27,6 +27,18 @@ public enum UserText {
                 return String(localized: "Pairing with your phone didn't finish (\(reason)). You can also pair it in System Settings › Bluetooth, then try again.")
             case .Internal: return String(localized: "Something went wrong in Phone Link.")
             }
+        case let e as CallControlError:
+            switch e {
+            case let .Feature(error): return describe(error)
+            case .NotReady: return String(localized: "This Mac isn't connected to your phone over Bluetooth.")
+            case .NoSuchCall: return String(localized: "The call has ended.")
+            case .InvalidState: return String(localized: "That isn't possible for this call right now.")
+            case .EmptyNumber: return String(localized: "Enter a phone number.")
+            case .DialFailed: return String(localized: "Your phone didn't place the call.")
+            case .Refused: return String(localized: "Your phone didn't accept the request. Try it on your phone.")
+            case let .Bluetooth(error): return describe(error)
+            case .Internal: return String(localized: "Something went wrong in Phone Link.")
+            }
         case let e as EngineError:
             switch e {
             case .Auth: return String(localized: "Signing in to your Microsoft account didn't finish.")

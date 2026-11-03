@@ -6,6 +6,7 @@ import SwiftUI
 /// and the calls with that number; and the failures of the section's actions.
 struct CallDetailColumn: View {
     @Environment(CallsModel.self) private var model
+    @Environment(CallControlModel.self) private var control
 
     var body: some View {
         Group {
@@ -25,10 +26,20 @@ struct CallDetailColumn: View {
         } message: { alert in
             Text(alert.message)
         }
+        .alert(control.alert?.title ?? "", isPresented: controlAlertShown, presenting: control.alert) { _ in
+            Button("OK") {}
+        } message: { alert in
+            Text(alert.message)
+        }
     }
 
     private var alertShown: Binding<Bool> {
         Binding(get: { model.alert != nil }, set: { if !$0 { model.alert = nil } })
+    }
+
+    /// Call control's failures, while the call window is not where they show.
+    private var controlAlertShown: Binding<Bool> {
+        Binding(get: { control.alert != nil && control.primaryCall == nil }, set: { if !$0 { control.alert = nil } })
     }
 }
 
@@ -86,6 +97,7 @@ private struct CallCardView: View {
 
     private var actions: some View {
         HStack(spacing: 12) {
+            CallButton(number: call.number)
             Button {
                 model.message(call)
             } label: {

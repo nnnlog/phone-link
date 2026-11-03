@@ -104,13 +104,6 @@ picks for it from the user's preferred languages; it has no language setting of 
   `PhoneLinkKit`'s strings would read as stale there. `just gui-strings` is the sync: it reads the
   `.stringsdata` the compiler writes for both targets (`SWIFT_EMIT_LOC_STRINGS`). Run it after changing
   text, then translate the new keys.
-- **Wording.** Labels whose meaning comes from the phone use the words the phone and Phone Link on Windows
-  use in that language: the camera effects, and the phone app's name (*Link to Windows*, in Korean
-  "Windows와 연결"). The rest follows macOS's own terms in that language. Korean follows the
-  [korean-prose](https://github.com/JellyBrick/korean-prose-skill) style: 해요체 for sentences and alert titles
-  ("사진을 저장하지 못했어요", "다시 시도해 주세요"), noun forms for buttons, menu items and status labels, no
-  dual particles such as 을(를) after a name the app fills in (the sentence is phrased around it instead), and no
-  em or en dashes.
 - **Adding a language.** Add it to `knownRegions` in `PhoneLink.xcodeproj`, then translate until
   `just gui-strings-check` passes.
 

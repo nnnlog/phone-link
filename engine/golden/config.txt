@@ -160,6 +160,10 @@ EngineConfig {
         },
         calling: CallingConfig {
             request_every_listed_id: true,
+            control_open_timeout: 15s,
+            control_command_timeout: 10s,
+            control_read_poll: 1s,
+            control_end_held_wait: 3s,
         },
         clipboard: ClipboardConfig {
             poll_interval: 250ms,
@@ -496,6 +500,10 @@ EngineConfig {
         },
         calling: CallingConfig {
             request_every_listed_id: true,
+            control_open_timeout: 15s,
+            control_command_timeout: 10s,
+            control_read_poll: 1s,
+            control_end_held_wait: 3s,
         },
         clipboard: ClipboardConfig {
             poll_interval: 250ms,

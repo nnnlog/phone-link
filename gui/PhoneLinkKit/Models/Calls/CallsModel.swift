@@ -239,6 +239,9 @@ public final class CallsModel {
                 reloadState()
             case .stateChanged:
                 reloadState()
+            case .controlChanged, .activeCalls:
+                // Call control's; the history is unchanged.
+                break
             }
         case .resync(.calling), .resync(.contacts), .contacts(.recordsChanged):
             // Contacts name the calls.

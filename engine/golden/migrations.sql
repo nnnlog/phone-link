@@ -22,7 +22,7 @@ CREATE TABLE phone_setting (
         name TEXT NOT NULL PRIMARY KEY,
         value INTEGER NOT NULL
     );
-== phone calling: 1 migrations
+== phone calling: 2 migrations
 -- 0
 
 CREATE TABLE call_history (
@@ -50,6 +50,10 @@ CREATE TABLE state (
     badge_mark_ms INTEGER
 );
 INSERT INTO state (id) VALUES (1);
+
+-- 1
+
+ALTER TABLE state ADD COLUMN call_control INTEGER NOT NULL DEFAULT 0;
 
 == phone contacts: 1 migrations
 -- 0

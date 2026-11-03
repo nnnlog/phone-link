@@ -5,7 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 publish.workspace = true
 license.workspace = true
-description = "The call-history part of the calling feature of the Phone Link engine"
+description = "The calling feature of the Phone Link engine: call history and call control"
 
 [lib]
 doctest = false
@@ -13,14 +13,17 @@ doctest = false
 [features]
 # The fakes and builders other crates' tests use; this crate's own tests turn it on through the
 # dev-dependency on itself below.
-test-support = ["phonelink-app/test-support", "phonelink-core/test-support", "phonelink-features/test-support"]
+test-support = ["phonelink-app/test-support", "phonelink-bluetooth/test-support", "phonelink-core/test-support", "phonelink-features/test-support"]
 
 [dependencies]
 phonelink-app.workspace = true
+# Call control reaches the phone over its Bluetooth device.
+phonelink-bluetooth.workspace = true
 phonelink-core.workspace = true
 phonelink-features.workspace = true
 async-trait.workspace = true
 rusqlite.workspace = true
+thiserror.workspace = true
 tokio.workspace = true
 tracing.workspace = true
 

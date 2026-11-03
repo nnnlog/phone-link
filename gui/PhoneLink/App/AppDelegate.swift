@@ -21,6 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let messages: MessagesModel
     let contacts: ContactsModel
     let calls: CallsModel
+    let callControl: CallControlModel
     let photos: PhotosModel
     let wallpaper: WallpaperModel
     let remoteSnipping: RemoteSnippingModel
@@ -42,6 +43,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var sendFilesWindow: NSWindow?
     private var pairingWindow: NSWindow?
     private var cameraWindow: NSPanel?
+    private var incomingCallPanel: NSPanel?
+    private var callWindow: NSPanel?
     private var updateWindow: NSWindow?
     private var mirrorWindows: MirrorWindows?
     private var observers: [(NotificationCenter, NSObjectProtocol)] = []
@@ -95,6 +98,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         messages = MessagesModel(api: controller.messaging, contacts: controller.contacts, hub: hub, navigator: navigator)
         contacts = ContactsModel(api: controller.contacts, hub: hub, navigator: navigator)
         calls = CallsModel(api: controller.calling, hub: hub, navigator: navigator)
+        callControl = CallControlModel(
+            api: controller.calling,
+            messaging: controller.messaging,
+            hub: hub,
+            navigator: navigator,
+            ringer: CallRinger()
+        )
         photos = PhotosModel(api: controller.photos, hub: hub)
         wallpaper = WallpaperModel(api: controller.wallpaper, hub: hub)
         remoteSnipping = RemoteSnippingModel(api: controller.remoteSnipping, hub: hub)
@@ -171,6 +181,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         connectedCamera.presentControlWindow = { [weak self] shown in self?.showCameraWindow(shown) }
+        callControl.presentPopup = { [weak self] shown in self?.showIncomingCallPanel(shown) }
+        callControl.presentCallWindow = { [weak self] shown in self?.showCallWindow(shown) }
+        callControl.canMessage = { [weak self] in self?.messages.isGated == false }
         hotspot.present = { [weak self] outcome in self?.showHotspotOutcome(outcome) }
         edges.hotspotWifi.onNetworkChanged = { [weak self] in self?.hotspot.reload() }
 
@@ -178,6 +191,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         navigator.presentSignIn = { [weak self] in self?.showSignInWindow() }
         navigator.presentSendFiles = { [weak self] in self?.showSendFilesWindow() }
         navigator.presentPairing = { [weak self] in self?.showPairingWindow() }
+        navigator.presentBluetoothSettings = {
+            if let url = URL(string: "x-apple.systempreferences:com.apple.BluetoothSettings") {
+                NSWorkspace.shared.open(url)
+            }
+        }
 
         controller.onPhoneSelectionNeeded = { [weak self] in self?.showSignInWindow() }
         controller.onBringWindowForward = { [weak self] _ in self?.showMainWindow() }
@@ -214,6 +232,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .environment(messages)
             .environment(contacts)
             .environment(calls)
+            .environment(callControl)
             .environment(photos)
             .environment(wallpaper)
             .environment(remoteSnipping)
@@ -500,6 +519,91 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return panel
     }
 
+    /// The incoming-call popup: a borderless panel at the top right of the screen, over every app and
+    /// Space, shown while a call rings that the user has not hidden.
+    private func showIncomingCallPanel(_ shown: Bool) {
+        guard shown else {
+            incomingCallPanel?.orderOut(nil)
+            return
+        }
+
+        let panel = incomingCallPanel ?? makeIncomingCallPanel()
+        incomingCallPanel = panel
+        placeAtTopRight(panel)
+        panel.orderFrontRegardless()
+    }
+
+    private func makeIncomingCallPanel() -> NSPanel {
+        let panel = KeyablePanel(
+            contentRect: NSRect(x: 0, y: 0, width: 376, height: 180),
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: true
+        )
+        let host = NSHostingController(rootView: environments(IncomingCallView()))
+        host.sizingOptions = [.preferredContentSize]
+        panel.contentViewController = host
+        panel.isOpaque = false
+        panel.backgroundColor = .clear
+        panel.hasShadow = true
+        panel.level = .statusBar
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        panel.hidesOnDeactivate = false
+        panel.isReleasedWhenClosed = false
+        panel.title = String(localized: "Incoming Call")
+
+        // A second ringing call grows the panel; it stays at the top right.
+        let resize = NotificationCenter.default.addObserver(forName: NSWindow.didResizeNotification, object: panel, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.placeAtTopRight(panel)
+            }
+        }
+        observers.append((NotificationCenter.default, resize))
+        return panel
+    }
+
+    private func placeAtTopRight(_ panel: NSPanel) {
+        guard let screen = NSScreen.main ?? NSScreen.screens.first else { return }
+        let visible = screen.visibleFrame
+        let size = panel.frame.size
+        panel.setFrameOrigin(NSPoint(x: visible.maxX - size.width - 12, y: visible.maxY - size.height - 12))
+    }
+
+    /// The call window: a floating panel for the calls placed or answered on this Mac. Closing it
+    /// hides it; the calls go on on the phone.
+    private func showCallWindow(_ shown: Bool) {
+        guard shown else {
+            callWindow?.orderOut(nil)
+            return
+        }
+
+        let panel = callWindow ?? makeCallWindow()
+        callWindow = panel
+        panel.orderFrontRegardless()
+    }
+
+    private func makeCallWindow() -> NSPanel {
+        let panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 320, height: 300),
+            styleMask: [.titled, .closable, .nonactivatingPanel, .utilityWindow],
+            backing: .buffered,
+            defer: true
+        )
+        let host = NSHostingController(rootView: environments(CallWindowView()))
+        host.sizingOptions = [.preferredContentSize]
+        panel.contentViewController = host
+        panel.title = String(localized: "Phone Call")
+        panel.isFloatingPanel = true
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        panel.hidesOnDeactivate = false
+        panel.isReleasedWhenClosed = false
+        panel.setFrameAutosaveName("PhoneLinkCallWindow")
+        if !panel.setFrameUsingName("PhoneLinkCallWindow") {
+            panel.center()
+        }
+        return panel
+    }
+
     private func present(_ window: NSWindow) {
         NSApp.setActivationPolicy(.regular)
         window.makeKeyAndOrderFront(nil)
@@ -537,4 +641,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private static func isAppWindow(_ window: NSWindow) -> Bool {
         window.styleMask.contains(.titled) && !(window is NSPanel)
     }
+}
+
+/// A borderless panel that takes clicks and keys like a titled one (a borderless window cannot become
+/// key on its own), without activating the app.
+private final class KeyablePanel: NSPanel {
+    override var canBecomeKey: Bool { true }
 }

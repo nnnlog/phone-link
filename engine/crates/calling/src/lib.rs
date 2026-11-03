@@ -1,10 +1,11 @@
-//! Calling's call history, the Android path: the phone mirrors its call log onto the Mac.
+//! Calling, the Android path: the phone's call history mirrored onto the Mac, and call control over
+//! Bluetooth.
 //!
 //! The phone pushes `callLogs` content on `/legacy/phonecontent`; the PC answers a metadata message
 //! with the ids it wants, stores the item messages that follow, asks for a sync with `/calling` and
 //! for the call-log permission with `/permission` 256, and contributes to the connect message. Sync
-//! is one-way, phone → PC: the Mac never changes or deletes the phone's calls. Placing and answering
-//! calls (over Bluetooth) is not part of this crate.
+//! is one-way, phone → PC: the Mac never changes or deletes the phone's calls. Placing, answering and
+//! ending calls runs over Bluetooth Hands-Free, with every call's audio on the phone ([`control`]).
 //!
 //! | Module | Implements |
 //! |---|---|
@@ -13,6 +14,7 @@
 //! | [`gates`] | the gates over the phone record |
 //! | `sync` | the `callLogs` processor: metadata, items, completion |
 //! | `connect` | the contribution to the connect message |
+//! | [`control`] | call control over Bluetooth Hands-Free |
 //! | this module | the requests and their triggers, and what the calls view reads |
 //!
 //! The PC asks for the call log on three occasions only: once ever, when the history is empty
@@ -23,6 +25,7 @@
 
 #![cfg_attr(feature = "test-support", warn(unreachable_pub))]
 
+pub mod control;
 pub mod gates;
 pub mod store;
 pub mod wire;
@@ -40,11 +43,13 @@ use tracing::{debug, info, warn};
 
 use phonelink_app::consts::permission;
 use phonelink_app::{AppEvent, AppLayer, AppOutcome, ConnectProvider, PhoneRecord, RequestOptions};
+use phonelink_bluetooth::Bluetooth;
 use phonelink_core::edge::Clock;
 use phonelink_core::types::{DcgClient, TraceContext};
 use phonelink_features::shared::db::{FeatureDb, PhoneStores, StoreError};
 use phonelink_features::{ContactDirectory, ContactMatch, FeatureEnv, FeatureError};
 
+pub use control::CallControl;
 pub use store::CallRow;
 pub use wire::CallType;
 
@@ -64,6 +69,10 @@ pub enum CallingEvent {
     /// What [`Calling::status`] reports changed: the gates, the consent, the permission, the sync
     /// state, a refresh starting or ending, the badge mark.
     StateChanged { phone: DcgClient },
+    /// What [`CallControl::state`] reports changed: the call-control switch or the connection.
+    ControlChanged { phone: DcgClient },
+    /// `phone`'s current calls changed: re-read [`CallControl::calls`].
+    ActiveCalls { phone: DcgClient },
 }
 
 /// What the calls view shows in place of, or as, the history, in the order it is decided.
@@ -242,9 +251,10 @@ impl Shared {
     }
 }
 
-/// The call-history feature handle.
+/// The calling feature handle: call history, and call control through [`Calling::control`].
 pub struct Calling {
     shared: Arc<Shared>,
+    control: Arc<CallControl>,
 }
 
 impl std::fmt::Debug for Calling {
@@ -255,12 +265,14 @@ impl std::fmt::Debug for Calling {
 
 impl Calling {
     /// Registers the `callLogs` processor factory and the `Calling` connect provider, and watches the
-    /// App layer's events for the gates. `contacts` names the history's numbers and is synced after
-    /// each refresh. Must run inside a tokio runtime.
+    /// App layer's events for the gates. `contacts` names the history's and the current calls'
+    /// numbers and is synced after each refresh; call control reaches the phone through `bluetooth`.
+    /// Must run inside a tokio runtime.
     pub fn install(
         env: &FeatureEnv,
         config: CallingConfig,
         contacts: Option<Arc<dyn ContactDirectory>>,
+        bluetooth: Arc<Bluetooth>,
     ) -> Result<Arc<Self>, FeatureError> {
         let runtime = Handle::try_current()
             .map_err(|_| FeatureError::Programming("calling must be installed inside a tokio runtime".into()))?;
@@ -283,7 +295,18 @@ impl Calling {
             Arc::new(connect::Contributor { shared: shared.clone() }),
         )?;
         spawn_record_watch(&runtime, &shared, &env.app);
-        Ok(Arc::new(Self { shared }))
+        let control = CallControl::install(shared.clone(), bluetooth);
+        Ok(Arc::new(Self { shared, control }))
+    }
+
+    /// Call control over Bluetooth.
+    pub fn control(&self) -> &Arc<CallControl> {
+        &self.control
+    }
+
+    /// The app came to the foreground: call control sets up a failed or lost connection again.
+    pub fn foreground(&self) {
+        self.control.foreground();
     }
 
     pub fn subscribe(&self) -> broadcast::Receiver<CallingEvent> {
@@ -333,6 +356,8 @@ impl Calling {
 
         info!(enabled = consent, "call history on this Mac switched");
         self.shared.emit(CallingEvent::StateChanged { phone: phone.clone() });
+        self.shared.emit(CallingEvent::ControlChanged { phone: phone.clone() });
+        self.control.gates_changed();
         if consent {
             let shared = self.shared.clone();
             self.shared.runtime.spawn(async move {

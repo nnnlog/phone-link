@@ -21,4 +21,7 @@ public enum PreferenceKeys {
     public static let updatesLastChecked = "updatesLastChecked"
     /// The release version the user skipped.
     public static let updatesSkippedVersion = "updatesSkippedVersion"
+    /// The user read, on this Mac, that calls placed and answered here stay on the phone (shown the
+    /// first time call control is switched on).
+    public static let callControlIntroShown = "callControlIntroShown"
 }

@@ -19,6 +19,9 @@ struct SettingsView: View {
             SettingsMessagesPane()
                 .tabItem { Label("Messages", systemImage: "message") }
                 .tag(SettingsPane.messages)
+            SettingsCallsPane()
+                .tabItem { Label("Calls", systemImage: "phone") }
+                .tag(SettingsPane.calls)
             SettingsPhotosPane()
                 .tabItem { Label("Photos", systemImage: "photo.on.rectangle") }
                 .tag(SettingsPane.photos)
@@ -57,7 +60,7 @@ extension View {
     /// it scrolls (the Settings window sizes itself to the pane).
     func settingsPaneForm() -> some View {
         formStyle(.grouped)
-            .frame(width: 640)
+            .frame(width: 700)
             .frame(maxHeight: 640)
             .fixedSize(horizontal: false, vertical: true)
     }

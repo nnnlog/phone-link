@@ -8,30 +8,61 @@ import SwiftUI
 /// notifications or call history not allowed on the phone, calls on their way, or no calls at all.
 struct CallListColumn: View {
     @Environment(CallsModel.self) private var model
+    @Environment(CallControlModel.self) private var control
     @Environment(EngineController.self) private var controller
+    @State private var keypadShown = false
+    @State private var introShown = false
 
     var body: some View {
         @Bindable var model = model
-        content
-            .navigationTitle("Calls")
-            // The search matches names and the numbers' digits.
-            .searchable(text: $model.searchText, prompt: "Search")
-            .toolbar {
-                if model.isUpdating && model.content == .list {
-                    ToolbarItem(placement: .status) {
-                        ProgressView()
-                            .controlSize(.small)
-                            .help("Updating call history…")
+        VStack(spacing: 0) {
+            if let notice = control.dialNotice ?? control.connectionNotice {
+                CallControlNoticeView(notice: notice)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+            }
+            content
+        }
+        .navigationTitle("Calls")
+        // The search matches names and the numbers' digits.
+        .searchable(text: $model.searchText, prompt: "Search")
+        .toolbar {
+            if model.isUpdating && model.content == .list {
+                ToolbarItem(placement: .status) {
+                    ProgressView()
+                        .controlSize(.small)
+                        .help("Updating call history…")
+                }
+            }
+            if control.isOffered && control.hasCallHistory {
+                ToolbarItem {
+                    Button {
+                        if control.isEnabled {
+                            keypadShown = true
+                        } else if control.needsIntro {
+                            introShown = true
+                        } else {
+                            control.setEnabled(true)
+                        }
+                    } label: {
+                        Label("Keypad", systemImage: "circle.grid.3x3")
+                    }
+                    .help(control.isEnabled ? "Call a number using your phone" : "Turn on calls on this Mac")
+                    .popover(isPresented: $keypadShown, arrowEdge: .bottom) {
+                        DialPadView()
+                            .environment(control)
                     }
                 }
             }
-            .sheet(item: $model.postNotificationHelp) { help in
-                PostNotificationSheet(help: help, phoneName: phoneName)
-            }
-            .onAppear { model.viewAppeared() }
-            .onDisappear { model.viewDisappeared() }
-            // Outermost: under `searchable` and `toolbar` the split view left the column at its minimum.
-            .navigationSplitViewColumnWidth(min: 260, ideal: 300, max: 420)
+        }
+        .callControlIntro(isPresented: $introShown)
+        .sheet(item: $model.postNotificationHelp) { help in
+            PostNotificationSheet(help: help, phoneName: phoneName)
+        }
+        .onAppear { model.viewAppeared() }
+        .onDisappear { model.viewDisappeared() }
+        // Outermost: under `searchable` and `toolbar` the split view left the column at its minimum.
+        .navigationSplitViewColumnWidth(min: 260, ideal: 300, max: 420)
     }
 
     @ViewBuilder
@@ -179,13 +210,20 @@ struct CallAvatar: View {
     }
 }
 
-/// What can be done with a call without placing one: write to its number, show its contact, copy the
-/// number.
+/// What can be done with a call: call its number back on the phone, write to it, show its contact,
+/// copy the number.
 struct CallActions: View {
     let call: CallHistoryItem
     @Environment(CallsModel.self) private var model
+    @Environment(CallControlModel.self) private var control
 
     var body: some View {
+        if control.isEnabled && control.hasCallHistory {
+            Button("Call", systemImage: "phone") {
+                Task { await control.dial(call.number) }
+            }
+            .disabled(call.number.isEmpty || !control.canDial)
+        }
         Button("Send Message", systemImage: "message") { model.message(call) }
             .disabled(call.number.isEmpty)
         if call.contactId != nil {

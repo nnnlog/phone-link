@@ -45,6 +45,8 @@ public enum SettingsPane: String, CaseIterable, Sendable {
     case general
     case notifications
     case messages
+    /// Calls: call history and call control.
+    case calls
     case photos
     case files
     case camera
@@ -77,6 +79,8 @@ public final class AppNavigator {
     @ObservationIgnored public var presentSendFiles: () -> Void = {}
     /// Opens the window that pairs a new phone (set by the app).
     @ObservationIgnored public var presentPairing: () -> Void = {}
+    /// Opens System Settings › Bluetooth (set by the app).
+    @ObservationIgnored public var presentBluetoothSettings: () -> Void = {}
 
     public init() {}
 
@@ -94,6 +98,10 @@ public final class AppNavigator {
 
     public func showPairing() {
         presentPairing()
+    }
+
+    public func openBluetoothSettings() {
+        presentBluetoothSettings()
     }
 
     public func show(_ section: AppSection) {

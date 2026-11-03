@@ -83,6 +83,46 @@ private final class FakeCalling: CallingApiProtocol, @unchecked Sendable {
             return d.permission
         }
     }
+
+    func controlState() throws -> CallControlState {
+        CallControlState(offered: true, pcConsent: false, enabled: false, status: .off)
+    }
+
+    func setControlEnabled(enabled: Bool) throws {
+        preconditionFailure("not called in these tests: \(#function)")
+    }
+
+    func activeCalls() throws -> [ActiveCall] {
+        []
+    }
+
+    func connectControl() async throws -> CallControlStatus {
+        preconditionFailure("not called in these tests: \(#function)")
+    }
+
+    func pairForControl() async throws -> CallControlStatus {
+        preconditionFailure("not called in these tests: \(#function)")
+    }
+
+    func dial(number: String) async throws {
+        preconditionFailure("not called in these tests: \(#function)")
+    }
+
+    func answer(id: UInt64) async throws {
+        preconditionFailure("not called in these tests: \(#function)")
+    }
+
+    func decline(id: UInt64) async throws {
+        preconditionFailure("not called in these tests: \(#function)")
+    }
+
+    func endCall(id: UInt64) async throws {
+        preconditionFailure("not called in these tests: \(#function)")
+    }
+
+    func swap() async throws {
+        preconditionFailure("not called in these tests: \(#function)")
+    }
 }
 
 // MARK: - Fixtures
@@ -192,7 +232,10 @@ struct CallsModelTests {
         world.hub.post(.calling(change: .stateChanged))
         #expect(world.model.isUpdating)
 
-        try await Task.sleep(for: .milliseconds(200))
+        // The wait runs out on the main actor, which the other suites keep busy: poll for it, up to 2 s.
+        for _ in 0..<100 where world.model.isUpdating {
+            try await Task.sleep(for: .milliseconds(20))
+        }
         #expect(!world.model.isUpdating, "the wait did not run out")
 
         world.api.data.with { $0.state.upToDate = true }

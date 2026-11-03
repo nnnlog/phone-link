@@ -40,7 +40,7 @@ async fn a_full_sync_asks_for_every_listed_id_and_stores_the_items() {
 
 #[tokio::test(start_paused = true)]
 async fn only_new_or_changed_ids_are_asked_for_when_configured() {
-    let world = world_with(CallingConfig { request_every_listed_id: false });
+    let world = world_with(CallingConfig { request_every_listed_id: false, ..CallingConfig::default() });
     world.grant();
     send(&world.h, items(&[(1, "+15550100", 1, 1_000, 10), (2, "+15550101", 1, 2_000, 20)], ValueSet::new())).await;
 

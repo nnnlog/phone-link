@@ -2,7 +2,8 @@
 //! part of [`crate::config::EngineConfig`]) and their OS edges ([`FeatureEdges`]).
 //!
 //! The install order follows what the features read from one another: contacts before messaging
-//! and calling (its [`super::ContactDirectory`]), messaging before notifications (its
+//! and calling (its [`super::ContactDirectory`]), the phone's Bluetooth device before calling and
+//! instant hotspot, messaging before notifications (its
 //! [`super::MessagingAlerts`]), phone apps before notifications (its [`super::PhoneAppDirectory`]),
 //! notifications before audio (its store holds the media sessions).
 
@@ -165,7 +166,8 @@ impl Features {
 
         let contacts = Contacts::install(env, config.contacts.clone())?;
         let messaging = install_messaging(env, config, edges, &contacts)?;
-        let calling = Calling::install(env, config.calling.clone(), Some(contacts.directory()))?;
+        let bluetooth = Bluetooth::install(env, config.bluetooth.clone(), edges.phone_bluetooth.clone())?;
+        let calling = Calling::install(env, config.calling.clone(), Some(contacts.directory()), bluetooth.clone())?;
         let phone_apps = PhoneApps::install(env, config.phone_apps.clone(), edges.phone_apps_host.clone())?;
         let notifications = super::notifications::install(env, config.notifications.clone(), Some(messaging.alerts()))?;
         // The notification list and banners name and picture an app from the phone's app list.
@@ -200,7 +202,6 @@ impl Features {
             edges.phone_camera.clone(),
         )?;
 
-        let bluetooth = Bluetooth::install(env, config.bluetooth.clone(), edges.phone_bluetooth.clone())?;
         let hotspot =
             Hotspot::install(env, config.hotspot.clone(), auth, bluetooth.clone(), edges.hotspot_wifi.clone())?;
         let screen_mirroring = ScreenMirroring::install(

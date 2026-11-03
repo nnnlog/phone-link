@@ -119,9 +119,11 @@ private struct MessagesDetailView: View {
     }
 }
 
-/// Who the conversation is with, pinned above the messages.
+/// Who the conversation is with, pinned above the messages, and *Call* for a one-person conversation
+/// while call control is offered.
 private struct MessagesConversationHeader: View {
     let conversation: Conversation
+    @Environment(CallControlModel.self) private var calls
 
     var body: some View {
         VStack(spacing: 0) {
@@ -139,11 +141,23 @@ private struct MessagesConversationHeader: View {
                     }
                 }
                 Spacer(minLength: 0)
+                if let number = callableNumber {
+                    CallButton(number: number, iconOnly: true)
+                        .buttonStyle(.borderless)
+                }
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 8)
             Divider()
         }
         .background(.bar)
+    }
+
+    /// The one recipient's address, when it is a phone number and calls may be placed from this Mac.
+    private var callableNumber: String? {
+        guard calls.isOffered, calls.hasCallHistory, !conversation.isGroup, let recipient = conversation.recipients.first,
+              !recipient.address.contains("@")
+        else { return nil }
+        return recipient.address
     }
 }

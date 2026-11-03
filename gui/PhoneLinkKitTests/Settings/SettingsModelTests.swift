@@ -880,6 +880,46 @@ private final class SettingsFakeCalling: CallingApiProtocol, @unchecked Sendable
     func refreshIfEmpty() async throws -> RequestOutcome? {
         preconditionFailure("the settings do not call \(#function)")
     }
+
+    func controlState() throws -> CallControlState {
+        CallControlState(offered: true, pcConsent: false, enabled: false, status: .off)
+    }
+
+    func setControlEnabled(enabled: Bool) throws {
+        preconditionFailure("not called in these tests: \(#function)")
+    }
+
+    func activeCalls() throws -> [ActiveCall] {
+        []
+    }
+
+    func connectControl() async throws -> CallControlStatus {
+        preconditionFailure("not called in these tests: \(#function)")
+    }
+
+    func pairForControl() async throws -> CallControlStatus {
+        preconditionFailure("not called in these tests: \(#function)")
+    }
+
+    func dial(number: String) async throws {
+        preconditionFailure("not called in these tests: \(#function)")
+    }
+
+    func answer(id: UInt64) async throws {
+        preconditionFailure("not called in these tests: \(#function)")
+    }
+
+    func decline(id: UInt64) async throws {
+        preconditionFailure("not called in these tests: \(#function)")
+    }
+
+    func endCall(id: UInt64) async throws {
+        preconditionFailure("not called in these tests: \(#function)")
+    }
+
+    func swap() async throws {
+        preconditionFailure("not called in these tests: \(#function)")
+    }
 }
 
 private final class SettingsFakePhotos: PhotosApiProtocol, @unchecked Sendable {

@@ -10,8 +10,10 @@ use std::sync::Arc;
 use phonelink_engine::app::InboundDisposition;
 use phonelink_engine::app::consts::{capability, permission, platform};
 use phonelink_engine::codec::valueset::{Value, ValueSet};
-use phonelink_engine::config::features::CallingConfig;
+use phonelink_engine::config::features::{BluetoothConfig, CallingConfig};
+use phonelink_engine::features::bluetooth::Bluetooth;
 use phonelink_engine::features::calling::Calling;
+use phonelink_engine::features::calling::control::testing::FakeAg;
 use phonelink_engine::types::TransportMessage;
 
 use crate::support::app_world::{Harness, phone, phone_content, trace};
@@ -23,6 +25,8 @@ pub struct World {
     pub w: FeatureWorld,
     pub calling: Arc<Calling>,
     pub contacts: Arc<FakeContacts>,
+    /// The phone's Bluetooth radio and Audio Gateway call control reaches.
+    pub ag: Arc<FakeAg>,
 }
 
 /// A connected harness whose Android phone has both calling capabilities and contacts
@@ -36,13 +40,15 @@ pub fn world_with(config: CallingConfig) -> World {
     let h = Harness::new();
     let w = feature_world(&h);
     let contacts = FakeContacts::with(&[("+15550100", "Ada")]);
-    let calling = Calling::install(&w.env, config, Some(contacts.clone())).expect("calling install");
+    let ag = FakeAg::new();
+    let bluetooth = Bluetooth::install(&w.env, BluetoothConfig::default(), ag.clone()).expect("bluetooth install");
+    let calling = Calling::install(&w.env, config, Some(contacts.clone()), bluetooth).expect("calling install");
     h.app.update_record_for(&phone(), |r| {
         r.platform = platform::ANDROID;
         r.capability_bits |= capability::CALLS | capability::CALL_LOGS;
         r.contacts_capabilities = Some(1);
     });
-    World { h, w, calling, contacts }
+    World { h, w, calling, contacts, ag }
 }
 
 impl World {

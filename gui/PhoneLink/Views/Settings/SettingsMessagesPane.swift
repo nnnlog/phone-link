@@ -1,8 +1,8 @@
 import PhoneLinkKit
 import SwiftUI
 
-/// Messages: whether the phone's messages and call history show on this Mac, and the phone's contacts
-/// that name them.
+/// Messages: whether the phone's messages show on this Mac, and the phone's contacts that name them
+/// (call history is in the Calls pane).
 struct SettingsMessagesPane: View {
     @Environment(SettingsModel.self) private var model
 
@@ -19,22 +19,6 @@ struct SettingsMessagesPane: View {
                 Toggle("Download pictures automatically", isOn: $model.downloadsPictures)
             }
             .disabled(!model.isAvailable)
-            if let calls = model.callingState, calls.access != .unsupported {
-                Section("Calls") {
-                    Toggle("Show call history on this Mac", isOn: $model.showsCallHistory)
-                    // Only once the phone shares call history and nothing but its permission is left.
-                    if calls.access == .devicePermissionRequired || calls.access == .granted {
-                        SettingsAccessRow(
-                            title: "Call history access",
-                            allowed: calls.access == .granted,
-                            pending: model.pendingRequests.contains(.callHistoryAccess)
-                        ) {
-                            Task { await model.requestCallHistoryAccess() }
-                        }
-                    }
-                }
-                .disabled(!model.isAvailable)
-            }
             if model.contactsState?.capable != false {
                 Section("Contacts") {
                     Toggle("Use my phone's contacts", isOn: $model.usesPhoneContacts)

@@ -40,6 +40,7 @@ struct ContactDetailColumn: View {
 private struct ContactCardView: View {
     let card: ContactCard
     @Environment(ContactsModel.self) private var model
+    @Environment(CallControlModel.self) private var calls
 
     /// The card's widest line: longer lines read poorly in a wide window.
     private static let cardWidth: CGFloat = 560
@@ -55,14 +56,20 @@ private struct ContactCardView: View {
                                 Text(number.shown)
                                     .textSelection(.enabled)
                             } trailing: {
-                                Button {
-                                    model.message(number)
-                                } label: {
-                                    Label("Message", systemImage: "message")
-                                        .labelStyle(.iconOnly)
+                                HStack(spacing: 10) {
+                                    if calls.isOffered && calls.hasCallHistory {
+                                        CallButton(number: number.shown, iconOnly: true)
+                                            .buttonStyle(.borderless)
+                                    }
+                                    Button {
+                                        model.message(number)
+                                    } label: {
+                                        Label("Message", systemImage: "message")
+                                            .labelStyle(.iconOnly)
+                                    }
+                                    .buttonStyle(.borderless)
+                                    .help("Send a message to \(number.shown)")
                                 }
-                                .buttonStyle(.borderless)
-                                .help("Send a message to \(number.shown)")
                             }
                         }
                     }

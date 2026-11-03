@@ -89,10 +89,21 @@ fn the_badge_counts_missed_calls_after_the_mark() {
 #[test]
 fn consent_and_the_auto_refresh_claim_change_once() {
     let db = db();
-    assert_eq!(state(&db).unwrap(), PhoneState { pc_consent: false, auto_refresh_done: false, badge_mark_ms: None });
+    assert_eq!(
+        state(&db).unwrap(),
+        PhoneState { pc_consent: false, call_control: false, auto_refresh_done: false, badge_mark_ms: None }
+    );
 
     assert!(set_pc_consent(&db, true).unwrap(), "consent unchanged");
     assert!(!set_pc_consent(&db, true).unwrap(), "consent changed twice");
     assert!(claim_auto_refresh(&db).unwrap(), "refresh not claimed");
     assert!(!claim_auto_refresh(&db).unwrap(), "refresh claimed twice");
+}
+
+#[test]
+fn the_call_control_switch_changes_once_and_reads_back() {
+    let db = db();
+    assert!(set_call_control(&db, true).unwrap(), "switch unchanged");
+    assert!(!set_call_control(&db, true).unwrap(), "switch changed twice");
+    assert!(state(&db).unwrap().call_control);
 }

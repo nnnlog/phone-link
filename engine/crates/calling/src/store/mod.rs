@@ -1,8 +1,8 @@
 //! The call-history store: one SQLite database per phone.
 //!
 //! It holds the call table, the `call_logs` sequence pair, and the per-phone state — "use calls on
-//! this Mac", the one automatic refresh of an empty history, the last completed sync, and the
-//! missed-call badge's mark.
+//! this Mac", "make and answer calls on this Mac", the one automatic refresh of an empty history, the
+//! last completed sync, and the missed-call badge's mark.
 //!
 //! Times are Unix milliseconds.
 
@@ -18,7 +18,8 @@ use super::wire::{CallEntry, Items, TYPE_MISSED};
 pub const FEATURE: &str = "calling";
 
 /// Schema migrations, applied in order.
-pub const MIGRATIONS: &[&str] = &[r#"
+pub const MIGRATIONS: &[&str] = &[
+    r#"
 CREATE TABLE call_history (
     call_id INTEGER PRIMARY KEY,
     phone_number TEXT NOT NULL,
@@ -44,7 +45,11 @@ CREATE TABLE state (
     badge_mark_ms INTEGER
 );
 INSERT INTO state (id) VALUES (1);
-"#];
+"#,
+    r#"
+ALTER TABLE state ADD COLUMN call_control INTEGER NOT NULL DEFAULT 0;
+"#,
+];
 
 /// One stored call.
 pub type CallRow = CallEntry;
@@ -70,6 +75,8 @@ impl SyncState {
 pub struct PhoneState {
     /// "Use calls on this Mac" (default off).
     pub pc_consent: bool,
+    /// "Make and answer calls on this Mac" (default off).
+    pub call_control: bool,
     /// The one automatic refresh of an empty history was sent.
     pub auto_refresh_done: bool,
     /// The newest start time the user has seen; `None` until the calls view first showed a stored
@@ -200,8 +207,13 @@ pub fn set_expected(db: &FeatureDb, expected: i64) -> Result<(), StoreError> {
 }
 
 fn read_state(c: &Connection) -> rusqlite::Result<PhoneState> {
-    c.query_row("SELECT pc_consent, auto_refresh_done, badge_mark_ms FROM state WHERE id = 1", [], |r| {
-        Ok(PhoneState { pc_consent: r.get(0)?, auto_refresh_done: r.get(1)?, badge_mark_ms: r.get(2)? })
+    c.query_row("SELECT pc_consent, auto_refresh_done, badge_mark_ms, call_control FROM state WHERE id = 1", [], |r| {
+        Ok(PhoneState {
+            pc_consent: r.get(0)?,
+            call_control: r.get(3)?,
+            auto_refresh_done: r.get(1)?,
+            badge_mark_ms: r.get(2)?,
+        })
     })
 }
 
@@ -212,6 +224,12 @@ pub fn state(db: &FeatureDb) -> Result<PhoneState, StoreError> {
 /// Sets "use calls on this Mac"; `true` when it changed.
 pub fn set_pc_consent(db: &FeatureDb, consent: bool) -> Result<bool, StoreError> {
     db.read(|c| c.execute("UPDATE state SET pc_consent = ?1 WHERE id = 1 AND pc_consent != ?1", [consent]))
+        .map(|n| n > 0)
+}
+
+/// Sets "make and answer calls on this Mac"; `true` when it changed.
+pub fn set_call_control(db: &FeatureDb, enabled: bool) -> Result<bool, StoreError> {
+    db.read(|c| c.execute("UPDATE state SET call_control = ?1 WHERE id = 1 AND call_control != ?1", [enabled]))
         .map(|n| n > 0)
 }
 

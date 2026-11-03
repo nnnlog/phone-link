@@ -1759,10 +1759,12 @@ version = "0.2.0"
 dependencies = [
  "async-trait",
  "phonelink-app",
+ "phonelink-bluetooth",
  "phonelink-calling",
  "phonelink-core",
  "phonelink-features",
  "rusqlite",
+ "thiserror 2.0.21",
  "tokio",
  "tracing",
 ]

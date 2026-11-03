@@ -18,6 +18,12 @@
 
 ![Apps](images/apps.png)
 
+## Calls
+
+![Incoming Calls](images/incoming-call.png)
+
+![Call Window](images/call-window.png)
+
 ## Send files
 
 ![Send Files](images/send-files.png)
@@ -41,6 +47,8 @@
 ![Settings: Notifications](images/settings-notifications.png)
 
 ![Settings: Messages](images/settings-messages.png)
+
+![Settings: Calls](images/settings-calls.png)
 
 ![Settings: Photos](images/settings-photos.png)
 

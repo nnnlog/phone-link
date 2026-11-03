@@ -430,11 +430,15 @@ impl EngineCore {
     /// The app came to the foreground (`true`) or left it (`false`) — macOS: the application became or
     /// resigned active ([`AppLayer::foreground_changed`]: `isForeground` of the trace state, and the
     /// immediate connect of "app came to the foreground" — sent by the App layer's start when the
-    /// change comes while this core is starting). The foreign side calls this on its own thread; it
+    /// change comes while this core is starting; and call control's reconnect). The foreign side calls this on its own thread; it
     /// runs inside the engine's runtime.
     pub fn set_foreground(&self, foreground: bool) {
         let _runtime = self.runtime.enter();
         self.app.foreground_changed(foreground);
+        // Call control sets up a failed or lost Bluetooth connection again.
+        if let Some(features) = self.features().filter(|_| foreground) {
+            features.calling.foreground();
+        }
     }
 
     /// Enters the runtime the engine was built in, for calls the foreign side makes on its own

@@ -1140,6 +1140,16 @@
         }
       }
     },
+    "Answer" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "받기"
+          }
+        }
+      }
+    },
     "App Not Available" : {
       "localizations" : {
         "ko" : {
@@ -1364,12 +1374,42 @@
         }
       }
     },
+    "Begin Pairing" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "페어링 시작"
+          }
+        }
+      }
+    },
     "Beta versions get new features first and may have more problems." : {
       "localizations" : {
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "베타 버전은 새 기능을 먼저 받지만 문제가 더 있을 수 있습니다."
+          }
+        }
+      }
+    },
+    "Bluetooth" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bluetooth"
+          }
+        }
+      }
+    },
+    "Bluetooth Is Off on This Mac" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 Mac에서 Bluetooth가 꺼져 있어요"
           }
         }
       }
@@ -1390,6 +1430,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bluetooth 켬"
+          }
+        }
+      }
+    },
+    "Bluetooth is off" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bluetooth가 꺼져 있어요"
           }
         }
       }
@@ -1425,6 +1475,26 @@
         }
       }
     },
+    "Call" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "전화"
+          }
+        }
+      }
+    },
+    "Call %@ using your phone" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "휴대폰으로 %@에 전화 걸기"
+          }
+        }
+      }
+    },
     "Call History Is Off on This Mac" : {
       "localizations" : {
         "ko" : {
@@ -1455,12 +1525,52 @@
         }
       }
     },
+    "Call Not Placed" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "전화를 걸지 못했어요"
+          }
+        }
+      }
+    },
+    "Call Waiting" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "통화 중 대기"
+          }
+        }
+      }
+    },
+    "Call a number using your phone" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "휴대폰을 사용하여 번호로 전화 걸기"
+          }
+        }
+      }
+    },
     "Call history access" : {
       "localizations" : {
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "통화 기록 접근 권한"
+          }
+        }
+      }
+    },
+    "Calling…" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "연결 중…"
           }
         }
       }
@@ -1475,12 +1585,52 @@
         }
       }
     },
+    "Calls Stay on Your Phone" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "통화는 휴대폰에서 이루어져요"
+          }
+        }
+      }
+    },
     "Calls from your phone appear here." : {
       "localizations" : {
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "휴대폰의 통화 기록이 여기에 표시돼요."
+          }
+        }
+      }
+    },
+    "Calls go through your phone." : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "전화는 휴대폰을 통해 연결돼요."
+          }
+        }
+      }
+    },
+    "Calls need an Android phone that can make phone calls." : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "통화 기능을 사용하려면 통화가 가능한 Android 휴대폰이 필요해요."
+          }
+        }
+      }
+    },
+    "Calls stay on your phone. This Mac places, answers and ends them over Bluetooth, and you talk on your phone or on a headset connected to it." : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "통화는 휴대폰에서 이루어져요. 이 Mac은 Bluetooth를 통해 전화를 걸고, 받고, 끊을 수 있지만, 통화는 휴대폰이나 휴대폰에 연결된 헤드셋으로 해야 해요."
           }
         }
       }
@@ -2090,6 +2240,16 @@
         }
       }
     },
+    "Contacting emergency services using Phone Link" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Phone Link를 이용한 긴급 서비스 이용 안내"
+          }
+        }
+      }
+    },
     "Contacts" : {
       "localizations" : {
         "ko" : {
@@ -2314,6 +2474,16 @@
         }
       }
     },
+    "Couldn't Answer Call" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "전화를 받을 수 없어요"
+          }
+        }
+      }
+    },
     "Couldn't Apply the Effect" : {
       "localizations" : {
         "ko" : {
@@ -2444,6 +2614,16 @@
         }
       }
     },
+    "Couldn't Connect to Your Phone" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "휴대폰에 연결할 수 없어요"
+          }
+        }
+      }
+    },
     "Couldn't Continue" : {
       "localizations" : {
         "ko" : {
@@ -2460,6 +2640,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "사진을 복사하지 못했어요"
+          }
+        }
+      }
+    },
+    "Couldn't Decline Call" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "전화를 거절할 수 없어요"
           }
         }
       }
@@ -2510,6 +2700,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "오류를 닫지 못했어요"
+          }
+        }
+      }
+    },
+    "Couldn't End Call" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "통화를 종료할 수 없어요"
           }
         }
       }
@@ -2898,6 +3098,16 @@
         }
       }
     },
+    "Couldn't Swap Calls" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "통화를 전환할 수 없어요"
+          }
+        }
+      }
+    },
     "Couldn't Switch Cameras" : {
       "localizations" : {
         "ko" : {
@@ -2924,6 +3134,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ 알림을 끄지 못했어요"
+          }
+        }
+      }
+    },
+    "Couldn't Turn On Calls" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "통화 기능을 켤 수 없어요"
           }
         }
       }
@@ -3008,6 +3228,16 @@
         }
       }
     },
+    "Couldn't connect" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "연결할 수 없음"
+          }
+        }
+      }
+    },
     "Couldn't reach your phone." : {
       "localizations" : {
         "ko" : {
@@ -3034,6 +3264,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cross Device"
+          }
+        }
+      }
+    },
+    "Custom Message…" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "메시지 작성…"
+          }
+        }
+      }
+    },
+    "Decline" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "거절"
+          }
+        }
+      }
+    },
+    "Decline and send a message" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "거절하고 메시지 보내기"
           }
         }
       }
@@ -3336,6 +3596,26 @@
         }
       }
     },
+    "End" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "종료"
+          }
+        }
+      }
+    },
+    "End call" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "통화 종료"
+          }
+        }
+      }
+    },
     "Enter This PIN in Link to Windows" : {
       "localizations" : {
         "ko" : {
@@ -3352,6 +3632,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "휴대폰에 이 PIN 입력"
+          }
+        }
+      }
+    },
+    "Enter a phone number." : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "전화번호를 입력해 주세요."
           }
         }
       }
@@ -3668,6 +3958,16 @@
         }
       }
     },
+    "Hide. Your phone keeps ringing." : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "숨기기. 휴대폰은 계속 울려요."
+          }
+        }
+      }
+    },
     "Home" : {
       "comment" : "Phone number type",
       "localizations" : {
@@ -3685,6 +3985,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "핫스팟"
+          }
+        }
+      }
+    },
+    "I'll call you back in a minute." : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "잠시 후에 다시 전화할게요."
+          }
+        }
+      }
+    },
+    "I'm busy. Call me back later." : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "지금은 바빠요. 나중에 다시 전화해 주세요."
+          }
+        }
+      }
+    },
+    "If you answer on this Mac, you'll talk on your phone." : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 Mac에서 전화를 받으면 휴대폰으로 통화해야 해요."
           }
         }
       }
@@ -3740,6 +4070,36 @@
         }
       }
     },
+    "Incoming Call" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "전화 수신"
+          }
+        }
+      }
+    },
+    "Incoming call from %@" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@로부터 전화 수신"
+          }
+        }
+      }
+    },
+    "Incoming call on %@" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@에서 전화가 울리고 있어요"
+          }
+        }
+      }
+    },
     "Install and Relaunch" : {
       "localizations" : {
         "ko" : {
@@ -3786,12 +4146,42 @@
         }
       }
     },
+    "Keep your phone nearby with Bluetooth on, then connect again." : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bluetooth를 켠 상태로 휴대폰을 가까이 둔 다음, 다시 연결해 주세요."
+          }
+        }
+      }
+    },
+    "Keep your phone nearby with Bluetooth on, then pair it with this Mac." : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bluetooth를 켠 상태로 휴대폰을 가까이 둔 다음, 이 Mac과 페어링해 주세요."
+          }
+        }
+      }
+    },
     "Keyboard Settings" : {
       "localizations" : {
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "키보드 설정"
+          }
+        }
+      }
+    },
+    "Keypad" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "키패드"
           }
         }
       }
@@ -4029,6 +4419,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "기본"
+          }
+        }
+      }
+    },
+    "Make and answer calls on this Mac" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 Mac에서 전화 걸기 및 받기"
           }
         }
       }
@@ -4536,6 +4936,16 @@
         }
       }
     },
+    "No number to call" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "전화할 번호가 없어요"
+          }
+        }
+      }
+    },
     "No phone is linked to this Microsoft account. Link one with Link to Windows on the phone." : {
       "localizations" : {
         "ko" : {
@@ -4652,6 +5062,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "설치되지 않음"
+          }
+        }
+      }
+    },
+    "Not paired" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "페어링되지 않음"
           }
         }
       }
@@ -4838,6 +5258,36 @@
         }
       }
     },
+    "On hold" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "대기 중"
+          }
+        }
+      }
+    },
+    "On hold. Click to switch to this call." : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "대기 중. 클릭하여 이 통화로 전환하세요."
+          }
+        }
+      }
+    },
+    "On phone" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "통화 중"
+          }
+        }
+      }
+    },
     "On your Android phone, open the camera or Link to Windows and scan this code. Then follow the steps on the phone." : {
       "localizations" : {
         "ko" : {
@@ -4928,6 +5378,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "다시 열기"
+          }
+        }
+      }
+    },
+    "Open Bluetooth Settings" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bluetooth 설정 열기"
           }
         }
       }
@@ -5301,6 +5761,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "휴대폰"
+          }
+        }
+      }
+    },
+    "Phone Call" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "통화"
           }
         }
       }
@@ -5705,12 +6175,32 @@
         }
       }
     },
+    "Phone Not Connected" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "휴대폰이 연결되지 않았어요"
+          }
+        }
+      }
+    },
     "Phone Not Linked" : {
       "localizations" : {
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "휴대폰이 연결되지 않음"
+          }
+        }
+      }
+    },
+    "Phone Not Paired with This Mac" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "휴대폰이 이 Mac과 페어링되지 않았어요"
           }
         }
       }
@@ -5731,6 +6221,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "휴대폰 상태를 사용할 수 없음"
+          }
+        }
+      }
+    },
+    "Phone number" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "전화번호"
           }
         }
       }
@@ -7138,6 +7638,16 @@
         }
       }
     },
+    "Sorry, I can't talk right now." : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "미안해요, 지금은 통화할 수 없어요."
+          }
+        }
+      }
+    },
     "Sound" : {
       "comment" : "Ringer mode",
       "localizations" : {
@@ -7320,6 +7830,16 @@
         }
       }
     },
+    "Talk on your phone. This Mac only controls the call." : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "휴대폰으로 통화하세요. 이 Mac은 통화 제어 기능만 제공합니다."
+          }
+        }
+      }
+    },
     "Tap the notification on your phone" : {
       "localizations" : {
         "ko" : {
@@ -7387,6 +7907,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "코드가 올바르지 않아요. %@에 표시된 코드를 입력해 주세요."
+          }
+        }
+      }
+    },
+    "That isn't possible for this call right now." : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "현재 이 통화에서는 해당 동작을 수행할 수 없어요."
+          }
+        }
+      }
+    },
+    "The call has ended." : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "통화가 종료됐어요."
           }
         }
       }
@@ -7695,6 +8235,16 @@
         }
       }
     },
+    "This Mac can place, answer, decline, and end your phone's calls over Bluetooth." : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bluetooth를 통해 이 Mac에서 휴대폰 전화를 걸거나, 받거나, 거절하거나, 종료할 수 있어요."
+          }
+        }
+      }
+    },
     "This Mac couldn't connect to %@. Check that both are online, then try again." : {
       "localizations" : {
         "ko" : {
@@ -7771,6 +8321,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "이 Mac이 인터넷에 연결되어 있지 않아요."
+          }
+        }
+      }
+    },
+    "This Mac isn't connected to your phone" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 Mac이 휴대폰과 연결되지 않았어요"
+          }
+        }
+      }
+    },
+    "This Mac isn't connected to your phone over Bluetooth." : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 Mac이 Bluetooth로 휴대폰과 연결되어 있지 않아요."
           }
         }
       }
@@ -8029,6 +8599,16 @@
         }
       }
     },
+    "To call from this Mac, turn on call history in Settings › Calls" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 Mac에서 전화를 걸려면 설정 › 통화에서 통화 기록을 켜 주세요"
+          }
+        }
+      }
+    },
     "To change the ringer from this Mac, allow notification access for Link to Windows on your phone." : {
       "localizations" : {
         "ko" : {
@@ -8145,6 +8725,26 @@
         }
       }
     },
+    "Turn Bluetooth off and back on, on both your phone and this Mac, then try again." : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "휴대폰과 이 Mac 모두에서 Bluetooth를 껐다가 다시 켠 후 다시 시도해 주세요."
+          }
+        }
+      }
+    },
+    "Turn Bluetooth off and back on, on both your phone and this Mac, then try again. If the call still isn't placed, place it on your phone." : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "휴대폰과 이 Mac 모두에서 Bluetooth를 껐다가 다시 켠 후 다시 시도해 주세요. 전화를 걸 수 없다면 휴대폰에서 직접 전화를 걸어 주세요."
+          }
+        }
+      }
+    },
     "Turn Off Notifications from %@" : {
       "localizations" : {
         "ko" : {
@@ -8241,6 +8841,16 @@
         }
       }
     },
+    "Turn on Bluetooth to make and answer calls on this Mac." : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 Mac에서 전화를 걸거나 받으려면 Bluetooth를 켜 주세요."
+          }
+        }
+      }
+    },
     "Turn on Link to Windows on %@, then connect again." : {
       "localizations" : {
         "ko" : {
@@ -8281,12 +8891,32 @@
         }
       }
     },
+    "Turn on call history to make and answer calls on this Mac." : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 Mac에서 전화를 걸고 받으려면 통화 기록을 켜 주세요."
+          }
+        }
+      }
+    },
     "Turn on call history to see your phone's recent calls on this Mac." : {
       "localizations" : {
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "통화 기록을 켜면 이 Mac에서 휴대폰의 최근 통화를 볼 수 있어요."
+          }
+        }
+      }
+    },
+    "Turn on calls on this Mac" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 Mac에서 통화 기능 켜기"
           }
         }
       }
@@ -9141,6 +9771,16 @@
         }
       }
     },
+    "You talk on your phone or on a headset connected to it. This Mac's microphone and speakers aren't used for calls." : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "통화는 휴대폰이나 휴대폰에 연결된 헤드셋으로 해야 해요. 이 Mac의 마이크와 스피커는 통화할 때 사용되지 않아요."
+          }
+        }
+      }
+    },
     "You're signed out. Sign in with the Microsoft account your phone uses with Link to Windows." : {
       "localizations" : {
         "ko" : {
@@ -9411,6 +10051,16 @@
         }
       }
     },
+    "Your phone didn't accept the request. Try it on your phone." : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "휴대폰에서 요청을 수락하지 않았어요. 휴대폰에서 다시 시도해 주세요."
+          }
+        }
+      }
+    },
     "Your phone didn't accept this Mac. Reconnect Phone Link and try again." : {
       "localizations" : {
         "ko" : {
@@ -9457,6 +10107,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "휴대폰에서 변경 사항을 확인하지 않았어요. 휴대폰의 방해 금지 모드 설정을 열어 직접 꺼 주세요."
+          }
+        }
+      }
+    },
+    "Your phone didn't place the call." : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "휴대폰에서 전화를 걸지 못했어요."
           }
         }
       }
@@ -9561,6 +10221,16 @@
         }
       }
     },
+    "Your phone is in Airplane Mode. Turn off Airplane Mode on your phone, then try again." : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "휴대폰이 비행기 모드예요. 휴대폰에서 비행기 모드를 끄고 다시 시도해 주세요."
+          }
+        }
+      }
+    },
     "Your phone is locked" : {
       "localizations" : {
         "ko" : {
@@ -9617,6 +10287,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "휴대폰이 Bluetooth로 연결되어 있지 않아요"
+          }
+        }
+      }
+    },
+    "Your phone isn't connected to a mobile network. Check its SIM card and signal, or place the call on your phone." : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "휴대폰이 모바일 네트워크에 연결되어 있지 않아요. SIM 카드와 신호를 확인하거나 휴대폰에서 직접 전화를 걸어 주세요."
           }
         }
       }
