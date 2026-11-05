@@ -83,3 +83,54 @@ fn oem_labels_fall_back_to_the_locale_text_then_the_resource() {
     assert_eq!(oem("camera__effect_blur", &texts).oem_label("en-US"), text("Portrait"));
     assert_eq!(oem("camera_effect_blur_", &[]).oem_label("en-US"), text("camera_effect_blur_"));
 }
+
+#[test]
+fn a_sync_in_flight_keeps_out_another_unless_it_is_user_initiated_over_a_background_one_or_a_resend() {
+    use SyncTrigger::{Background, Resend, StreamOpening};
+    // (sync in flight, new sync's trigger, Some(whether it replaced the one in flight) when it is sent)
+    let cases = [
+        (None, Background, Some(false)),
+        (None, StreamOpening, Some(false)),
+        (None, Resend, Some(false)),
+        (Some(Background), Background, None),
+        (Some(Background), StreamOpening, Some(true)),
+        (Some(Background), Resend, Some(true)),
+        (Some(StreamOpening), Background, None),
+        (Some(StreamOpening), StreamOpening, None),
+        (Some(StreamOpening), Resend, Some(true)),
+        (Some(Resend), Background, None),
+        (Some(Resend), StreamOpening, Some(true)),
+        (Some(Resend), Resend, Some(true)),
+    ];
+
+    for (in_flight, trigger, expected) in cases {
+        let mut phone = PhoneRuntime::new();
+        if let Some(first) = in_flight {
+            phone.start_sync(first).expect("nothing in flight");
+        }
+        let before = phone.handle_gen;
+
+        let sent = phone.start_sync(trigger);
+
+        assert_eq!(sent.map(|(_, replaced)| replaced), expected, "{in_flight:?} then {trigger:?}");
+        if sent.is_some() {
+            assert_eq!(phone.handle_gen, before + 1, "{in_flight:?} then {trigger:?}: a new pending result");
+            assert_eq!(phone.sync_user_initiated, trigger == StreamOpening, "{in_flight:?} then {trigger:?}");
+        }
+    }
+}
+
+#[test]
+fn the_reply_to_a_replaced_sync_completes_nothing() {
+    let mut phone = PhoneRuntime::new();
+    let (background, _) = phone.start_sync(SyncTrigger::Background).unwrap();
+    let (opening, _) = phone.start_sync(SyncTrigger::StreamOpening).unwrap();
+
+    assert!(!phone.complete_sync(background, Err(HandleFailure::RequestFailed)));
+    assert!(phone.sync_in_flight, "the user-initiated sync is still in flight");
+    assert!(matches!(phone.handle, HandleSlot::Pending));
+
+    assert!(phone.complete_sync(opening, Err(HandleFailure::Metered)));
+    assert!(!phone.sync_in_flight);
+    assert!(matches!(phone.handle, HandleSlot::Done(Err(HandleFailure::Metered))));
+}

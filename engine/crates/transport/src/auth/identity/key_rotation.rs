@@ -1,6 +1,6 @@
 //! Identity key rotation.
 
-use super::AuthCallFailure;
+use super::{AuthCallFailure, RefreshError};
 use crate::auth::crypto::KeyPair;
 use crate::auth::dcg_rest::RestError;
 use crate::auth::store::IdentityRecord;
@@ -20,7 +20,10 @@ impl AuthService {
         }
     }
 
-    pub(super) async fn rotate_identity_key_if_due(&self, env: Environment, msa: &str) -> Result<(), AuthError> {
+    /// The key-rotation check after a successful `SignIn`. A rejected identity
+    /// ([`RefreshError::IdentityLost`]) or an unlinked device fails the refresh; any other failure
+    /// is retried after the retry interval.
+    pub(super) async fn rotate_identity_key_if_due(&self, env: Environment, msa: &str) -> Result<(), RefreshError> {
         let due = {
             let st = self.state.lock_or_panic();
             st.env(env).identity.as_ref().is_some_and(|r| self.key_rotation_due(r, self.now()))
@@ -35,8 +38,8 @@ impl AuthService {
                 tracing::info!(%env, "identity key rotated");
                 Ok(())
             }
-            Err(e @ (AuthError::InvalidIdentity | AuthError::UnlinkedDevice)) => Err(e),
-            Err(e) => {
+            Err(e @ (RefreshError::IdentityLost | RefreshError::Failed(AuthError::UnlinkedDevice))) => Err(e),
+            Err(RefreshError::Failed(e)) => {
                 // A rotation that got no reply keeps its incoming key until a `SignIn` shows which key
                 // the server holds.
                 let is_incoming_key_pending = self.state.lock_or_panic().env(env).pending_identity_keys.is_some();
@@ -59,17 +62,17 @@ impl AuthService {
     /// `NextKeyRotation = now + 182.5 d`); a failure the server answered drops it
     /// (`NextKeyRotation = now + 1 d`). A request that got no reply may have been applied, so its key
     /// stays pending until the next `SignIn` shows which key the server holds.
-    pub(super) async fn rotate_identity_key(&self, env: Environment, msa: &str) -> Result<(), AuthError> {
+    pub(super) async fn rotate_identity_key(&self, env: Environment, msa: &str) -> Result<(), RefreshError> {
         let (device_id, current) = {
             let st = self.state.lock_or_panic();
             let slot = st.env(env);
             match (&slot.identity, &slot.identity_keys) {
                 (Some(r), Some(p)) => (r.device_id.clone(), p.clone()),
-                _ => return Err(AuthError::NotProvisioned(format!("no identity in {env}"))),
+                _ => return Err(AuthError::NotProvisioned(format!("no identity in {env}")).into()),
             }
         };
 
-        let incoming = KeyPair::generate(&device_id, self.now())?;
+        let incoming = KeyPair::generate(&device_id, self.now()).map_err(AuthError::from)?;
         {
             let mut st = self.state.lock_or_panic();
             st.env_mut(env).pending_identity_keys = Some(incoming.clone());
@@ -83,7 +86,9 @@ impl AuthService {
             let mut st = self.state.lock_or_panic();
             let slot = st.env_mut(env);
             let Some(record) = slot.identity.as_mut().filter(|r| r.device_id == device_id) else {
-                return Err(AuthError::NotProvisioned(format!("the identity of {env} changed during RotateKeys")));
+                return Err(
+                    AuthError::NotProvisioned(format!("the identity of {env} changed during RotateKeys")).into()
+                );
             };
             record.last_accessed = now;
             match outcome {
@@ -108,10 +113,7 @@ impl AuthService {
             }
         };
 
-        match failure {
-            AuthCallFailure::Rest(e) => Err(self.auth_failure(env, e)),
-            AuthCallFailure::Local(e) => Err(e),
-        }
+        Err(self.refresh_failure(env, failure))
     }
 
     /// `GenerateNonce` + `RotateKeys` with the current and the incoming key; `InvalidNonce` is

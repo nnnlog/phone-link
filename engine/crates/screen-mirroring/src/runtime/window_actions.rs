@@ -41,14 +41,15 @@ impl Inner {
     /// The last window closed: every workflow stopped; the connection closes when idle.
     pub(super) fn release_all(&self, code: i32) {
         let mut out = Out::default();
-        {
+        let cancel_code = {
             let mut st = self.state.lock_or_panic();
             Self::cancel_setup(&mut st, code);
             self.drop_channels(&mut st);
             self.apply_phone_quiet(&mut st, PhoneCommand::OnConnectionClosed, &mut out);
-        }
+            st.setup_cancel_code
+        };
 
-        self.reset_signals();
+        self.reset_signals(cancel_code);
         for w in [workflow::REMOTE, workflow::AUDIO, workflow::PERMISSION, workflow::NEARBY, workflow::EARLY_LAUNCH] {
             self.links.stop(w);
         }
@@ -56,12 +57,17 @@ impl Inner {
         self.flush(out);
     }
 
-    /// A release cancels the running set-up: it fails and stops, with 80 in the nearby check, the
-    /// release's code while waiting for the consent or the audio permissions, and 268 while
-    /// connecting or opening a workflow. Phone Link on Windows can instead end the set-up silently
-    /// during the consent wait, and goes on to start `remote` from the audio step.
+    /// A release cancels the running set-up, which fails and stops with:
+    /// - the release's code in the nearby check once its channel is open, and while waiting for the
+    ///   consent or the audio permissions;
+    /// - 80 in the nearby check while its workflow is still starting, when no reason is known yet;
+    /// - 268 while connecting or opening `remote`.
+    ///
+    /// Phone Link on Windows releases only the workflows whose channel is open, so a `remote` start in
+    /// progress goes on there.
     pub(super) fn cancel_setup(st: &mut State, code: i32) {
         st.setup_cancel_code = match st.setup_stage {
+            SetupStage::Nearby if st.nearby_channel.is_some() => code,
             SetupStage::Nearby => code::DISCONNECTED_UNKNOWN,
             SetupStage::Permission | SetupStage::Audio => code,
             SetupStage::Start | SetupStage::Remote => code::CONNECTION_CANCELED,
@@ -73,10 +79,11 @@ impl Inner {
         st.remote_started = false;
     }
 
-    pub(super) fn reset_signals(&self) {
+    /// Ends a waiting nearby check with `code` (the set-up's cancel code, so the check and the
+    /// set-up's cancellation report the same code) and drops the pending audio answers.
+    pub(super) fn reset_signals(&self, code: i32) {
         // `send_replace`: `send` keeps the old value while no check is waiting on the signal.
-        self.nearby_signal
-            .send_replace(NearbySignal { failed: Some(code::DISCONNECTED_UNKNOWN), ..Default::default() });
+        self.nearby_signal.send_replace(NearbySignal { failed: Some(code), ..Default::default() });
         self.audio_signal.send_replace((None, None));
     }
 
@@ -115,7 +122,7 @@ impl Inner {
     /// The connection ended or a workflow the set-up opened ended: every window shows `code`.
     pub(super) fn released(&self, code: i32) {
         let mut out = Out::default();
-        {
+        let cancel_code = {
             let mut st = self.state.lock_or_panic();
             Self::cancel_setup(&mut st, code);
             self.drop_channels(&mut st);
@@ -124,9 +131,10 @@ impl Inner {
             }
             self.apply_phone_quiet(&mut st, PhoneCommand::OnConnectionClosed, &mut out);
             self.fanout(&mut st, PhoneState::Error, PhoneArgs::error(code), &mut out);
-        }
+            st.setup_cancel_code
+        };
 
-        self.reset_signals();
+        self.reset_signals(cancel_code);
         for w in [workflow::REMOTE, workflow::AUDIO, workflow::PERMISSION, workflow::NEARBY, workflow::EARLY_LAUNCH] {
             self.links.stop(w);
         }

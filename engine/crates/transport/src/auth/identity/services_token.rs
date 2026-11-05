@@ -1,9 +1,9 @@
 //! The services token the relay and REST calls carry.
 
-use super::AuthCallFailure;
+use super::{AuthCallFailure, RefreshError};
 use crate::auth::crypto::KeyPair;
 use crate::auth::dcg_rest::TokenResponse;
-use crate::auth::{AuthError, AuthService, crypto};
+use crate::auth::{AuthError, AuthService, State, crypto};
 use phonelink_core::sync::MutexExt;
 use phonelink_core::types::{Environment, TraceContext};
 
@@ -11,64 +11,92 @@ impl AuthService {
     /// The services token refresh policy: the cached token of `env` unless missing, `force`d, or
     /// `epochExpirationTime − leeway < now`; then `GenerateNonce` + `SignIn` with the existing
     /// identity certificate, followed by the key-rotation check.
+    ///
+    /// A stored identity serves, expired or not, and a lost one is created anew in place: the request
+    /// returns the new identity's token, and the account is enrolled again under it before the token
+    /// is returned.
     pub async fn services_token_for(&self, env: Environment, force: bool) -> Result<String, AuthError> {
+        let (token, replaced) = self.refresh_services_token(env, force).await?;
+
+        if replaced {
+            // Boxed: the enrollment asks for the services token again (then cached).
+            Box::pin(self.enroll_replaced_identity(env)).await;
+        }
+        Ok(token)
+    }
+
+    /// The refresh under the token lock; `true` with the token when the identity was created anew.
+    async fn refresh_services_token(&self, env: Environment, force: bool) -> Result<(String, bool), AuthError> {
         let _guard = self.token_lock.lock().await;
 
         {
             let st = self.state.lock_or_panic();
-            let slot = st.env(env);
-            if slot.identity.is_none() || slot.identity_keys.is_none() {
-                return Err(AuthError::NotProvisioned(format!("no identity in {env}")));
-            }
+            self.check_token_identity_locked(&st, env)?;
 
             if !force {
-                if let Some(token) = &slot.services_token {
+                if let Some(token) = &st.env(env).services_token {
                     let fresh = token
                         .expires_at
                         .checked_sub(self.config.auth.token_refresh_leeway)
                         .is_some_and(|limit| limit >= self.now());
                     if fresh {
-                        return Ok(token.access_token.clone());
+                        return Ok((token.access_token.clone(), false));
                     }
                 }
             }
         }
 
         let msa = self.msa_token(env).await?;
-        self.sign_in_identity(env, &msa).await
+        match self.sign_in_identity(env, &msa).await {
+            Ok(token) => Ok((token, false)),
+            Err(RefreshError::Failed(e)) => Err(e),
+            Err(RefreshError::IdentityLost) => self.recreate_identity(env, &msa).await.map(|token| (token, true)),
+        }
+    }
+
+    /// The identity a token request needs: a stored one with an account id, expired or not — its key
+    /// may be missing.
+    fn check_token_identity_locked(&self, st: &State, env: Environment) -> Result<(), AuthError> {
+        let slot = st.env(env);
+        if slot.identity.is_none() {
+            return Err(AuthError::NotProvisioned(format!("no identity in {env}")));
+        }
+        if slot.account_id.is_none() {
+            return Err(AuthError::NotProvisioned(format!("no account id for the identity of {env}")));
+        }
+        Ok(())
     }
 
     /// The refresh policy's `GenerateNonce` + `SignIn` with the existing identity certificate. When
-    /// `SignIn` rejects it (`InvalidCertificate`) while a key rotation is pending — the server took
-    /// `RotateKeys` but the promotion never happened (the persisted state keeps, briefly, the
-    /// outgoing key during rotation) — `SignIn` is retried with the pending key, which is promoted
-    /// on success; only when that key is rejected too is the identity cleared (`InvalidIdentity`).
-    pub(super) async fn sign_in_identity(&self, env: Environment, msa: &str) -> Result<String, AuthError> {
+    /// `SignIn` rejects it (`InvalidCertificate`) or the identity key is missing while a key rotation
+    /// is pending — the server took `RotateKeys` but the promotion never happened (the persisted state
+    /// keeps, briefly, the outgoing key during rotation) — `SignIn` is retried with the pending key,
+    /// which is promoted on success; only when that key is rejected too is the identity lost.
+    pub(super) async fn sign_in_identity(&self, env: Environment, msa: &str) -> Result<String, RefreshError> {
         let (device_id, current, pending) = {
             let st = self.state.lock_or_panic();
             let slot = st.env(env);
-            match (&slot.identity, &slot.identity_keys) {
-                (Some(r), Some(p)) => (r.device_id.clone(), p.clone(), slot.pending_identity_keys.clone()),
-                _ => return Err(AuthError::NotProvisioned(format!("no identity in {env}"))),
+            match &slot.identity {
+                Some(r) => (r.device_id.clone(), slot.identity_keys.clone(), slot.pending_identity_keys.clone()),
+                None => return Err(AuthError::NotProvisioned(format!("no identity in {env}")).into()),
             }
         };
 
-        let (token, promote) = match (self.sign_in_with(env, msa, &device_id, &current).await, pending) {
+        let first = self.sign_in_with(env, msa, &device_id, current.as_ref()).await;
+        let (token, promote) = match (first, pending) {
             (Ok(token), _) => (token, None),
-            (Err(AuthCallFailure::Rest(e)), Some(pending)) if e.is_invalid_certificate() => {
-                tracing::warn!(%env, error = %e, "SignIn rejected the identity certificate during a key rotation; signing in with the incoming key");
-                match self.sign_in_with(env, msa, &device_id, &pending).await {
+            (Err(failure), Some(pending)) if is_key_rejected(&failure) => {
+                tracing::warn!(%env, "SignIn found no usable identity key during a key rotation; signing in with the incoming key");
+                match self.sign_in_with(env, msa, &device_id, Some(&pending)).await {
                     Ok(token) => (token, Some(pending)),
-                    Err(AuthCallFailure::Rest(e)) => return Err(self.auth_failure(env, e)),
-                    Err(AuthCallFailure::Local(e)) => return Err(e),
+                    Err(failure) => return Err(self.refresh_failure(env, failure)),
                 }
             }
-            (Err(AuthCallFailure::Rest(e)), _) => return Err(self.auth_failure(env, e)),
-            (Err(AuthCallFailure::Local(e)), _) => return Err(e),
+            (Err(failure), _) => return Err(self.refresh_failure(env, failure)),
         };
 
         if !token.device_id.eq_ignore_ascii_case(&device_id) {
-            return Err(AuthError::Protocol("SignIn deviceId echo differs from the stored deviceId".into()));
+            return Err(AuthError::Protocol("SignIn deviceId echo differs from the stored deviceId".into()).into());
         }
 
         let (access, pending_key_outcome) = self.store_signed_in(env, &device_id, &token, promote)?;
@@ -78,14 +106,27 @@ impl AuthService {
         Ok(access)
     }
 
+    /// What a failed `SignIn` or `RotateKeys` exchange means for the refresh: a rejected certificate or
+    /// a missing key loses the identity; a 403 + 13 unlinks the device; the rest maps generically.
+    pub(super) fn refresh_failure(&self, env: Environment, failure: AuthCallFailure) -> RefreshError {
+        match failure {
+            AuthCallFailure::Rest(e) if e.is_invalid_certificate() => RefreshError::IdentityLost,
+            AuthCallFailure::KeyMissing => RefreshError::IdentityLost,
+            AuthCallFailure::Rest(e) if e.is_unlinked() => RefreshError::Failed(self.unlinked(env)),
+            AuthCallFailure::Rest(e) => RefreshError::Failed(self.msa_call_failure(env, e)),
+            AuthCallFailure::Local(e) => RefreshError::Failed(e),
+        }
+    }
+
     /// `GenerateNonce(deviceId)` → nonce JWT signed with `pair` → `SignIn`; `InvalidNonce` is retried
-    /// with a fresh nonce up to `auth_recover_retries` times.
+    /// with a fresh nonce up to `auth_recover_retries` times. Without a `pair` the nonce is requested
+    /// and nothing can sign it ([`AuthCallFailure::KeyMissing`]).
     pub(super) async fn sign_in_with(
         &self,
         env: Environment,
         msa: &str,
         device_id: &str,
-        pair: &KeyPair,
+        pair: Option<&KeyPair>,
     ) -> Result<TokenResponse, AuthCallFailure> {
         let retries = self.config.auth.auth_recover_retries;
         let mut attempt = 0;
@@ -98,6 +139,7 @@ impl AuthService {
                 .await
                 .map_err(AuthCallFailure::Rest)?;
 
+            let pair = pair.ok_or(AuthCallFailure::KeyMissing)?;
             let jwt = crypto::nonce_jwt(pair, &nonce, self.now())?;
             match self.rest.sign_in(env, msa, &jwt, &scenario.child()).await {
                 Ok(token) => return Ok(token),
@@ -159,6 +201,15 @@ impl AuthService {
         };
 
         Ok((token.access_token.clone(), pending))
+    }
+}
+
+/// The service rejected the key `SignIn` proved, or there was no key to prove.
+fn is_key_rejected(failure: &AuthCallFailure) -> bool {
+    match failure {
+        AuthCallFailure::Rest(e) => e.is_invalid_certificate(),
+        AuthCallFailure::KeyMissing => true,
+        AuthCallFailure::Local(_) => false,
     }
 }
 

@@ -22,7 +22,7 @@ public final class ScreenMirroringModel {
     /// The windows' sessions, in the order they opened.
     public private(set) var sessions: [MirrorSessionView] = []
     /// Windows telling the user that their app does not let its audio be captured, for
-    /// `captureNoticeLength` or until the window loses the focus.
+    /// `captureNoticeLength`.
     public private(set) var captureNotices: Set<String> = []
 
     /// Opens the window of a session (set by the app).
@@ -40,6 +40,9 @@ public final class ScreenMirroringModel {
     @ObservationIgnored public var presentFailure: (SettingsFailure) -> Void = { _ in }
     /// Posts the drag notices as system notifications (set by the app).
     @ObservationIgnored public var notifier: (any SystemNotifier)?
+    /// The user asks window `id` for screen layout `layout`, before the phone is asked (set by the app:
+    /// the window keeps its frame for its layout and takes the one it last had in the other).
+    @ObservationIgnored public var willSwitchLayout: (String, Int32) -> Void = { _, _ in }
 
     /// Sessions with an open window.
     @ObservationIgnored private var windows: Set<String> = []
@@ -57,6 +60,10 @@ public final class ScreenMirroringModel {
     @ObservationIgnored private var captureAllowed: [String: Bool] = [:]
     /// The end of each window's capture notice.
     @ObservationIgnored private var captureNoticeEnds: [String: Task<Void, Never>] = [:]
+    /// Windows that have been the active window.
+    @ObservationIgnored private var activated: Set<String> = []
+    /// The window whose drop of files over the limits is being told to the user.
+    @ObservationIgnored private var overLimitNotice: String?
     /// How long a window tells the user its app does not let its audio be captured.
     public static let captureNoticeLength: Duration = .seconds(3)
 
@@ -147,9 +154,20 @@ public final class ScreenMirroringModel {
         session.state == .connected || session.state == .secureContent
     }
 
-    /// The window shows Home and Recent Apps: the phone navigates by gestures and the window is connected.
-    public func showsNavigation(_ session: MirrorSessionView) -> Bool {
-        session.navigationButtons && session.state == .connected
+    /// The window shows its navigation bar (Recent Apps, Home, Back) under the video: the phone
+    /// navigates by gestures. It shows whatever the window's state; its buttons act only while the
+    /// window is connected (`navigationBarButton`).
+    public func showsNavigationBar(_ session: MirrorSessionView) -> Bool {
+        session.navigationButtons
+    }
+
+    /// A button of the navigation bar: the phone's key, sent only while the window is connected.
+    public func navigationBarButton(_ id: String, _ button: MirrorNavButton) {
+        guard session(id)?.state == .connected else {
+            log.debug("navigation bar button not sent; the window is not connected")
+            return
+        }
+        navButton(id, button)
     }
 
     /// The window's Back: the phone's Back key once the window has stayed connected for
@@ -209,16 +227,17 @@ public final class ScreenMirroringModel {
     /// The window of `id` gained or lost the keyboard focus, or was minimized or hidden;
     /// `capsLock` is the Mac's Caps Lock state now.
     public func focusChanged(_ id: String, _ focus: MirrorFocus, capsLock: Bool) {
-        if focus != .inFocus {
-            hideCaptureNotice(id)
-        }
-
         call("mirroring focus change not passed on") { try $0.focusChanged(sessionId: id, focus: focus, capsLock: capsLock) }
     }
 
     /// The window of `id` became the active window: a paused app opens again when the phone can
-    /// resume it, and nothing is shown when it cannot.
+    /// resume it, and nothing is shown when it cannot. The first time, a capture notice shown since
+    /// before then starts its time again.
     public func windowActivated(_ id: String) {
+        if activated.insert(id).inserted, captureNotices.contains(id) {
+            showCaptureNotice(id)
+        }
+
         guard session(id)?.state == .suspended else { return }
         Task { [api] in
             do {
@@ -299,6 +318,7 @@ public final class ScreenMirroringModel {
     /// Asks the phone for another layout of the app in window `id` (1 Compact, 2 Expanded, 0 the
     /// phone's default).
     public func switchLayout(_ id: String, to layout: Int32) {
+        willSwitchLayout(id, layout)
         perform("Couldn't Change the Layout", "layout not switched") { try $0.switchLayout(sessionId: id, layout: layout) }
     }
 
@@ -399,6 +419,12 @@ public final class ScreenMirroringModel {
 
     // MARK: - Drag and drop
 
+    /// Window `id` takes drops of Mac files: it is connected, and is not telling the user of a drop
+    /// over the limits.
+    public func acceptsDrops(_ id: String) -> Bool {
+        session(id)?.state == .connected && overLimitNotice != id
+    }
+
     /// A drag of the Mac files at `urls` entered window `id`: whether the window takes it.
     public func dragEnter(_ id: String, files urls: [URL]) -> MirrorDragEnter {
         let files = urls.map {
@@ -426,9 +452,13 @@ public final class ScreenMirroringModel {
         input { try $0.dragDrop(sessionId: id) }
     }
 
-    /// A refused drag over the limits was dropped on a window.
-    public func dragOverLimitDropped() {
+    /// A refused drag over the limits was dropped on window `id`: the user is told, and the window
+    /// takes no drops until the notice is gone.
+    public func dragOverLimitDropped(_ id: String) {
         log.debug("dropped files refused; they are over the limits")
+        overLimitNotice = id
+        defer { overLimitNotice = nil }
+
         presentFailure(SettingsFailure(
             title: String(localized: "Can't Send These Files"),
             message: String(localized: "You can send up to 100 files at a time, each up to 500 MB and of a supported type.")
@@ -615,6 +645,12 @@ public final class ScreenMirroringModel {
             return
         }
 
+        showCaptureNotice(id)
+    }
+
+    /// Shows window `id`'s capture notice for `captureNoticeLength` from now; the window losing the
+    /// focus does not hide it.
+    private func showCaptureNotice(_ id: String) {
         captureNotices.insert(id)
         captureNoticeEnds.removeValue(forKey: id)?.cancel()
         captureNoticeEnds[id] = Task { [weak self] in
@@ -638,6 +674,7 @@ public final class ScreenMirroringModel {
         queuedBack.remove(id)
         captureAllowed[id] = nil
         hideCaptureNotice(id)
+        activated.remove(id)
     }
 
     private func openWindow(_ id: String) {

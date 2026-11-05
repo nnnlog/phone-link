@@ -3,7 +3,7 @@ use super::*;
 fn std_keys() -> StandardKeys {
     StandardKeys {
         display_name: "mac".into(),
-        app_version: "1.26082.121.0".into(),
+        app_version: "1.26092.119.0".into(),
         installation_id: "0F8FAD5B-D9CB-469F-A165-70867728950E".into(),
         contract_version: 3.99,
     }

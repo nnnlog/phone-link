@@ -778,6 +778,34 @@ async fn nearby_check_runs_first_on_its_own_connection() {
 }
 
 #[tokio::test(start_paused = true)]
+async fn a_release_during_the_nearby_wait_fails_the_check_with_the_release_code() {
+    let mut w = world(SAMSUNG_NO_NEARBY | 0x8000);
+    let id = w.feature.open_phone_screen().unwrap();
+
+    let mut side = tokio::time::timeout(T, w.connector.next()).await.unwrap();
+    let (name, _, _) = next_workflow(&mut side).await;
+    assert_eq!(name, "nearby");
+    let mut nearby = PhoneMessage::open(&side, "workflow=nearby", &[scope::NEARBY_REQUEST_SETTING]).await;
+    let m = json(&nearby.next(scope::NEARBY_REQUEST_SETTING).await);
+    let tx = m["transactionId"].as_str().unwrap();
+    nearby.send(
+        scope::NEARBY_REQUEST_SETTING_RESULT,
+        &format!(
+            r#"{{"isLocked":false,"isSecureLocked":false,"skipUnlock":false,"skipVerification":false,"transactionId":"{tx}"}}"#
+        ),
+    );
+    wait_until(&w.feature, "the nearby prompt", |f| f.status().unwrap().nearby.is_some()).await;
+
+    // The check's channel is open: the set-up fails with the release's code (81), not 80, and the
+    // window keeps showing it.
+    w.feature.device_connection_lost();
+    tokio::time::sleep(Duration::from_millis(200)).await;
+    assert_eq!(w.feature.status().unwrap().phone_error, 81, "the set-up's failure");
+    assert_eq!(w.feature.session(&id).unwrap().details, Details::Error { code: 81 });
+    let _ = &mut w.events;
+}
+
+#[tokio::test(start_paused = true)]
 async fn a_device_lock_after_a_check_done_without_waiting_changes_nothing() {
     let mut w = world(SAMSUNG_NO_NEARBY | 0x8000);
     let _id = w.feature.open_phone_screen().unwrap();

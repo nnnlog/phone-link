@@ -4,7 +4,7 @@ fn metadata(caps: &[&str]) -> DeviceMetadata {
     DeviceMetadata {
         capabilities: caps.iter().map(|c| c.to_string()).collect(),
         client_type: "WEA".into(),
-        client_version: "1.26082.74.0".into(),
+        client_version: "1.26092.74.0".into(),
         consent_version: 0,
         custom_data: String::new(),
         display_name: "mac".into(),

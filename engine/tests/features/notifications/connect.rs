@@ -1,6 +1,6 @@
 //! The `SyncNotifications` connect provider and its contribution to the connect message:
 //! `AudioInfoSyncEnabled`, the reconcile keys or the separate full sync (a), and the response's
-//! `permissions.notifications` and `capabilities.notifications`.
+//! `permissions.notifications`, `capabilities.notifications` and `notificationSyncCompleted`.
 
 use crate::support::app_world;
 use crate::support::common::payload;
@@ -39,7 +39,9 @@ async fn without_ecr_the_connect_starts_a_separate_full_sync() {
     assert_eq!(connect(&w, "EngineStart").await, AppOutcome::Success);
     let vs = connect_payload(&w);
     assert_eq!(vs.object("configuration").unwrap().bool("AudioInfoSyncEnabled"), Some(true));
-    for k in ["operation", "notificationKeysCount", "notificationKeys", "postTimes"] {
+    for k in
+        ["operation", "notificationKeysCount", "notificationKeys", "postTimes", "supportsNotificationSyncCompletion"]
+    {
         assert!(!vs.contains_key(k), "{k}");
     }
 
@@ -75,6 +77,7 @@ async fn with_ecr_the_connect_carries_the_reconcile_keys() {
     assert_eq!(vs.i32("notificationKeysCount"), Some(2));
     assert_eq!(vs.get("notificationKeys"), Some(&Value::StringArray(vec!["b".into(), "a".into()])));
     assert_eq!(vs.get("postTimes"), Some(&Value::Int64Array(vec![NOW_MS, NOW_MS - 1])));
+    assert_eq!(vs.bool("supportsNotificationSyncCompletion"), Some(true));
     assert_eq!(full_syncs(&w.h).len(), 1, "no separate full sync with ECR");
 }
 
@@ -137,6 +140,28 @@ async fn the_response_sets_the_device_permission_and_the_capabilities() {
     let syncs = full_syncs(&w.h);
     assert_eq!(syncs.len(), 1);
     assert_eq!(trace_names(&syncs[0]).0, "NotificationsPermissionsChanged");
+}
+
+#[tokio::test(start_paused = true)]
+async fn a_reconcile_the_phone_finished_before_replying_records_last_updated() {
+    // Device permission off: no full sync (a) runs to record the time itself.
+    let w = world_with(Setup { device_permission: false, ..Setup::default() });
+
+    for (completed, why) in
+        [(Value::Int32(1), "a mistyped value is ignored"), (Value::Bool(false), "false records nothing")]
+    {
+        w.h.messenger.answer_all(response_with(
+            ValueSet::new().with("result", 0i32).with("notificationSyncCompleted", completed),
+        ));
+        connect(&w, "EngineStart").await;
+        assert_eq!(w.n.status().unwrap().last_updated_ms, None, "{why}");
+    }
+
+    w.w.clock.advance(std::time::Duration::from_secs(5));
+    w.h.messenger
+        .answer_all(response_with(ValueSet::new().with("result", 0i32).with("notificationSyncCompleted", true)));
+    connect(&w, "EngineStart").await;
+    assert_eq!(w.n.status().unwrap().last_updated_ms, Some(NOW_MS + 5_000));
 }
 
 #[tokio::test(start_paused = true)]

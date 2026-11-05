@@ -1,5 +1,6 @@
 //! Remote control: the phone locks, sleeps, shuts down or restarts the Mac. The Mac acts without
-//! asking — no confirmation, countdown or notification — then answers.
+//! asking — no confirmation, countdown or notification — and answers: after acting, except a lock or a
+//! sleep the Cross Device contract asks for, which it answers first.
 //!
 //! | Module | Implements |
 //! |---|---|
@@ -11,7 +12,8 @@
 //! Both contracts act through the same edge and obey the same per-phone toggle. The Cross Device
 //! contract also needs the phone's `REMOTE_CONTROL` capability (`REMOTE_CONTROL_V2` for every command
 //! but lock) and the phone's "enabled" switch, and the Mac advertises `REMOTE_CONTROL` and
-//! `REMOTE_CONTROL_V2` ([`with_remote_control_capabilities`]).
+//! `REMOTE_CONTROL_V2` as its options allow ([`with_remote_control_capabilities`]; both are on by
+//! default, so the phone is offered every command the Mac carries out).
 
 #![cfg_attr(feature = "test-support", warn(unreachable_pub))]
 
@@ -29,7 +31,7 @@ use async_trait::async_trait;
 use tokio::sync::broadcast;
 use tracing::warn;
 
-use phonelink_core::types::DcgClient;
+use phonelink_core::types::{DcgClient, DeviceInfoItem};
 use phonelink_features::shared::db::StoreError;
 use phonelink_features::shared::peers::{PeerDirectory, is_phone};
 use phonelink_features::{FeatureEnv, FeatureError, PhoneSwitches};
@@ -93,8 +95,23 @@ pub struct RemoteControlPhone {
     pub applicable: bool,
     /// The phone advertises `REMOTE_CONTROL`.
     pub capable: bool,
-    /// The phone advertises `REMOTE_CONTROL_V2`: sleep, shut down and restart, besides lock.
+    /// The phone can also put the Mac to sleep, shut it down and restart it.
+    ///
+    /// It advertises `REMOTE_CONTROL_V2`, and the V2 option is on, so the Mac advertises it too.
     pub v2_capable: bool,
+}
+
+impl RemoteControlPhone {
+    /// What Settings shows for a phone whose device-list entry is `info` and whose toggle is `toggle`.
+    fn new(info: &DeviceInfoItem, toggle: bool, config: &RemoteControlConfig) -> Self {
+        let capable = info.has_capability(cdeh::CAPABILITY);
+        Self {
+            toggle,
+            applicable: capable && config.enabled,
+            capable,
+            v2_capable: info.has_capability(cdeh::CAPABILITY_V2) && config.v2_enabled,
+        }
+    }
 }
 
 /// What the UI hears.
@@ -146,8 +163,11 @@ impl RemoteControl {
             events: broadcast::channel(16).0,
         });
 
-        drm.register_receiver(cdeh::RECEIVER_PATH, Arc::new(cdeh::RemoteControlReceiver(Arc::downgrade(&inner))))
-            .map_err(RegistrationError::from)?;
+        drm.register_follow_up_receiver(
+            cdeh::RECEIVER_PATH,
+            Arc::new(cdeh::RemoteControlReceiver(Arc::downgrade(&inner))),
+        )
+        .map_err(RegistrationError::from)?;
         env.app.register_processor_factory(
             &[phone_link::CONTENT_TYPE],
             Arc::new(phone_link::RemoteControlFactory(Arc::downgrade(&inner))),
@@ -169,13 +189,8 @@ impl RemoteControl {
     /// What the Settings window shows for `phone`; `None` while it is not in the account's device list.
     pub fn phone(&self, phone: &DcgClient) -> Result<Option<RemoteControlPhone>, StoreError> {
         let Some(peer) = self.inner.cdeh_peers.peer(phone) else { return Ok(None) };
-        let capable = peer.info.has_capability(cdeh::CAPABILITY);
-        Ok(Some(RemoteControlPhone {
-            toggle: self.inner.store.toggle(phone)?,
-            applicable: capable && self.inner.config.enabled,
-            capable,
-            v2_capable: peer.info.has_capability(cdeh::CAPABILITY_V2),
-        }))
+        let toggle = self.inner.store.toggle(phone)?;
+        Ok(Some(RemoteControlPhone::new(&peer.info, toggle, &self.inner.config)))
     }
 
     /// Sets `phone`'s toggle; a change is reported.

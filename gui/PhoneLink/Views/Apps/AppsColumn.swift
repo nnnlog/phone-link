@@ -62,6 +62,10 @@ struct AppsColumn: View {
         } else if model.isSearching {
             if model.searchResults.isEmpty {
                 ContentUnavailableView.search(text: model.searchText)
+                    // The no-results state is also announced, for each query that finds nothing.
+                    .onChange(of: model.searchText, initial: true) {
+                        AccessibilityNotification.Announcement(String(localized: "No results")).post()
+                    }
             } else {
                 ScrollView {
                     AppGrid(apps: model.searchResults, counts: counts)

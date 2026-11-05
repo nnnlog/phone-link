@@ -50,9 +50,8 @@ pub enum ConnectTrigger {
     UnlockOrWake,
     /// A user refresh or retry action — immediate.
     Refresh,
-    /// A write changed the recorded Wi-Fi state or sync-over-mobile-data setting and afterwards
-    /// either is on — background.
-    StatusChanged,
+    /// The phone's recorded sync-over-mobile-data setting went from off to on — background.
+    SyncOverMeteredEnabled,
     /// macOS lock or sleep — the disconnect trigger: cancels an in-flight connect.
     LockOrSleep,
 }
@@ -67,7 +66,7 @@ impl ConnectTrigger {
             ConnectTrigger::AppActivated => "AppActivated",
             ConnectTrigger::UnlockOrWake => "UnlockOrWake",
             ConnectTrigger::Refresh => "Refresh",
-            ConnectTrigger::StatusChanged => "DeviceStatusChanged",
+            ConnectTrigger::SyncOverMeteredEnabled => "SyncOverMeteredConnectionEnabled",
             ConnectTrigger::LockOrSleep => "LockOrSleep",
         }
     }
@@ -79,7 +78,7 @@ impl ConnectTrigger {
             | ConnectTrigger::SelectedPhoneChanged
             | ConnectTrigger::BecameConnected
             | ConnectTrigger::UnlockOrWake
-            | ConnectTrigger::StatusChanged => Some(ConnectKind::Background),
+            | ConnectTrigger::SyncOverMeteredEnabled => Some(ConnectKind::Background),
             ConnectTrigger::AppActivated | ConnectTrigger::Refresh => Some(ConnectKind::Immediate),
             ConnectTrigger::LockOrSleep => None,
         }

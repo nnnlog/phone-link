@@ -32,7 +32,8 @@ pub fn environment_base(env: Environment) -> &'static str {
 // Client identities and profiles: the app's two identities and the Cross Device Experience Host's differences
 // ------------------------------------------------------------------------------------------------
 
-/// One DCG client identity of the PC side.
+/// One DCG client identity of the PC side. Both Windows packages follow the same identity rules, so a
+/// profile holds only the values its identity sends and stores.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Profile {
     /// The client type by name (`clientType` in enrollment metadata, `applicationId` in push).
@@ -52,7 +53,7 @@ pub const PROFILE_PL: Profile = Profile {
     client_type: "PL",
     msa_client_id: "8CF55838-E496-42C5-829B-F8D6945288F3",
     package_family: "Microsoft.YourPhone_8wekyb3d8bbwe",
-    package_version: "1.26082.121.0",
+    package_version: "1.26092.119.0",
     friendly_name: "Microsoft Your Phone",
 };
 
@@ -65,7 +66,7 @@ pub const PROFILE_WEA: Profile = Profile {
     client_type: "WEA",
     msa_client_id: "ca3b40e4-3001-4842-8f21-49c0045404f8",
     package_family: "MicrosoftWindows.CrossDevice_cw5n1h2txyewy",
-    package_version: "1.26082.74.0",
+    package_version: "1.26092.74.0",
     friendly_name: "CrossDevice",
 };
 
@@ -76,7 +77,7 @@ pub const LTW_CLIENT_ID: &str = "8ec4ef98-53cc-4d15-a43b-dc15ea21a974";
 pub const CLIENT_OS_NAME_WINDOWS: &str = "Windows";
 
 /// Phone Link's App-layer values, which the app sends inside App `ValueSet`s whatever its DCG profile.
-pub const APP_LAYER_APP_VERSION: &str = "1.26082.121.0";
+pub const APP_LAYER_APP_VERSION: &str = "1.26092.119.0";
 /// The `contractVersion` the engine sends in App `ValueSet`s.
 pub const APP_LAYER_CONTRACT_VERSION: f64 = 3.99;
 

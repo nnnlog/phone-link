@@ -55,8 +55,8 @@ impl PhoneValues {
     }
 
     /// One window per app.
-    pub fn hosted_apps(&self, separate_window: bool) -> bool {
-        launch_gates::hosted_apps_of(self.remoting, self.contract_version, self.os_major, separate_window)
+    pub fn hosted_apps(&self) -> bool {
+        launch_gates::hosted_apps_of(self.remoting, self.contract_version, self.os_major)
     }
 
     /// The phone screen and app launches.
@@ -64,8 +64,8 @@ impl PhoneValues {
         launch_gates::phone_screen_apps_of(self.contract_version, self.client_model, self.client_revision)
     }
 
-    pub fn apps_feature_type(&self, separate_window: bool) -> AppsFeatureType {
-        if self.hosted_apps(separate_window) {
+    pub fn apps_feature_type(&self) -> AppsFeatureType {
+        if self.hosted_apps() {
             AppsFeatureType::MultipleApps
         } else if self.phone_screen_apps() {
             AppsFeatureType::PhoneScreenOnly

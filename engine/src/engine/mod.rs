@@ -50,7 +50,7 @@ mod system;
 mod events;
 mod wiring;
 
-use cdeh::{CdehTrigger, SessionChanges};
+use cdeh::{CdehStop, CdehTrigger, SessionChanges};
 pub use wiring::IdentityStack;
 pub(crate) use wiring::build_broker;
 use wiring::{CorePhoneLookup, EnrolledAccount, SharedConnection, install_routes, primary_edges};
@@ -475,7 +475,7 @@ impl EngineCore {
         info!("engine stopping; in-flight connects are canceled and the phone disconnected");
         self.app.cancel_connects();
         if let Some(phone) = self.phone() {
-            self.sessions.disconnect(&phone).await;
+            self.sessions.disconnect(&phone, CdehStop::SessionLoopEnded.trace()).await;
         }
     }
 

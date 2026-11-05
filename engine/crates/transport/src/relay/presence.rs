@@ -375,10 +375,30 @@ enum BindingError {
     NilPacketTrace,
     #[error("{0}: the reply was sent, the partner is not added")]
     PartnerTraceRejected(HubCodecError),
+    #[error("{0} holds a map with a key that is not a boolean, number, string or timestamp")]
+    ObjectMapKey(&'static str),
 }
 
 fn arity(arguments: &[Value], expected: usize) -> Result<(), BindingError> {
     if arguments.len() == expected { Ok(()) } else { Err(BindingError::Arity { expected, got: arguments.len() }) }
+}
+
+/// The `MessagePack` extension type of a timestamp.
+const TIMESTAMP_EXT: i8 = -1;
+
+/// A value of a hub parameter typed `object` (and of a packet's property): any `MessagePack` value,
+/// except that a map anywhere in it must key its entries by booleans, numbers, strings or timestamps
+/// — a binary, array, map or other extension key fails the value, and with it the invocation.
+fn bind_object(value: &Value, what: &'static str) -> Result<(), BindingError> {
+    match value {
+        Value::Map(entries) => entries.iter().try_for_each(|(key, value)| {
+            let unhashable = matches!(key, Value::Binary(_) | Value::Array(_) | Value::Map(_))
+                || matches!(key, Value::Ext(kind, _) if *kind != TIMESTAMP_EXT);
+            if unhashable { Err(BindingError::ObjectMapKey(what)) } else { bind_object(value, what) }
+        }),
+        Value::Array(items) => items.iter().try_for_each(|item| bind_object(item, what)),
+        _ => Ok(()),
+    }
 }
 
 /// A partner id the method cannot do without: a non-empty string.
@@ -453,6 +473,7 @@ fn on_receive_message(
     let sender = bind_id(&arguments[0], "sender")?;
     let ctx = TraceContextPacket::from_value(&arguments[1])?;
     let packet = MultiplexPacket::from_value(&arguments[2])?;
+    packet.properties.iter().try_for_each(|(_, value)| bind_object(value, "a packet property"))?;
 
     let trace = match ctx.as_ref().map(TraceContextPacket::to_inbound_context) {
         Some(Ok(trace)) => Some(trace),
@@ -522,13 +543,14 @@ fn deliver_packet(
 }
 
 /// `OnPartnerConnected(sourceId, ctx, region)`: reply `SendConnectedAsync(sourceId)` at once, then
-/// add the partner and re-arm its window. `region` may be any `MessagePack` value (string, map, nil)
-/// and is only logged. A trace context the receiver rejects still gets the reply, but the partner
-/// is neither added nor re-armed (a nil one is fine).
+/// add the partner and re-arm its window. `region` may be any `MessagePack` value (string, map, nil;
+/// [`bind_object`]) and is only logged. A trace context the receiver rejects still gets the reply, but
+/// the partner is neither added nor re-armed (a nil one is fine).
 fn on_partner_connected(conn: &Arc<HubConnection>, session_id: u64, arguments: &[Value]) -> Result<(), BindingError> {
     arity(arguments, 3)?;
     let source = bind_id(&arguments[0], "sourceId")?;
     let ctx = TraceContextPacket::from_value(&arguments[1])?;
+    bind_object(&arguments[2], "region")?;
 
     let env = conn.env();
     let region = match &arguments[2] {
@@ -585,7 +607,8 @@ fn on_partner_heartbeat(conn: &Arc<HubConnection>, session_id: u64, arguments: &
     arity(arguments, 3)?;
     let suffix = bind_id(&arguments[0], "sourceId")?;
     let connection_id = hub::opt_string(&arguments[1], "connectionId")?;
-    // `sentTime` (arguments[2]) is accepted whatever its shape and never read.
+    // `sentTime` is never read.
+    bind_object(&arguments[2], "sentTime")?;
     conn.presence().heartbeat(session_id, &suffix, connection_id.as_deref());
     Ok(())
 }

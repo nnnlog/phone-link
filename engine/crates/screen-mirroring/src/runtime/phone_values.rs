@@ -20,14 +20,8 @@ impl Inner {
         Ok(PhoneValues::from_record(&record, &self.env.config.app))
     }
 
-    /// One window per app is turned off on the PC — the phone apps' switch, which decides *hosted
-    /// apps* for both features.
-    pub(super) fn separate_window(&self) -> bool {
-        self.env.config.features.phone_apps.separate_window
-    }
-
     pub(super) fn apps_feature_type(&self) -> AppsFeatureType {
-        self.values().map_or(AppsFeatureType::Disabled, |v| v.apps_feature_type(self.separate_window()))
+        self.values().map_or(AppsFeatureType::Disabled, |v| v.apps_feature_type())
     }
 
     pub(super) fn all_features_disabled(&self) -> bool {
@@ -64,7 +58,7 @@ impl Inner {
             values,
             remoting_supported: values.remoting_supported(),
             phone_screen_apps: values.phone_screen_apps(),
-            apps_feature_type: values.apps_feature_type(self.separate_window()),
+            apps_feature_type: values.apps_feature_type(),
             phone_state: st.phone,
             phone_error: st.phone_error,
             nearby: st.nearby.clone(),
@@ -101,6 +95,7 @@ impl Inner {
                     button_order: s.display.button_order.clone(),
                     recent_task_id: s.recent_task_id,
                     screen_layout: s.current_layout,
+                    last_screen_layout: if s.is_phone_screen() { 0 } else { data.screen_layout },
                     move_to_virtual_display: s.move_to_virtual_display.as_ref().map(|(_, t)| *t),
                     audio: PackageAudio { volume: data.volume, muted: data.muted, ..runtime },
                     audio_capture_allowed: s.audio_capture_allowed,

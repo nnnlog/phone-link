@@ -1,7 +1,8 @@
 //! Remote control — the Cross Device contract over the platform layer: the `/remotecontrol`
-//! receiver's actions and answers, its gates (option, phone capabilities, toggle, enabled switch) and
-//! the device-list refresh before a capability failure, the addresses that reach it, and what the UI
-//! reads. The Mac's actions only reach a recording edge.
+//! receiver's actions and answers (a lock or a sleep answered before the Mac acts, the others after),
+//! its gates (option, phone capabilities, toggle, enabled switch) and the device-list refresh before a
+//! capability failure, the addresses that reach it, and what the UI reads. The Mac's actions only
+//! reach a recording edge.
 
 use crate::support::platform_world;
 use crate::support::remote_control_world as rc;
@@ -11,7 +12,9 @@ use phonelink_engine::features::remote_control::{PowerAction, RemoteControlEvent
 use phonelink_engine::proto::remote_control::v1::{
     RemoteControlResponseMessage, RemoteControlResult, RemoteControlType,
 };
-use platform_world::{phone_id, settle};
+use phonelink_engine::seams::PlatformRequestStatus;
+use phonelink_engine::types::DcgSendStatus;
+use platform_world::{Behavior, phone_id, settle};
 use rc::{RcWorld, V2, item_with};
 
 const SUCCESS: i32 = RemoteControlResult::Success as i32;
@@ -37,6 +40,7 @@ async fn every_control_type_acts_and_answers() {
     ] {
         let before = w.power.actions().len();
         assert_eq!(result(&w.drm(t as i32).await), (SUCCESS, None), "{t:?}");
+        settle().await;
         assert_eq!(w.power.actions()[before..], [action], "{t:?}");
     }
 
@@ -53,15 +57,51 @@ async fn every_control_type_acts_and_answers() {
 }
 
 #[tokio::test(start_paused = true)]
-async fn a_failing_action_answers_failed() {
+async fn a_failing_action_answers_failed_unless_it_was_answered_first() {
     let w = RcWorld::connected().await;
     w.power.set_failing(true);
-    for t in
-        [RemoteControlType::Lock, RemoteControlType::Sleep, RemoteControlType::Shutdown, RemoteControlType::Restart]
-    {
+
+    // A lock or a sleep is answered SUCCESS before the Mac acts: the failure is only logged.
+    for t in [RemoteControlType::Lock, RemoteControlType::Sleep] {
+        assert_eq!(result(&w.drm(t as i32).await), (SUCCESS, None), "{t:?}");
+    }
+    for t in [RemoteControlType::Shutdown, RemoteControlType::Restart] {
         assert_eq!(result(&w.drm(t as i32).await), (FAILED, None), "{t:?}");
     }
-    assert_eq!(w.power.actions().len(), 4, "each was tried");
+
+    settle().await;
+    assert_eq!(
+        w.power.actions(),
+        [PowerAction::LockScreen, PowerAction::Sleep, PowerAction::ShutDown, PowerAction::Restart],
+        "each was tried"
+    );
+}
+
+#[tokio::test(start_paused = true)]
+async fn a_lock_or_a_sleep_whose_answer_was_not_sent_is_not_carried_out() {
+    let w = RcWorld::connected().await;
+    let lock = rc::request_bytes(RemoteControlType::Lock as i32);
+    let sleep = rc::request_bytes(RemoteControlType::Sleep as i32);
+
+    // An answer that was sent: the Mac acts.
+    let response = w.sw.phone_drm_request(4, 2, "/remotecontrol", &lock).await;
+    assert_eq!(response.status, PlatformRequestStatus::Success);
+    settle().await;
+    assert_eq!(w.power.actions(), [PowerAction::LockScreen]);
+
+    // An answer the transport could not send: the Mac does not act.
+    w.sw.w.pair.pc_link.script(Behavior::Fail(DcgSendStatus::TimedOut));
+    let response = w.sw.phone_drm_request(4, 2, "/remotecontrol", &sleep).await;
+    assert_eq!(response.status, PlatformRequestStatus::ResponseTimedOut, "no answer reached the phone");
+    settle().await;
+    assert_eq!(w.power.actions(), [PowerAction::LockScreen], "the sleep was not carried out");
+
+    // A shutdown is answered after the Mac acted, whatever its answer's fate.
+    w.sw.w.pair.pc_link.script(Behavior::Fail(DcgSendStatus::TimedOut));
+    let shutdown = rc::request_bytes(RemoteControlType::Shutdown as i32);
+    w.sw.phone_drm_request(4, 2, "/remotecontrol", &shutdown).await;
+    settle().await;
+    assert_eq!(w.power.actions(), [PowerAction::LockScreen, PowerAction::ShutDown]);
 }
 
 #[tokio::test(start_paused = true)]
@@ -136,6 +176,7 @@ async fn a_missing_capability_refreshes_the_device_list_then_fails() {
     });
     assert_eq!(result(&w.drm(RemoteControlType::Sleep as i32).await), (SUCCESS, None));
     assert_eq!(w.refresh.count(), 3);
+    settle().await;
     assert_eq!(w.power.actions(), [PowerAction::LockScreen, PowerAction::Sleep]);
 }
 
@@ -171,6 +212,7 @@ async fn every_address_and_request_type_reaches_the_receiver() {
         let r = w.drm_raw(resource_type, request_type, path, &lock).await;
         assert_eq!(result(&r), (SUCCESS, None), "{resource_type} {request_type} {path:?}");
     }
+    settle().await;
     assert_eq!(w.power.actions().len(), 4);
 }
 

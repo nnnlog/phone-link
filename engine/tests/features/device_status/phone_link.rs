@@ -454,22 +454,24 @@ async fn the_two_power_save_spellings() {
     let h = Harness::with_custom_data(Some(r#"{"yppCapabilities":32,"statusCapabilities":0}"#));
     let f = Fixture::build(h, StoreLocation::Memory, DeviceStatusConfig::default());
 
-    // Every payload: `batteryPowerSave`, no capability bit.
+    // Every payload: `batteryPowerSave`, which adds the battery bit.
     let hb = phone_content("heartbeat", ValueSet::new().with("batteryPowerSave", true).with("batteryPowersave", false));
     assert_eq!(f.inbound(hb).await, simple(0));
     assert_eq!(f.record().status_keys.battery_power_save, Some(true));
-    assert_eq!(f.record().status_capabilities, 0);
+    assert_eq!(f.record().status_capabilities, 0x8);
 
-    // An item reads `batteryPowersave` (and the App layer its own spelling): the item's value wins, its bit is added.
+    // A status item is read for `batteryPowersave`, and the App layer reads `batteryPowerSave` from it
+    // as from every payload: the item's `batteryPowersave` wins.
     assert_eq!(f.status_item(ValueSet::new().with("batteryPowersave", false)).await, simple(0));
     assert_eq!(f.record().status_keys.battery_power_save, Some(false));
     assert_eq!(f.record().status_capabilities, 0x8);
 
-    // An item carrying only `batteryPowerSave`: recorded by the App layer, no bit from the item.
+    // An item carrying only `batteryPowerSave`: the App layer records it with the battery bit; the
+    // item's own reading finds nothing.
     let h = Harness::with_custom_data(Some(r#"{"yppCapabilities":32,"statusCapabilities":0}"#));
     let f = Fixture::build(h, StoreLocation::Memory, DeviceStatusConfig::default());
     assert_eq!(f.status_item(ValueSet::new().with("batteryPowerSave", true)).await, simple(0));
-    assert_eq!((f.record().status_keys.battery_power_save, f.record().status_capabilities), (Some(true), 0));
+    assert_eq!((f.record().status_keys.battery_power_save, f.record().status_capabilities), (Some(true), 0x8));
 }
 
 #[tokio::test(start_paused = true)]

@@ -149,6 +149,38 @@ async fn region_of_on_partner_connected_may_be_any_value() {
 }
 
 #[tokio::test]
+async fn an_object_argument_holding_a_map_keyed_by_a_container_is_a_binding_failure() {
+    let mut h = Harness::new(|_| {}).await;
+    let session = h.open_session().await;
+    let undecodable = |h: &Harness| h.tap.snapshot().into_iter().filter(|e| e.layer == TapLayer::Undecodable).count();
+
+    // A map keyed by a map, inside an array: the invocation is dropped — no reply, no partner.
+    let keyed_by_map = Value::Map(vec![(Value::Map(Vec::new()), Value::from(1))]);
+    session.send(on_partner_connected("bad-region", Value::Array(vec![keyed_by_map])));
+    // Booleans, numbers, strings and timestamps key a map that binds.
+    let keyed_by_primitives = Value::Map(vec![
+        (Value::from(true), Value::Nil),
+        (Value::from(1), Value::Nil),
+        (Value::F64(1.5), Value::Nil),
+        (Value::from("k"), Value::Nil),
+        (Value::Ext(-1, vec![0; 4]), Value::Nil),
+    ]);
+    session.send(on_partner_connected("fine-region", keyed_by_primitives));
+    next_event(&mut h.events, 2 * SECOND, connected("fine-region")).await;
+
+    assert!(!h.relay.is_partner_connected(&prod("bad-region")));
+    let replies = session.wait_invocations_of(method::SEND_CONNECTED, 1, 2 * SECOND).await;
+    assert_eq!(replies.len(), 1);
+    assert_eq!(replies[0].target_id(), Some("fine-region"), "the dropped invocation got no reply");
+    assert_eq!(undecodable(&h), 1);
+
+    // `sentTime` of a heartbeat binds the same way.
+    let keyed_by_bin = Value::Map(vec![(Value::Binary(vec![1]), Value::Nil)]);
+    session.invoke(method::ON_PARTNER_HEARTBEAT, vec![Value::from("region"), Value::from("conn"), keyed_by_bin]);
+    assert!(eventually(|| undecodable(&h) == 2).await, "the heartbeat is dropped");
+}
+
+#[tokio::test]
 async fn on_partner_connected_accepts_a_nil_trace_context() {
     let mut h = Harness::new(|_| {}).await;
     let session = h.open_session().await;

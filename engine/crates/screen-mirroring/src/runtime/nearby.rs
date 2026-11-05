@@ -102,7 +102,10 @@ impl Inner {
         let mut failed = self.nearby_signal.subscribe();
         let body = tokio::select! {
             r = rx => r.map_err(|_| SetupFailure::Error(code::MESSAGE_CHANNEL_FAILED))?,
-            _ = failed.wait_for(|s| s.failed.is_some()) => return Err(SetupFailure::Error(code::DISCONNECTED_UNKNOWN)),
+            s = failed.wait_for(|s| s.failed.is_some()) => {
+                let code = s.ok().and_then(|s| s.failed).unwrap_or(code::DISCONNECTED_UNKNOWN);
+                return Err(SetupFailure::Error(code));
+            }
         };
 
         let b = Body::parse(&body).map_err(|error| SetupFailure::Malformed {

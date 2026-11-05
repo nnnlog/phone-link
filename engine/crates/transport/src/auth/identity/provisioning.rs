@@ -1,7 +1,7 @@
 //! The startup and provisioning sequence: sign-in, enrollment, client info.
 
 use super::Deprovision;
-use super::{Discovery, metadata_hash, since};
+use super::{Discovery, NewIdentity, metadata_hash, since};
 use crate::auth::crypto::{KeyPair, ParsedCertificate};
 use crate::auth::dcg_rest::{DeviceInfoBody, DeviceMetadata, EnrollDeviceResponse, RestError, TokenResponse};
 use crate::auth::store::{AccountInfo, AccountState, IdentityRecord, LocalAccount};
@@ -18,6 +18,9 @@ impl AuthService {
     /// environment discovery and snap (2), the MSA token (3), the account id (4), the identity (5)
     /// and the enrollment (6), then the client-info refresh (7). Peers (step 8) are
     /// [`AuthService::sync_trust`].
+    ///
+    /// The shortcut needs the account's environment to hold an identity. An account enrolled under an
+    /// identity that was since created anew in place is enrolled again under the new one first.
     pub async fn ensure_provisioned(&self) -> Result<Provisioned, AuthError> {
         let _op = self.provision_lock.lock().await;
         let account = self.local_account().ok_or_else(|| AuthError::UserInteractionRequired("not signed in".into()))?;
@@ -29,15 +32,19 @@ impl AuthService {
                 .get(&account.account_id)
                 .filter(|i| i.state == AccountState::Enrolled)
                 .and_then(|i| i.environment)
+                .filter(|env| st.env(*env).identity.is_some())
         };
 
         let env = match enrolled_env {
             Some(env) => {
-                let mut st = self.state.lock_or_panic();
-                if st.saved_env != Some(env) {
-                    st.saved_env = Some(env);
-                    self.persist_saved_env(&st)?;
+                {
+                    let mut st = self.state.lock_or_panic();
+                    if st.saved_env != Some(env) {
+                        st.saved_env = Some(env);
+                        self.persist_saved_env(&st)?;
+                    }
                 }
+                self.reenroll_replaced(env).await?;
                 env
             }
             None => {
@@ -69,7 +76,8 @@ impl AuthService {
         Ok(Provisioned { env, own: DcgClient::new(own.device_id.clone(), env), account_id: account.account_id.clone() })
     }
 
-    /// The signed-in account and its environment when it is `Enrolled`.
+    /// The signed-in account and its environment when it is `Enrolled` — under the identity its
+    /// environment holds, when it holds one.
     pub(crate) fn enrolled(&self) -> Result<(LocalAccount, Environment), AuthError> {
         let st = self.state.lock_or_panic();
         let account = st.account.clone().ok_or_else(|| AuthError::NotProvisioned("not signed in".into()))?;
@@ -81,13 +89,17 @@ impl AuthService {
         let env = info
             .environment
             .ok_or_else(|| AuthError::NotProvisioned("the enrolled account has no environment".into()))?;
+
+        if !bound_to_current_identity(&st, info, env) {
+            return Err(AuthError::NotProvisioned("the account is enrolled under a replaced identity".into()));
+        }
         Ok((account, env))
     }
 
-    /// Account enumeration: an account record of another account is deprovisioned first (one
-    /// account at a time), and so is any account whose identity is no longer active.
+    /// Account enumeration: an account record of another account is deprovisioned (one account at a
+    /// time). Nothing is deprovisioned for an identity that expired: it keeps signing in until a
+    /// provisioning that does not take the `Enrolled` shortcut replaces it.
     pub(super) fn enumerate_accounts(&self, account: &LocalAccount) -> Result<(), AuthError> {
-        let now = self.now();
         let mut st = self.state.lock_or_panic();
         let ids: Vec<String> =
             st.account_info.iter().filter(|(_, i)| i.is_provisioned()).map(|(id, _)| id.clone()).collect();
@@ -95,13 +107,6 @@ impl AuthService {
         for id in ids {
             if id != account.account_id {
                 self.deprovision_locked(&mut st, &id, Deprovision::OtherAccount)?;
-                continue;
-            }
-
-            let env = st.account_info[&id].environment;
-            let active = env.is_some_and(|env| self.identity_active_locked(&st, env, account, now));
-            if !active {
-                self.deprovision_locked(&mut st, &id, Deprovision::IdentityInactive)?;
             }
         }
 
@@ -221,7 +226,9 @@ impl AuthService {
     }
 
     /// Step 5: reuse an active identity, else clear it and run `CreateIdentity`; the account record
-    /// becomes `Provisioned`.
+    /// becomes `Provisioned` (it stays `Enrolled` only under the identity it was enrolled with). When
+    /// `CreateIdentity` fails after the clearing, the account enrolled with the cleared identity is
+    /// deprovisioned too.
     pub(super) async fn ensure_identity(
         &self,
         env: Environment,
@@ -234,13 +241,16 @@ impl AuthService {
         };
 
         if !active {
-            {
+            let cleared = {
                 let mut st = self.state.lock_or_panic();
-                if st.env(env).identity.is_some() {
-                    self.clear_identity_locked(&mut st, env)?;
-                }
+                if st.env(env).identity.is_some() { self.clear_identity_locked(&mut st, env)? } else { None }
+            };
+
+            if let Err(e) = self.create_identity(env, msa).await {
+                let mut st = self.state.lock_or_panic();
+                self.deprovision_bound_locked(&mut st, env, cleared.as_deref())?;
+                return Err(e);
             }
-            self.create_identity(env, msa).await?;
         }
 
         let mut st = self.state.lock_or_panic();
@@ -253,7 +263,9 @@ impl AuthService {
 
         let scope = self.msa.scope(env)?;
         let info = st.account_info.entry(account.account_id.clone()).or_insert_with(|| AccountInfo::new(account));
-        if info.state != AccountState::Enrolled {
+        // An enrollment under another identity is not one under this identity.
+        let rebound = info.dcg_client_id.as_deref().is_some_and(|id| !id.eq_ignore_ascii_case(&device_id));
+        if info.state != AccountState::Enrolled || rebound {
             info.state = AccountState::Provisioned;
         }
         info.environment = Some(env);
@@ -262,28 +274,40 @@ impl AuthService {
         self.persist_account_info(&st)
     }
 
+    /// Step 5's `CreateIdentity`, stored as the identity of `env`.
+    pub(super) async fn create_identity(&self, env: Environment, msa: &str) -> Result<(), AuthError> {
+        match self.request_new_identity(env, msa).await? {
+            Ok(new) => self.store_new_identity(env, new),
+            Err(e) => Err(self.auth_failure(env, e)),
+        }
+    }
+
     /// `GenerateNonce(newGuid)` → new P-384 key + `CN=<newGuid>` → nonce JWT → `CreateIdentity`,
     /// retried up to `auth_recover_retries` times on a device-id collision (uncategorized 403, new
-    /// GUID) or `InvalidNonce` (new nonce).
-    pub(super) async fn create_identity(&self, env: Environment, msa: &str) -> Result<(), AuthError> {
+    /// GUID) or `InvalidNonce` (new nonce). Stores nothing. The outer error is a local failure, the
+    /// inner one the service's last answer.
+    pub(super) async fn request_new_identity(
+        &self,
+        env: Environment,
+        msa: &str,
+    ) -> Result<Result<NewIdentity, RestError>, AuthError> {
         let retries = self.config.auth.auth_recover_retries;
         let mut attempt = 0;
         let mut device_id = new_guid_lower();
 
         loop {
             let scenario = TraceContext::new_root(Vec::new());
-            let nonce = self
-                .rest
-                .generate_nonce(env, msa, &device_id, &scenario.child())
-                .await
-                .map_err(|e| self.auth_failure(env, e))?;
+            let nonce = match self.rest.generate_nonce(env, msa, &device_id, &scenario.child()).await {
+                Ok(nonce) => nonce,
+                Err(e) => return Ok(Err(e)),
+            };
 
             let now = self.now();
             let pair = KeyPair::generate(&device_id, now)?;
             let jwt = crypto::nonce_jwt(&pair, &nonce, now)?;
 
             match self.rest.create_identity(env, msa, &jwt, &scenario.child()).await {
-                Ok(token) => return self.store_new_identity(env, &device_id, pair, token),
+                Ok(token) => return Ok(Ok(NewIdentity { device_id, pair, token })),
                 Err(e) if attempt < retries && e.is_forbidden_uncategorized() => {
                     attempt += 1;
                     tracing::warn!(%env, attempt, error = %e, "CreateIdentity device-id collision; retrying with a new GUID");
@@ -293,7 +317,7 @@ impl AuthService {
                     attempt += 1;
                     tracing::warn!(%env, attempt, "CreateIdentity InvalidNonce; retrying with a new nonce");
                 }
-                Err(e) => return Err(self.auth_failure(env, e)),
+                Err(e) => return Ok(Err(e)),
             }
         }
     }
@@ -324,19 +348,14 @@ impl AuthService {
 
     /// Persists a new identity: the GUID the PC generated (the response's `deviceId` is kept only
     /// on the cached token), `NextKeyRotation = now + 182.5 d`, the cached token.
-    pub(super) fn store_new_identity(
-        &self,
-        env: Environment,
-        device_id: &str,
-        pair: KeyPair,
-        token: TokenResponse,
-    ) -> Result<(), AuthError> {
+    pub(super) fn store_new_identity(&self, env: Environment, new: NewIdentity) -> Result<(), AuthError> {
+        let NewIdentity { device_id, pair, token } = new;
         let now = self.now();
         self.check_token_expiry(&token, now);
 
         let mut st = self.state.lock_or_panic();
         let record = IdentityRecord {
-            device_id: device_id.to_string(),
+            device_id: device_id.clone(),
             last_accessed: now,
             next_key_rotation: now + self.config.auth.identity_key_rotation,
             key_validity_remaining_days: Self::key_validity(&token),
@@ -356,9 +375,10 @@ impl AuthService {
 
     /// Step 6: services token, trust certificate (reused or new), `EnrollDevice`; success persists a
     /// new trust certificate, turns `accountCert` into the `A2D` relationship and marks the account
-    /// `Enrolled`. `Unauthorized` (any 401 status) is the repair path: `EnrollDevice` is retried
-    /// once with a strong-auth (SAPI-scope) MSA token as `Authorization: Bearer`, `Dcg-Token`
-    /// unchanged; a second 401 is `Unauthorized`.
+    /// `Enrolled` (its peers due for a cloud refresh). Nothing is sent when the account is already
+    /// `Enrolled` under the current identity. `Unauthorized` (any 401 status) is the repair path:
+    /// `EnrollDevice` is retried once with a strong-auth (SAPI-scope) MSA token as
+    /// `Authorization: Bearer`, `Dcg-Token` unchanged; a second 401 is `Unauthorized`.
     pub(super) async fn enroll(
         &self,
         env: Environment,
@@ -367,9 +387,22 @@ impl AuthService {
         pop_device_key: &str,
     ) -> Result<(), AuthError> {
         let services = self.services_token_for(env, false).await?;
+        let _guard = self.enroll_lock.lock().await;
 
         let (trust, is_new, body) = {
             let st = self.state.lock_or_panic();
+            // The token request may have enrolled the account itself, under an identity it created
+            // anew in place.
+            let enrolled = st.account_info.get(&account.account_id).is_some_and(|info| {
+                info.state == AccountState::Enrolled
+                    && info.environment == Some(env)
+                    && bound_to_current_identity(&st, info, env)
+            });
+            if enrolled {
+                tracing::debug!(%env, "already enrolled under the current identity");
+                return Ok(());
+            }
+
             let (trust, is_new) = self.trust_pair_for_send(&st, env)?;
             let body = self.device_body(&st, &trust)?;
             (trust, is_new, body)
@@ -422,6 +455,8 @@ impl AuthService {
         info.dcg_client_id = device_id;
         info.last_update_time = Some(now);
         info.last_attempt_update_time = Some(now);
+        // The next `Default` trust synchronization refreshes from the cloud.
+        info.last_get_trusted_peer_clients_time = None;
         info.metadata_hash = Some(metadata_hash(&body.metadata));
 
         self.persist_account_info(&st)?;
@@ -542,6 +577,17 @@ impl AuthService {
                 return Ok(());
             }
         };
+
+        // The token request may have created the identity anew without enrolling it again: only an
+        // enrolled identity has device info to set.
+        let enrolled_under_current = {
+            let st = self.state.lock_or_panic();
+            st.account_info.get(&account.account_id).is_some_and(|info| bound_to_current_identity(&st, info, env))
+        };
+        if !enrolled_under_current {
+            tracing::debug!(%env, "client-info refresh skipped; the identity is not enrolled yet");
+            return Ok(());
+        }
 
         self.send_client_info(env, account, &msa, &services).await
     }
@@ -697,6 +743,15 @@ impl AuthService {
         }
 
         Ok((KeyPair::generate(&cn, now)?, true))
+    }
+}
+
+/// Whether `info` is bound to the identity `env` holds now — or `env` holds none. A record bound to
+/// another identity was enrolled under one the current identity replaced.
+fn bound_to_current_identity(st: &State, info: &AccountInfo, env: Environment) -> bool {
+    match &st.env(env).identity {
+        Some(record) => info.dcg_client_id.as_deref().is_some_and(|id| id.eq_ignore_ascii_case(&record.device_id)),
+        None => true,
     }
 }
 

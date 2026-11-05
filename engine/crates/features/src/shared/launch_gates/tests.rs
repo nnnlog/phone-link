@@ -79,19 +79,18 @@ fn hosted_apps_need_the_flag_the_contract_and_android_11() {
     let mut r = record();
     r.os_version = Some("14".into());
 
-    assert!(!hosted_apps(&r, &app, false), "no AppsOnWindowsSupported");
+    assert!(!hosted_apps(&r, &app), "no AppsOnWindowsSupported");
 
     r.set_remoting_flags(remoting::APPS_ON_WINDOWS_SUPPORTED);
-    assert!(hosted_apps(&r, &app, false));
-    assert!(!hosted_apps(&r, &app, true), "one window per app turned off");
+    assert!(hosted_apps(&r, &app));
 
     r.reported_contract_version = Some(3.93);
-    assert!(!hosted_apps(&r, &app, false));
+    assert!(!hosted_apps(&r, &app));
 
     r.reported_contract_version = Some(3.94);
     r.os_version = Some("10".into());
-    assert!(!hosted_apps(&r, &app, false));
+    assert!(!hosted_apps(&r, &app));
 
     r.os_version = None;
-    assert!(!hosted_apps(&r, &app, false), "no OS version");
+    assert!(!hosted_apps(&r, &app), "no OS version");
 }

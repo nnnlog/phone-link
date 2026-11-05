@@ -9,7 +9,7 @@ import Testing
 struct MirrorDisplayTests {
     @Test func aPortraitScreenFitsTheWindowCentred() throws {
         let display = MirrorDisplay(deviceSize: CGSize(width: 1080, height: 2400), videoSize: CGSize(width: 720, height: 1600))
-        #expect(display.aspectSize == CGSize(width: 720, height: 1600), "the video's aspect")
+        #expect(display.screenSize == CGSize(width: 720, height: 1600), "the video's size")
 
         let rect = try #require(display.screenRect(in: CGSize(width: 900, height: 1200)))
         #expect(rect.height == 1200)
@@ -24,70 +24,50 @@ struct MirrorDisplayTests {
         #expect(outside.x < 0, "outside the video is outside 0–1")
     }
 
+    /// A video area of another aspect letterboxes the video: scaled the same both ways, centred.
+    @Test func theVideoIsLetterboxedNotStretched() throws {
+        let display = MirrorDisplay(videoSize: CGSize(width: 1000, height: 500))
+        let rect = try #require(display.screenRect(in: CGSize(width: 400, height: 400)))
+        #expect(rect == CGRect(x: 0, y: 100, width: 400, height: 200))
+        let point = try #require(display.normalized(CGPoint(x: 200, y: 150), in: CGSize(width: 400, height: 400)))
+        #expect(point == CGPoint(x: 0.5, y: 0.25))
+    }
+
     @Test func aTurnedPhoneSwapsTheVideosSides() {
         let display = MirrorDisplay(videoSize: CGSize(width: 720, height: 1600), rotation: -90)
         #expect(display.swapsSides)
-        #expect(display.screenSize == CGSize(width: 1600, height: 720), "without a device resolution, the rotated video")
+        #expect(display.screenSize == CGSize(width: 1600, height: 720), "the rotated video")
         #expect(abs(display.layerRotation - .pi / 2) < 1e-9, "−90° turns counter-clockwise in a y-up layer")
 
         #expect(!MirrorDisplay(rotation: -180).swapsSides)
         #expect(MirrorDisplay(rotation: -270).swapsSides)
     }
 
-    @Test func theContentAreaFillsTheWindowAndTheRestIsClipped() throws {
-        // A folded phone shows the right half of its screen.
-        let display = MirrorDisplay(
-            deviceSize: CGSize(width: 2000, height: 1000),
-            initialDeviceSize: CGSize(width: 2000, height: 1000),
-            contentArea: CGRect(x: 1000, y: 0, width: 1000, height: 1000)
-        )
-        #expect(display.aspectSize == CGSize(width: 1000, height: 1000))
-        let rect = try #require(display.screenRect(in: CGSize(width: 500, height: 500)))
-        #expect(rect == CGRect(x: -500, y: 0, width: 1000, height: 500))
-        let point = try #require(display.normalized(CGPoint(x: 0, y: 250), in: CGSize(width: 500, height: 500)))
-        #expect(point == CGPoint(x: 0.5, y: 0.5), "the window's left edge is the screen's middle")
-
-        // An area outside the screen is ignored.
-        let wrong = MirrorDisplay(
-            deviceSize: CGSize(width: 100, height: 100),
-            initialDeviceSize: CGSize(width: 100, height: 100),
-            contentArea: CGRect(x: 50, y: 0, width: 100, height: 100)
-        )
-        #expect(wrong.aspectSize == CGSize(width: 100, height: 100))
-    }
-
-    /// The video sets the drawn screen's aspect, as the window keeps it; a device resolution of
-    /// another aspect does not change it, and the content area scales from it to the video.
-    @Test func theVideoSetsTheScreensAspect() throws {
+    /// The video sets the drawn screen; before it is known nothing is drawn, a new window opens with the
+    /// phone record's resolution, and the navigation bar's room is measured against the current one.
+    @Test func theVideoSetsTheScreen() {
         let display = MirrorDisplay(deviceSize: CGSize(width: 1080, height: 2400), videoSize: CGSize(width: 1080, height: 2404))
         #expect(display.screenSize == CGSize(width: 1080, height: 2404))
 
-        // Until a video size is known, the device resolution the window started with; the phone's
-        // later one does not reshape it.
         let started = MirrorDisplay(deviceSize: CGSize(width: 2400, height: 1080), initialDeviceSize: CGSize(width: 1080, height: 2400))
-        #expect(started.screenSize == CGSize(width: 1080, height: 2400))
-        #expect(MirrorDisplay(deviceSize: CGSize(width: 1080, height: 2400)).screenSize == nil, "no start, no video: no shape")
+        #expect(started.screenSize == nil)
+        #expect(started.openingSize == CGSize(width: 1080, height: 2400))
+        #expect(started.shownSize == CGSize(width: 2400, height: 1080))
+        #expect(MirrorDisplay().openingSize == nil)
 
         let turned = MirrorDisplay(deviceSize: CGSize(width: 2400, height: 1080), videoSize: CGSize(width: 540, height: 1200), rotation: -90)
-        #expect(turned.aspectSize == CGSize(width: 1200, height: 540))
-
-        let folded = MirrorDisplay(
-            deviceSize: CGSize(width: 2000, height: 1000),
-            videoSize: CGSize(width: 1000, height: 500),
-            contentArea: CGRect(x: 1000, y: 0, width: 1000, height: 1000)
-        )
-        let area = try #require(folded.visibleArea)
-        #expect(area == CGRect(x: 500, y: 0, width: 500, height: 500), "scaled from the device resolution to the video")
-        let point = try #require(folded.normalized(CGPoint(x: 0, y: 250), in: CGSize(width: 500, height: 500)))
-        #expect(point == CGPoint(x: 0.5, y: 0.5))
+        #expect(turned.openingSize == CGSize(width: 1200, height: 540))
+        #expect(turned.shownSize == CGSize(width: 1200, height: 540))
     }
 
     @Test func nothingIsLaidOutWithoutASize() {
         #expect(MirrorDisplay().screenRect(in: CGSize(width: 100, height: 100)) == nil)
-        #expect(MirrorDisplay(initialDeviceSize: CGSize(width: 10, height: 10)).screenRect(in: .zero) == nil)
+        #expect(MirrorDisplay(initialDeviceSize: CGSize(width: 10, height: 10)).screenRect(in: CGSize(width: 100, height: 100)) == nil)
+        #expect(MirrorDisplay(videoSize: CGSize(width: 10, height: 10)).screenRect(in: .zero) == nil)
     }
 
-    @Test func aSessionsValuesBecomeTheDisplay() {
+    /// The phone's content area (a folded phone's half) is not used: the whole video shows.
+    @Test func aSessionsValuesBecomeTheDisplay() throws {
         var view = mirrorSession("s")
         view.rotation = -90
         view.contentArea = MirrorRect(left: 0, top: 10, right: 1080, bottom: 1210)
@@ -97,10 +77,30 @@ struct MirrorDisplayTests {
         #expect(display.initialDeviceSize == CGSize(width: 1440, height: 3120))
         #expect(display.videoSize == CGSize(width: 720, height: 1600))
         #expect(display.rotation == -90)
-        #expect(display.contentArea == CGRect(x: 0, y: 10, width: 1080, height: 1200))
+        #expect(display.transform == MirrorDisplay.Transform(videoSize: CGSize(width: 720, height: 1600), rotation: -90))
+        let rect = try #require(display.screenRect(in: CGSize(width: 1600, height: 720)))
+        #expect(rect == CGRect(x: 0, y: 0, width: 1600, height: 720), "the whole turned video")
 
         view.deviceResolution = MirrorSize(width: 0, height: 0)
         #expect(MirrorDisplay(view).deviceSize == nil)
+    }
+
+    /// The first transform shows at once; a different one after a fade; the same one again at once.
+    /// A transform is compared with the last one received.
+    @Test func aNewTransformFades() {
+        var transitions = MirrorVideoTransitions()
+        let portrait = MirrorDisplay.Transform(videoSize: CGSize(width: 720, height: 1600), rotation: 0)
+        let turned = MirrorDisplay.Transform(videoSize: CGSize(width: 720, height: 1600), rotation: -90)
+        let resized = MirrorDisplay.Transform(videoSize: CGSize(width: 1600, height: 720), rotation: -90)
+
+        #expect(transitions.receive(nil) == .apply, "nothing to draw yet")
+        #expect(transitions.receive(portrait) == .apply, "the first")
+        #expect(transitions.receive(portrait) == .apply)
+        #expect(transitions.receive(turned) == .fade)
+        #expect(transitions.receive(resized) == .fade)
+        #expect(transitions.receive(nil) == .apply)
+        #expect(transitions.receive(resized) == .apply, "unchanged")
+        #expect(transitions.receive(portrait) == .fade)
     }
 }
 

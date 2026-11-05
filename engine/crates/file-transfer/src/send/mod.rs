@@ -1,6 +1,7 @@
 //! A send to the phone: the gate, one send per phone, the silent permission check, the context
 //! handle, the send channel, the file list, then the phone's requests for the files, their bytes and
-//! the phone's completion. The user may cancel it until it ends.
+//! the phone's completion. The user may cancel it until it ends. Also the send window's request for
+//! the files permission.
 
 use std::collections::HashMap;
 use std::io;
@@ -17,7 +18,10 @@ use tokio_util::sync::CancellationToken;
 use tracing::{debug, info, trace, warn};
 
 use super::wire::{self, Control, FileEntry, scenario};
-use super::{HandleError, Inner, PermissionTrigger, SendPhase, SendProgress, key, share_capable};
+use super::{
+    DcgClient, FileTransferError, HandleError, Inner, PermissionTrigger, SendPhase, SendProgress, Side, key,
+    share_capable,
+};
 use phonelink_core::edge::LockState;
 use phonelink_core::sync::MutexExt;
 use phonelink_core::types::{TraceContext, new_guid_lower};
@@ -28,6 +32,40 @@ use phonelink_nano::named_streams::{SendStreamsStatus, SingleStreamStatus, Strea
 use phonelink_proto::file_transfer::v1::FileShareFileStatus;
 use phonelink_proto::platform_sdk::v1::ProtoManifestEntry;
 use phonelink_transport::auth::PeerDevice;
+
+/// Takes the phone out of the send window's requests in flight when its request ends, however it ends.
+struct WindowRequest<'a> {
+    inner: &'a Inner,
+    phone: DcgClient,
+}
+
+impl Drop for WindowRequest<'_> {
+    fn drop(&mut self) {
+        self.inner.state.lock_or_recover().permission_requests.remove(&self.phone);
+    }
+}
+
+/// The failure a channel that did not open stands for. A `send` takes the phone's `NOT_SUPPORTED` as
+/// another transfer in progress; every other refusal is a rejection (or metered, when the phone's
+/// connection is).
+fn channel_failure(e: ChannelOpenError, metered: bool, send: bool) -> SendError {
+    match e.acceptance() {
+        Some(AcceptanceReason::NotSupported) if send => SendError::AnotherTransferInProgress,
+        Some(_) if metered => SendError::Metered,
+        Some(_) => SendError::ChannelRejected(e),
+        None => match e {
+            ChannelOpenError::Channel(PlatformChannelError::CreateRequestTimedOut)
+            | ChannelOpenError::Device(DeviceConnectionError::ChannelOpenTimeout) => SendError::ChannelTimedOut,
+            ChannelOpenError::Channel(
+                PlatformChannelError::Timeout
+                | PlatformChannelError::DuplicateChannel
+                | PlatformChannelError::Channel(_),
+            ) => SendError::ChannelFailed(e),
+            _ if metered => SendError::Metered,
+            _ => SendError::ChannelRejected(e),
+        },
+    }
+}
 
 /// Where the user started a send.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -272,7 +310,7 @@ impl Inner {
         result
     }
 
-    pub(super) fn cancel_send(&self, phone: &super::DcgClient) {
+    pub(super) fn cancel_send(&self, phone: &DcgClient) {
         if let Some(cancel) = self.state.lock_or_panic().sending.get(&key(phone)) {
             info!(%phone, "send cancelled by the user");
             cancel.cancel();
@@ -287,11 +325,11 @@ impl Inner {
         origin: SendOrigin,
         opened: &mut Option<Arc<TransferChannel>>,
     ) -> Result<u32, SendError> {
-        // One trace for the send: its permission requests, the channel and its manifests; Phone Link on
-        // Windows names nothing in it.
+        // One trace for the send's permission requests, its channel and its manifests, with an empty
+        // trace state, as Phone Link on Windows sends it.
         let trace = TraceContext::new_root(Vec::new());
-        self.check_send_permission(peer, &trace, cancel).await?;
-        let handle = self.ensure_handle(peer, &trace, Some(cancel.clone())).await?;
+        self.check_send_permission(peer, origin, &trace, cancel).await?;
+        let handle = self.ensure_handle(peer, Side::Send, &trace, Some(cancel.clone())).await?;
         let OpenedChannel { channel, control: mut messages } =
             self.open_channel(&handle, wire::SEND_SCENARIO, &trace, cancel, true).await?;
         *opened = Some(channel.clone());
@@ -344,30 +382,53 @@ impl Inner {
     async fn check_send_permission(
         &self,
         peer: &PeerDevice,
+        origin: SendOrigin,
         trace: &TraceContext,
         cancel: &CancellationToken,
     ) -> Result<(), SendError> {
-        match self
+        let result = self
             .permission(peer, true, PermissionTrigger::CheckFilePermission, Some(trace), Some(cancel.clone()))
-            .await
-        {
+            .await;
+        self.record_send_permission(&peer.client, &result);
+
+        match result {
             PermissionResult::Granted => Ok(()),
             _ if cancel.is_cancelled() => Err(SendError::Cancelled),
             PermissionResult::Required => {
-                self.notify_grant_permission(peer);
+                // The send window shows that the phone needs the permission itself.
+                if origin == SendOrigin::ShareMenu {
+                    self.notify_grant_permission(peer);
+                }
                 Err(SendError::PermissionRequired)
             }
             other => Err(SendError::Permission(format!("{other:?}"))),
         }
     }
 
+    /// The send window's request for the files permission: sent only while the phone needs it, and
+    /// one at a time; a grant records the permission as held.
+    pub(super) async fn window_permission(&self, peer: &PeerDevice) -> Result<PermissionResult, FileTransferError> {
+        let phone = &peer.client;
+        let data = self.data(phone)?;
+        if !peer.info.is_android() || data.files_permission_granted {
+            return Ok(PermissionResult::Granted);
+        }
+
+        if !self.state.lock_or_panic().permission_requests.insert(key(phone)) {
+            debug!(%phone, "files permission request already in flight; not sent again");
+            return Ok(PermissionResult::Required);
+        }
+        let _in_flight = WindowRequest { inner: self, phone: key(phone) };
+
+        let result = self.permission(peer, false, PermissionTrigger::UserGrantFilesPermission, None, None).await;
+        if result == PermissionResult::Granted {
+            self.set_files_permission(phone, true);
+        }
+        Ok(result)
+    }
+
     /// Sends the file list that starts the transfer.
-    fn send_file_list(
-        &self,
-        phone: &super::DcgClient,
-        channel: &TransferChannel,
-        files: &[OutFile],
-    ) -> Result<(), SendError> {
+    fn send_file_list(&self, phone: &DcgClient, channel: &TransferChannel, files: &[OutFile]) -> Result<(), SendError> {
         let start = Control {
             transfer_id: new_guid_lower(),
             scenario: scenario::TO_PHONE.to_owned(),
@@ -437,41 +498,22 @@ impl Inner {
         match opened {
             Err(_) => Err(SendError::ChannelTimedOut),
             Ok(Ok(channel)) => Ok(channel),
-            Ok(Err(e)) => Err(self.channel_error(e, &phone, send)),
-        }
-    }
-
-    fn channel_error(&self, e: ChannelOpenError, phone: &super::DcgClient, send: bool) -> SendError {
-        let metered = self.drm.metered_sync_disabled(phone);
-        match e.acceptance() {
-            Some(AcceptanceReason::NotSupported) if send => SendError::AnotherTransferInProgress,
-            Some(_) if metered => SendError::Metered,
-            Some(_) => SendError::ChannelRejected(e),
-            None => match e {
-                ChannelOpenError::Channel(PlatformChannelError::CreateRequestTimedOut)
-                | ChannelOpenError::Device(DeviceConnectionError::ChannelOpenTimeout) => SendError::ChannelTimedOut,
-                ChannelOpenError::Channel(
-                    PlatformChannelError::Timeout
-                    | PlatformChannelError::DuplicateChannel
-                    | PlatformChannelError::Channel(_),
-                ) => SendError::ChannelFailed(e),
-                _ if metered => SendError::Metered,
-                _ => SendError::ChannelRejected(e),
-            },
+            Ok(Err(e)) => Err(channel_failure(e, self.drm.metered_sync_disabled(&phone), send)),
         }
     }
 }
 
 /// The send's start, and the items it left out.
-fn log_send_started(phone: &super::DcgClient, file_count: usize, origin: SendOrigin, skipped: &[Skipped]) {
+fn log_send_started(phone: &DcgClient, file_count: usize, origin: SendOrigin, skipped: &[Skipped]) {
     info!(%phone, file_count, origin_kind = ?origin, "send started");
     if let Some(first) = skipped.first() {
         warn!(%phone, skipped_count = skipped.len(), error = %first, "items left out of the send; the other files are sent");
     }
 }
 
-/// The send's end when it sent or was cancelled; a failure is the app's to log, as it gets the result.
-fn log_send_end(phone: &super::DcgClient, result: &Result<u32, SendError>) {
+/// Logs the send's end when it sent or was cancelled. A failure is not logged here: the app gets it in
+/// the result and logs it.
+fn log_send_end(phone: &DcgClient, result: &Result<u32, SendError>) {
     match result {
         Ok(sent) => info!(%phone, outcome = "sent", sent_count = *sent, "send ended"),
         Err(SendError::Cancelled) => info!(%phone, outcome = "cancelled", "send ended"),
@@ -595,3 +637,6 @@ impl SendSession<'_> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests;

@@ -74,7 +74,8 @@ async fn both_contracts_act_through_the_engine() {
     w.send(&drm_request("rc-2", RemoteControlType::Sleep));
     assert!(eventually(Duration::from_secs(20), || w.response_to("rc-2").is_some()).await, "answered");
     assert_eq!(drm_answer(&w.response_to("rc-2").unwrap()).control_result, RemoteControlResult::Success as i32);
-    assert_eq!(power.actions(), [PowerAction::Sleep]);
+    // The sleep is answered first; the Mac acts once the answer's send has finished.
+    assert!(eventually(Duration::from_secs(20), || power.actions() == [PowerAction::Sleep]).await, "slept");
 
     // Phone Link's `remoteControl` content.
     let content = ValueSet::new()

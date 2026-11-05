@@ -78,7 +78,7 @@ struct ScreenMirroringModelTests {
         model.dragDrop("s1")
         #expect(api.calls.last == "drag drop")
 
-        model.dragOverLimitDropped()
+        model.dragOverLimitDropped("s1")
         #expect(windows.calls == ["failure Can't Send These Files"])
 
         // The phone app refusing the files is a notification naming an app window's app.
@@ -316,8 +316,27 @@ struct MirrorWindowStateTests {
         #expect(api.calls == ["enable audio s"])
     }
 
+    /// A window takes drops of Mac files only while connected, and not while it tells the user of a
+    /// drop over the limits.
+    @Test func dropsNeedAConnectedWindow() {
+        let api = FakeScreenMirroring()
+        api.sessionList = [mirrorSession("s", state: .loading), mirrorSession("t", state: .connected, videoReady: true)]
+        let model = model(api)
+
+        #expect(!model.acceptsDrops("s"), "not connected")
+        #expect(model.acceptsDrops("t"))
+        #expect(!model.acceptsDrops("u"), "no such window")
+
+        var during: [Bool] = []
+        model.presentFailure = { _ in during = [model.acceptsDrops("t"), model.acceptsDrops("s")] }
+        model.dragOverLimitDropped("t")
+        #expect(during == [false, false], "the window telling of it takes none meanwhile")
+        #expect(model.acceptsDrops("t"), "and takes them again once told")
+    }
+
     /// An app that stops letting its audio be captured is told in its open window for a moment;
-    /// allowing it again, or the window losing the focus, hides that.
+    /// allowing it again hides that, the window losing the focus does not. Told before the window was
+    /// first active, the moment starts again when it first is.
     @Test func aRefusedCaptureIsShownForAMoment() async throws {
         let api = FakeScreenMirroring()
         let hub = EngineEventHub()
@@ -339,14 +358,23 @@ struct MirrorWindowStateTests {
 
         capture(false)
         model.focusChanged("s", .notInFocus, capsLock: false)
-        #expect(!model.showsCaptureNotice("s"), "the window lost the focus")
+        #expect(model.showsCaptureNotice("s"), "the window losing the focus keeps it")
 
+        // First active 2 s in: the notice shows 3 s from then.
+        try await Task.sleep(for: .seconds(2))
+        model.windowActivated("s")
+        try await Task.sleep(for: .seconds(2))
+        #expect(model.showsCaptureNotice("s"), "started again at the first activation")
+        try await Task.sleep(for: .milliseconds(1300))
+        #expect(!model.showsCaptureNotice("s"), "after a moment")
+
+        // Later activations do not start it again.
         capture(true)
         capture(false)
-        #expect(model.showsCaptureNotice("s"))
-
-        try await Task.sleep(for: ScreenMirroringModel.captureNoticeLength + .milliseconds(300))
-        #expect(!model.showsCaptureNotice("s"), "after a moment")
+        try await Task.sleep(for: .seconds(2))
+        model.windowActivated("s")
+        try await Task.sleep(for: .milliseconds(1300))
+        #expect(!model.showsCaptureNotice("s"))
 
         // A window first read already refused tells it too: it started allowed.
         api.sessionList.append(mirrorSession("t", package: "com.app"))
@@ -355,18 +383,20 @@ struct MirrorWindowStateTests {
         #expect(model.showsCaptureNotice("t"))
     }
 
-    /// Back shows while the video does; Home and Recents only for gesture navigation; the layout
-    /// button only for an app window in one of the two layouts, switching to the other.
+    /// Back shows while the video does; the navigation bar for gesture navigation, whatever the
+    /// state; the layout button only for an app window in one of the two layouts, switching to the
+    /// other.
     @Test func toolbarButtonsFollowTheWindow() {
         let model = model(FakeScreenMirroring())
         var view = mirrorSession("s", package: "com.app", state: .connected, videoReady: true)
         #expect(model.showsBack(view))
-        #expect(!model.showsNavigation(view))
+        #expect(!model.showsNavigationBar(view))
         view.navigationButtons = true
-        #expect(model.showsNavigation(view))
+        #expect(model.showsNavigationBar(view))
 
         view.state = .loading
-        #expect(!model.showsBack(view) && !model.showsNavigation(view))
+        #expect(!model.showsBack(view))
+        #expect(model.showsNavigationBar(view))
 
         view.state = .connected
         #expect(!model.offersLayouts(view), "the layout is not known")
@@ -374,6 +404,34 @@ struct MirrorWindowStateTests {
         #expect(model.offersLayouts(view) && model.otherLayout(view) == 1)
         view.screenLayout = 1
         #expect(model.otherLayout(view) == 2)
+    }
+
+    /// The navigation bar's buttons reach the phone only while the window is connected, at once.
+    @Test func navigationBarButtonsNeedAConnectedWindow() {
+        let api = FakeScreenMirroring()
+        api.sessionList = [mirrorSession("s", state: .loading)]
+        let model = model(api)
+        model.reload()
+
+        model.navigationBarButton("s", .home)
+        #expect(api.calls.isEmpty)
+
+        api.sessionList = [mirrorSession("s", state: .connected, videoReady: true)]
+        model.reload()
+        model.navigationBarButton("s", .recents)
+        model.navigationBarButton("s", .back)
+        #expect(api.calls == ["nav recents", "nav back"], "Back without the title bar's wait")
+    }
+
+    /// A layout switch tells the window before the phone is asked.
+    @Test func aLayoutSwitchTellsTheWindowFirst() {
+        let api = FakeScreenMirroring()
+        let model = model(api)
+        var told: [String] = []
+        model.willSwitchLayout = { id, layout in told.append("\(id) \(layout) \(api.calls.count)") }
+        model.switchLayout("s", to: 2)
+        #expect(told == ["s 2 0"])
+        #expect(api.calls == ["switch s 2"])
     }
 
     /// Back in the first moments of a connection waits, and several presses then make one.
@@ -465,7 +523,7 @@ func mirrorSession(
         secureLocked: false, unlockFromMac: false, restartTaskTransfer: false, restartLayoutSwitch: false,
         launched: true, videoReady: videoReady, deviceResolution: MirrorSize(width: 1080, height: 2400),
         initialDeviceResolution: MirrorSize(width: 1440, height: 3120), orientation: 0, rotation: 0, videoSize: MirrorSize(width: 720, height: 1600), contentArea: nil,
-        navigationButtons: false, buttonOrder: nil, recentTaskId: 0, screenLayout: nil, moveToVirtualDisplay: nil,
+        navigationButtons: false, buttonOrder: nil, recentTaskId: 0, screenLayout: nil, lastScreenLayout: 0, moveToVirtualDisplay: nil,
         volume: 50, muted: false, silent: false, audioCaptureAllowed: true, audioButton: .none
     )
 }
@@ -554,7 +612,11 @@ private final class FakeScreenMirroring: ScreenMirroringApiProtocol, @unchecked 
     func writePhoneDragItem(sessionId: String, dataId: String, path: String) async throws {}
     func mouseWheel(sessionId: String, x: Double, y: Double, deltaX: Int32, deltaY: Int32) throws {}
     func navButton(sessionId: String, button: MirrorNavButton) throws {
-        if button == .back { try record("nav back") }
+        switch button {
+        case .back: try record("nav back")
+        case .home: try record("nav home")
+        case .recents: try record("nav recents")
+        }
     }
     func nearbyCodeRefreshed() throws {}
     func nearbyRequestPinCode() throws {}
@@ -571,7 +633,7 @@ private final class FakeScreenMirroring: ScreenMirroringApiProtocol, @unchecked 
         return resumable
     }
     func setVolume(packageName: String, volume: Int32, muted: Bool) throws {}
-    func switchLayout(sessionId: String, layout: Int32) throws {}
+    func switchLayout(sessionId: String, layout: Int32) throws { try record("switch \(sessionId) \(layout)") }
     func touch(sessionId: String, pointer: UInt64, phase: MirrorTouchPhase, x: Double, y: Double, pressure: Double, orientation: Double, width: Double, height: Double) throws {}
     func wake() throws {}
     func windowReady(sessionId: String) throws {}

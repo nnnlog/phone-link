@@ -10,6 +10,11 @@
 //! gate is off or validation does not succeed — "not connected" included. While a source exists, its
 //! partner's `/Context/Message/{partnerId}` route is registered ([`super::context_message`]); it is
 //! removed with the source when the partner connects anew or disconnects.
+//!
+//! A source without capabilities is validated again — its capability refresh — at most once while it
+//! exists: callers share the refresh and get its result back without a new request, except after a
+//! refresh that ended with the partner not connected or its sync disabled
+//! ([`refresh_is_retried`]), which the next caller sends again.
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, Weak};
@@ -29,7 +34,9 @@ use phonelink_core::seams::{
     PartnerSessionControl, PlatformMessenger, PlatformRequest, PlatformRequestStatus, PlatformResponse, SessionEvent,
 };
 use phonelink_core::sync::MutexExt;
-use phonelink_core::types::{DcgClient, HeaderMap, MessageType, SendOptions, TraceContext, TransportMessage, header};
+use phonelink_core::types::{
+    DcgClient, DcgSendStatus, HeaderMap, MessageType, SendOptions, TraceContext, TransportMessage, header,
+};
 use phonelink_proto::platform_sdk::v1::{
     ProtoPlatformCapabilities, ProtoPlatformSessionValidationRequest, ProtoPlatformSessionValidationResponse,
 };
@@ -148,15 +155,48 @@ pub fn map_response(config: &EngineConfig, response: PlatformResponse) -> Valida
     }
 }
 
+/// A validation callers share: one request, every caller gets its outcome.
+type SharedValidation = Shared<BoxFuture<'static, ValidationOutcome>>;
+
+/// Which validation a request is.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Validation {
+    /// The partner has no context source; a success creates one.
+    Initial,
+    /// The partner's context source has no capabilities; a success records them on it.
+    CapabilityRefresh,
+}
+
 #[derive(Default)]
 struct PartnerValidation {
     /// Bumped on every connect and disconnect: a validation started before it does not cache.
     generation: u64,
     /// The partner's context source, validated or not.
     cached: Option<ContextSource>,
-    inflight: Option<Shared<BoxFuture<'static, ValidationOutcome>>>,
+    /// The initial validation while it runs.
+    inflight: Option<SharedValidation>,
+    /// The capability refresh of `cached`, kept with its outcome until the source goes (unless
+    /// [`refresh_is_retried`]).
+    refresh: Option<SharedValidation>,
     /// The `/Context/Message/{partnerId}` route registered for `cached`.
     route: Option<String>,
+}
+
+/// Whether a capability refresh that ended with `outcome` is dropped rather than kept.
+///
+/// A dropped refresh is sent again by the next caller: the partner was not connected (the gate's
+/// `NotConnected`, or a send that failed `PartnerNotConnected`) or the phone rejected it
+/// `AllSyncDisabled` or `MeteredSyncDisabled`. Any other outcome is kept.
+pub fn refresh_is_retried(outcome: &ValidationOutcome) -> bool {
+    matches!(
+        outcome,
+        ValidationOutcome::NotConnected
+            | ValidationOutcome::Failed(
+                PlatformRequestStatus::RemoteAllSyncDisabled
+                    | PlatformRequestStatus::RemoteMeteredSyncDisabled
+                    | PlatformRequestStatus::RequestSendFailed(DcgSendStatus::PartnerNotConnected)
+            )
+    )
 }
 
 /// The `/SessionValidation` requester and the per-partner context-source cache.
@@ -202,8 +242,9 @@ impl SessionValidator {
     }
 
     /// Validates `partner`: gate off ⇒ `NotSupported` without sending; not connected ⇒ `NotConnected`;
-    /// cached with capabilities ⇒ the cached result; a validation in flight ⇒ its result; else one new
-    /// request.
+    /// cached with capabilities ⇒ the cached result; cached without ⇒ the source's capability refresh,
+    /// sent once and its outcome kept (unless [`refresh_is_retried`]); no source ⇒ the validation in
+    /// flight, else one new request.
     pub async fn validate(&self, partner: &DcgClient) -> ValidationOutcome {
         if !self.config.platform.session_validation_enabled {
             return ValidationOutcome::NotSupported;
@@ -215,30 +256,22 @@ impl SessionValidator {
         let shared = {
             let mut state = self.state.lock_or_panic();
             let entry = state.entry(partner.clone()).or_default();
-            if let Some(ContextSource { capabilities: Some(accepted), .. }) = &entry.cached {
-                return ValidationOutcome::Validated(accepted.clone());
-            }
+            let (slot, kind) = match &entry.cached {
+                Some(ContextSource { capabilities: Some(accepted), .. }) => {
+                    return ValidationOutcome::Validated(accepted.clone());
+                }
+                Some(_) => (&mut entry.refresh, Validation::CapabilityRefresh),
+                None => (&mut entry.inflight, Validation::Initial),
+            };
 
-            match &entry.inflight {
-                Some(inflight) => inflight.clone(),
+            match slot {
+                Some(shared) => shared.clone(),
                 None => {
                     let Some(me) = self.me.upgrade() else {
                         return ValidationOutcome::NotSupported;
                     };
-
-                    let generation = entry.generation;
-                    let target = partner.clone();
-                    let task = tokio::spawn(async move { me.run(target, generation).await });
-                    let joined: BoxFuture<'static, ValidationOutcome> = async move {
-                        task.await.unwrap_or_else(|e| {
-                            error!(error = %e, "/SessionValidation task failed");
-                            ValidationOutcome::NotSupported
-                        })
-                    }
-                    .boxed();
-
-                    let shared = joined.shared();
-                    entry.inflight = Some(shared.clone());
+                    let shared = spawn_validation(me, partner.clone(), entry.generation, kind);
+                    *slot = Some(shared.clone());
                     shared
                 }
             }
@@ -333,6 +366,7 @@ impl SessionValidator {
         entry.generation += 1;
         entry.cached = None;
         entry.inflight = None;
+        entry.refresh = None;
 
         if let Some(route) = entry.route.take() {
             self.router.unregister_route(&route);
@@ -340,11 +374,11 @@ impl SessionValidator {
         self.hub.dropped(partner);
     }
 
-    async fn run(self: Arc<Self>, partner: DcgClient, generation: u64) -> ValidationOutcome {
+    async fn run(self: Arc<Self>, partner: DcgClient, generation: u64, kind: Validation) -> ValidationOutcome {
         let request = PlatformRequest {
             target: partner.clone(),
             message: request_message(&self.config),
-            priority: priority::PROTOBUF_DEFAULT,
+            priority: priority::SESSION_CONTROL,
             options: SendOptions::NONE,
             timeout: self.config.platform.request_timeout,
             trace: TraceContext::new_root(Vec::new()),
@@ -357,7 +391,12 @@ impl SessionValidator {
             let mut state = self.state.lock_or_panic();
             let entry = state.entry(partner.clone()).or_default();
             if entry.generation == generation {
-                entry.inflight = None;
+                match kind {
+                    Validation::Initial => entry.inflight = None,
+                    Validation::CapabilityRefresh if refresh_is_retried(&outcome) => entry.refresh = None,
+                    Validation::CapabilityRefresh => {}
+                }
+
                 if let ValidationOutcome::Validated(accepted) = &outcome {
                     entry.cached =
                         Some(ContextSource { partner: partner.clone(), capabilities: Some(accepted.clone()) });
@@ -402,6 +441,24 @@ impl SessionValidator {
             }
         });
     }
+}
+
+/// Starts one `/SessionValidation` of `partner` as a task callers can share.
+fn spawn_validation(
+    validator: Arc<SessionValidator>,
+    partner: DcgClient,
+    generation: u64,
+    kind: Validation,
+) -> SharedValidation {
+    let task = tokio::spawn(async move { validator.run(partner, generation, kind).await });
+    let joined: BoxFuture<'static, ValidationOutcome> = async move {
+        task.await.unwrap_or_else(|e| {
+            error!(error = %e, "/SessionValidation task failed");
+            ValidationOutcome::NotSupported
+        })
+    }
+    .boxed();
+    joined.shared()
 }
 
 #[cfg(test)]

@@ -299,7 +299,7 @@ impl Inner {
         action_index: i32,
     ) -> Result<(), MirroringError> {
         let v = self.check_launchable()?;
-        if v.apps_feature_type(self.separate_window()) != AppsFeatureType::MultipleApps {
+        if v.apps_feature_type() != AppsFeatureType::MultipleApps {
             // Without app windows the phone-screen window opens it, the next time that window becomes
             // active (connected, or focused again while connected) — unless another launch of the
             // phone screen comes first. A window already active and focused waits for its next
@@ -365,7 +365,7 @@ impl Inner {
     /// channel drops it).
     pub(in super::super) async fn request_keyboard_settings(self: Arc<Self>) -> Result<(), MirroringError> {
         let v = self.check_launchable()?;
-        if v.apps_feature_type(self.separate_window()) == AppsFeatureType::MultipleApps {
+        if v.apps_feature_type() == AppsFeatureType::MultipleApps {
             let channel = self.permission_independent_channel().await?;
             let body = wire::launch_custom_intent(wire::KEYBOARD_SETTINGS_INTENT);
             return Ok(channel.send(scope::LAUNCH_CUSTOM_INTENT, &body)?);

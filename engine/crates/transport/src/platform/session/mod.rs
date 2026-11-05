@@ -274,7 +274,7 @@ impl Decided {
 }
 
 /// Failure statuses that survive a `Default` connect request: LTW disabled (from a wake), a local stop,
-/// or a phone disconnect with reason `0`–`4` (an unparsable reason is `0`).
+/// or a phone disconnect with reason `0`–`4` (an unparsable reason is `0`) or `7`, the PC locked.
 fn is_persistent(failure: Option<&ConnectionFailure>) -> bool {
     match failure {
         Some(ConnectionFailure::Wake(WakeStatus::LtwDisabled) | ConnectionFailure::LocalStop) => true,
@@ -401,17 +401,18 @@ impl PartnerSessions {
         tokio::spawn(relay_event_loop(Arc::downgrade(self), events));
     }
 
-    /// Local disconnect: stop the connection, send the `{}` `/PlatformDisconnectRequest` when connected,
-    /// then close the hub connection unless another partner of the environment uses it.
-    pub async fn disconnect(&self, partner: &DcgClient) {
-        self.disconnect_with(partner, false).await;
+    /// Local disconnect: stop the connection, send the `/PlatformDisconnectRequest` when connected, then
+    /// close the hub connection unless another partner of the environment uses it. `trace` is the
+    /// stop's trace context, which the request carries in its body.
+    pub async fn disconnect(&self, partner: &DcgClient, trace: TraceContext) {
+        self.disconnect_with(partner, false, trace).await;
     }
 
     /// [`PartnerSessions::disconnect`] with the caller's choice of `SkipPartnerAck` for the disconnect
     /// request. Bounded by `session_maximum_wait`; the request itself by 30 s. A session the
     /// phone ended stays ended (with its failure); any other connection becomes `Stopped`, and its last
     /// failure becomes a local stop only when it was connected.
-    pub async fn disconnect_with(&self, partner: &DcgClient, skip_partner_ack: bool) {
+    pub async fn disconnect_with(&self, partner: &DcgClient, skip_partner_ack: bool, trace: TraceContext) {
         let work = async {
             let connected = self.is_connected(partner);
             let announce = {
@@ -444,7 +445,7 @@ impl PartnerSessions {
 
             if connected {
                 let timeout = self.config.platform.send_disconnect_request_timeout;
-                let response = send_disconnect_request(&self.router, partner, skip_partner_ack, timeout).await;
+                let response = send_disconnect_request(&self.router, partner, skip_partner_ack, timeout, trace).await;
                 if response.status != PlatformRequestStatus::Success {
                     warn!(partner = %partner, status = ?response.status, error = response.status.cause(), "/PlatformDisconnectRequest not delivered; the local disconnect proceeds");
                 }

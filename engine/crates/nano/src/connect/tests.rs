@@ -50,6 +50,30 @@ async fn device_attempts_need_stun_and_turn() {
     assert_eq!((a[3].servers.stun_url.as_str(), a[3].servers.turn_url.as_str()), ("s1 s2", "t1 t2"));
 }
 
+#[tokio::test]
+async fn both_paths_pass_the_turn_url_unchanged() {
+    let relay = Fixed(RelayServers {
+        stun_urls: vec!["s1".into()],
+        turn_urls: vec![" t1".into()],
+        turn_username: "u".into(),
+        turn_credential: "c".into(),
+        turn_expire_time: None,
+    });
+
+    let device = device_attempts(&relay).await;
+    let turn = device.iter().find(|a| a.transport == device_transport::ICE_TURN).expect("an IceTurn attempt");
+    assert_eq!(turn.servers.turn_url, " t1");
+
+    let config = NanoConfig { mirroring_turn: true, ..Default::default() };
+    let phone = PhoneRemoting { flags: remoting::ICE_ENABLED, contract_version: 3.99 };
+    let mirroring = mirroring_attempts(&config, phone, &relay).await;
+    let turn = mirroring
+        .iter()
+        .find(|a| a.transport == mirroring_transport::ICE_STUN_AND_TURN)
+        .expect("an IceStunAndTurn attempt");
+    assert_eq!(turn.servers.turn_url, " t1");
+}
+
 #[test]
 fn context_offer_wrapper_keys() {
     let attempt = Attempt { first: true, ..Attempt::new(1, ConnectionType::IceSrtp, IceServers::default()) };

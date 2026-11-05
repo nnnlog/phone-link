@@ -1,20 +1,23 @@
 //! The Cross Device Experience Host contract: the `/remotecontrol` receiver on
 //! `/DeviceResourceManager`, its gates, and the `remote_control.v1` answer.
+//!
+//! A lock or a sleep is answered `SUCCESS` first, and the Mac acts only once that answer was sent;
+//! the other actions are answered after the Mac acted, with their outcome.
 
-use std::sync::Weak;
+use std::sync::{Arc, Weak};
 
 use async_trait::async_trait;
 use prost::Message;
 use tracing::{error, info, warn};
 
 use super::Inner;
-use super::edge::{PowerAction, perform};
+use super::edge::{PcPowerControl, PowerAction, perform};
 use phonelink_core::types::DcgClient;
 use phonelink_features::shared::peers::is_phone;
 use phonelink_proto::remote_control::v1::{
     RemoteControlRequestMessage, RemoteControlResponseMessage, RemoteControlResult, RemoteControlType,
 };
-use phonelink_transport::platform::{DrmReceiver, DrmReceiverError, DrmRequest};
+use phonelink_transport::platform::{AnswerDelivery, DrmAnswer, DrmFollowUpReceiver, DrmReceiverError, DrmRequest};
 
 /// The receiver path.
 pub const RECEIVER_PATH: &str = "/remotecontrol";
@@ -107,26 +110,34 @@ impl Inner {
         }
     }
 
-    /// The whole request: the answer bytes, after any action.
-    pub(crate) async fn handle_cdeh(&self, request: &DrmRequest) -> Vec<u8> {
+    /// The whole request: the answer, after any action — or, for a lock or a sleep, with the action
+    /// to take once the answer was sent.
+    pub(crate) async fn handle_cdeh(&self, request: &DrmRequest) -> DrmAnswer {
         let source = &request.source;
         let control_type = match self.control_type(request) {
             Ok(control_type) => control_type,
-            Err(answer) => return answer,
+            Err(answer) => return answer.into(),
         };
 
         info!(partner = %source, control_type, "remote control request received");
         if let Gate::Answer(result) = self.decide(source, control_type).await {
-            return answer(result, None);
+            return answer(result, None).into();
         }
 
         let action = match power_action(source, control_type) {
             Ok(action) => action,
-            Err(answer) => return answer,
+            Err(answer) => return answer.into(),
         };
 
+        if answered_first(action) {
+            let (power, source) = (self.power.clone(), source.clone());
+            return DrmAnswer::then(answer(RemoteControlResult::Success, None), move |delivery| {
+                act_once_answered(power, source, action, delivery)
+            });
+        }
+
         let done = perform(self.power.clone(), action).await;
-        answer(if done { RemoteControlResult::Success } else { RemoteControlResult::Failed }, None)
+        answer(if done { RemoteControlResult::Success } else { RemoteControlResult::Failed }, None).into()
     }
 
     /// The request's `control_type`, or the answer (logged) when the payload is empty, remote
@@ -174,6 +185,31 @@ impl Inner {
     }
 }
 
+/// A lock and a sleep are answered `SUCCESS` before the Mac acts, so the answer leaves before the
+/// session the lock stops or the sleep suspends; the other actions are answered with their outcome.
+pub fn answered_first(action: PowerAction) -> bool {
+    matches!(action, PowerAction::LockScreen | PowerAction::Sleep)
+}
+
+/// The follow-up of an action answered first: act once the answer was sent, and not at all when it
+/// was not. The action's outcome is only logged ([`perform`] logs a failure); the phone already has
+/// its answer.
+async fn act_once_answered(
+    power: Arc<dyn PcPowerControl>,
+    source: DcgClient,
+    action: PowerAction,
+    delivery: AnswerDelivery,
+) {
+    match delivery {
+        AnswerDelivery::Sent => {
+            perform(power, action).await;
+        }
+        AnswerDelivery::NotSent => {
+            warn!(partner = %source, ?action, "remote control answer not sent; the Mac does not act");
+        }
+    }
+}
+
 /// The power action `control_type` asks for, or the answer it gets without one.
 fn power_action(source: &DcgClient, control_type: i32) -> Result<PowerAction, Vec<u8>> {
     match RemoteControlType::try_from(control_type) {
@@ -192,9 +228,9 @@ fn power_action(source: &DcgClient, control_type: i32) -> Result<PowerAction, Ve
 }
 
 #[async_trait]
-impl DrmReceiver for RemoteControlReceiver {
+impl DrmFollowUpReceiver for RemoteControlReceiver {
     /// Answers every dispatched request, whatever its request type or query.
-    async fn receive(&self, request: DrmRequest) -> Result<Option<Vec<u8>>, DrmReceiverError> {
+    async fn receive(&self, request: DrmRequest) -> Result<Option<DrmAnswer>, DrmReceiverError> {
         let Some(inner) = self.0.upgrade() else {
             return Err(DrmReceiverError("remote control is gone".into()));
         };

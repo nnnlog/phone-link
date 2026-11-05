@@ -39,7 +39,7 @@ use std::sync::{Arc, Mutex, Weak};
 use std::time::UNIX_EPOCH;
 
 use tokio::runtime::Handle;
-use tokio::sync::{Notify, broadcast};
+use tokio::sync::{Notify, broadcast, watch};
 use tokio_util::sync::CancellationToken;
 use tracing::{info, warn};
 
@@ -171,11 +171,14 @@ struct PhoneLocks {
 struct PhoneRuntime {
     /// The context handle of the phone's latest tag-4 publication.
     handle: Option<ContextHandle>,
+    /// Counts the new handles stored: a handle request watches it for one arriving.
+    handle_arrivals: watch::Sender<u64>,
     /// A configuration was published since the phone last became unavailable.
     config_up_to_date: bool,
     /// The tree exists.
     running: bool,
     breaker: PhoneBreaker,
+    /// Link to Windows is turned off on the phone, as its last answers said.
     ltw_off: bool,
     sync: SyncState,
     /// Cancelled when the phone stops being available: the pending syncs end. A child of `run_cancel`.
@@ -193,6 +196,7 @@ impl PhoneRuntime {
         let run_cancel = CancellationToken::new();
         Self {
             handle: None,
+            handle_arrivals: watch::channel(0).0,
             config_up_to_date: false,
             running: false,
             breaker: PhoneBreaker::new(config.breaker_threshold, config.breaker_open),
@@ -570,6 +574,20 @@ impl Inner {
                 false
             }
         }
+    }
+
+    /// Records whether Link to Windows is off on the phone; a change is logged and shown.
+    fn set_ltw_off(&self, phone: &DcgClient, off: bool) {
+        if self.with_phone(phone, |p| std::mem::replace(&mut p.ltw_off, off)) == off {
+            return;
+        }
+
+        if off {
+            info!(%phone, "Link to Windows is turned off on the phone");
+        } else {
+            info!(%phone, "Link to Windows is on again on the phone");
+        }
+        self.status_changed(phone);
     }
 
     /// Records an attempt over a channel in `phone`'s breaker; the breaker opening or closing is

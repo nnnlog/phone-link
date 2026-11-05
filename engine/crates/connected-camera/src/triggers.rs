@@ -1,6 +1,6 @@
 //! What starts a sync or a stream, and listening for the phone's publications.
 
-use super::{ConnectedCameraEvent, Inner, Triggers, key};
+use super::{ConnectedCameraEvent, Inner, SyncTrigger, Triggers, key};
 use phonelink_core::seams::SessionEvent;
 use phonelink_core::sync::MutexExt;
 use phonelink_core::types::DcgClient;
@@ -39,7 +39,7 @@ impl Inner {
                             Ok(SessionEvent::Connected(phone)) => {
                                 if inner.with_phone(&phone, |p| p.listening) {
                                     if let Some(peer) = inner.env.peers.peer(&phone) {
-                                        inner.send_sync(&peer, false);
+                                        inner.send_sync(&peer, false, SyncTrigger::Background);
                                     }
                                 }
                             }
@@ -82,7 +82,7 @@ impl Inner {
         });
 
         self.register_if_needed(peer);
-        self.send_sync(peer, force_session_start);
+        self.send_sync(peer, force_session_start, SyncTrigger::Background);
         self.changed(phone);
     }
 

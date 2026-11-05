@@ -10,6 +10,7 @@ use fakes::*;
 use phonelink_engine::config::EngineConfig;
 use phonelink_engine::platform::session::WaitOutcome;
 use phonelink_engine::platform::{SessionPhase, route};
+use phonelink_engine::proto::platform_sdk::v1 as pb;
 use phonelink_engine::seams::{
     ConnectOutcome, ConnectRequest, ConnectionFailure, PartnerConnector, PartnerSessionControl, SessionEvent,
     StartPolicy,
@@ -33,6 +34,11 @@ fn connect(policy: StartPolicy) -> ConnectRequest {
 
 fn world() -> World {
     World::new(EngineConfig::default())
+}
+
+/// The trace context of a local stop.
+fn stop_trace() -> TraceContext {
+    TraceContext::new_root(vec![("ypScenarioId".into(), "StopSession".into()), ("ypTriggerId".into(), "Test".into())])
 }
 
 fn wake_after(secs: u64, end: WakeEnd) -> WakeScript {
@@ -227,6 +233,36 @@ async fn a_phone_ended_session_ignores_default_and_new_session_leaves_it() {
 }
 
 #[tokio::test(start_paused = true)]
+async fn a_session_the_phone_ended_because_the_pc_locked_is_persistent() {
+    let w = world();
+    w.connect_phone().await;
+    let mut events = w.sessions.subscribe();
+    let pc_lock = pb::PlatformDisconnectRequestReason::PcLock as i32;
+    end_session(&w, pc_lock);
+    settle().await;
+
+    // The phone stays on the hub, yet the session does not count as connected.
+    assert_eq!(w.sessions.phase(&phone_id()), SessionPhase::SessionEnded { reason: pc_lock });
+    assert!(!w.sessions.is_connected(&phone_id()));
+    assert_eq!(
+        events.recv().await.unwrap(),
+        SessionEvent::Disconnected {
+            partner: phone_id(),
+            failure: ConnectionFailure::SessionEnded { reason: pc_lock }
+        }
+    );
+
+    // A Default start keeps the failure and starts nothing.
+    assert_eq!(
+        w.sessions.connect(&phone_id(), connect(StartPolicy::Default)).await,
+        ConnectOutcome::Failed(ConnectionFailure::SessionEnded { reason: pc_lock })
+    );
+    assert_eq!(w.sessions.last_failure(&phone_id()), Some(ConnectionFailure::SessionEnded { reason: pc_lock }));
+    settle().await;
+    assert!(w.waker.calls().is_empty() && w.hub.announces().is_empty(), "nothing started");
+}
+
+#[tokio::test(start_paused = true)]
 async fn a_session_ended_for_a_reason_that_is_not_persistent_stays_usable_while_the_phone_is_on_the_hub() {
     for reason in [5, 6] {
         let w = world();
@@ -281,7 +317,7 @@ async fn a_local_disconnect_keeps_a_phone_ended_session_ended() {
     end_session(&w, 4);
     settle().await;
 
-    w.sessions.disconnect(&phone_id()).await;
+    w.sessions.disconnect(&phone_id(), stop_trace()).await;
     settle().await;
 
     assert_eq!(w.sessions.phase(&phone_id()), SessionPhase::SessionEnded { reason: 4 });
@@ -302,7 +338,7 @@ async fn a_local_disconnect_keeps_a_phone_ended_session_ended() {
     end_session(&w, 5);
     settle().await;
 
-    w.sessions.disconnect(&phone_id()).await;
+    w.sessions.disconnect(&phone_id(), stop_trace()).await;
     settle().await;
 
     assert_eq!(w.pair.pc_link.sent_on(route::PLATFORM_DISCONNECT_REQUEST).len(), 1);
@@ -318,7 +354,7 @@ async fn a_local_stop_records_a_local_stop_only_from_connected() {
         ConnectOutcome::Pending { .. }
     ));
 
-    w.sessions.disconnect(&phone_id()).await;
+    w.sessions.disconnect(&phone_id(), stop_trace()).await;
     assert_eq!(w.sessions.phase(&phone_id()), SessionPhase::Stopped);
     assert_eq!(w.sessions.last_failure(&phone_id()), Some(ConnectionFailure::Wake(WakeStatus::DeviceUnreachable)));
 }
@@ -874,7 +910,7 @@ async fn the_feedback_window_reports_the_current_state_and_attempts_go_on() {
 async fn persistent_failures_survive_a_default_request_only() {
     let w = world();
     w.connect_phone().await;
-    w.sessions.disconnect(&phone_id()).await;
+    w.sessions.disconnect(&phone_id(), stop_trace()).await;
 
     let quick = |policy| ConnectRequest {
         policy,
@@ -1065,13 +1101,22 @@ async fn local_disconnect_sends_the_request_then_closes() {
     let w = world();
     w.connect_phone().await;
     let mut events = w.sessions.subscribe();
-    w.sessions.disconnect(&phone_id()).await;
+    w.sessions.disconnect(&phone_id(), stop_trace()).await;
     settle().await;
 
     assert_eq!(w.phone_disconnect.count(), 1);
     let sent = w.pair.pc_link.sent_on(route::PLATFORM_DISCONNECT_REQUEST).pop().unwrap();
-    assert_eq!(sent.message.payload, b"{}");
-    assert_eq!(sent.message.headers.get("ms-content-type"), Some("text/json"));
+    let body = pb::PlatformDisconnectRequest::decode(sent.message.payload.as_slice()).expect("a protobuf body");
+    assert_eq!(body.reason, pb::PlatformDisconnectRequestReason::Unspecified as i32, "the PC sends no reason");
+    let trace = body.trace_context.expect("the stop's trace context");
+    assert_eq!(
+        trace.trace_state,
+        [("ypScenarioId".to_string(), "StopSession".to_string()), ("ypTriggerId".to_string(), "Test".to_string())]
+            .into_iter()
+            .collect::<std::collections::HashMap<_, _>>()
+    );
+    assert_eq!(trace.trace_id.len(), 32);
+    assert_eq!(sent.message.headers.get("ms-content-type"), Some("application/x-binary"));
     assert_eq!(sent.priority, 0);
     assert_eq!(sent.options, SendOptions { one_way: true, skip_wake_if_not_connected: true, ..SendOptions::NONE });
     assert_eq!(w.hub.closes(), vec![Environment::Prod]);
@@ -1094,14 +1139,14 @@ async fn local_disconnect_variants() {
     // SkipPartnerAck when asked.
     let w = world();
     w.connect_phone().await;
-    w.sessions.disconnect_with(&phone_id(), true).await;
+    w.sessions.disconnect_with(&phone_id(), true, stop_trace()).await;
 
     let sent = w.pair.pc_link.sent_on(route::PLATFORM_DISCONNECT_REQUEST).pop().unwrap();
     assert!(sent.options.skip_partner_ack && sent.options.one_way && sent.options.skip_wake_if_not_connected);
 
     // Not connected: no request, still closes.
     let w = world();
-    w.sessions.disconnect(&phone_id()).await;
+    w.sessions.disconnect(&phone_id(), stop_trace()).await;
     assert!(w.pair.pc_link.sent_on(route::PLATFORM_DISCONNECT_REQUEST).is_empty());
     assert_eq!(w.hub.closes(), vec![Environment::Prod]);
 
@@ -1110,7 +1155,7 @@ async fn local_disconnect_variants() {
     w.connect_phone().await;
     w.pair.pc_link.script(Behavior::Hang);
     let start = tokio::time::Instant::now();
-    w.sessions.disconnect(&phone_id()).await;
+    w.sessions.disconnect(&phone_id(), stop_trace()).await;
     assert_eq!(start.elapsed(), Duration::from_secs(30));
     assert_eq!(w.hub.closes(), vec![Environment::Prod]);
 }
@@ -1474,7 +1519,7 @@ async fn wait_connected_fails_when_the_connection_reaches_a_state_it_cannot_leav
     let sessions = w.sessions.clone();
     let wait = tokio::spawn(async move { sessions.wait_connected(&phone_id(), Duration::from_secs(60)).await });
     tokio::time::sleep(Duration::from_secs(10)).await;
-    w.sessions.disconnect(&phone_id()).await;
+    w.sessions.disconnect(&phone_id(), stop_trace()).await;
     assert_eq!(wait.await.unwrap(), WaitOutcome::Failed(ConnectionFailure::LocalStop));
 }
 

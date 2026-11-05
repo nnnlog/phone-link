@@ -89,7 +89,7 @@ async fn the_list_toggle_and_its_undo_send_trigger_26_and_write_the_local_flag()
             "ignoreResponse": {"Bool": false},
             "transportType": {"Int32": 0},
             "displayName": {"String": "test-mac"},
-            "appVersion": {"String": "1.26082.121.0"},
+            "appVersion": {"String": "1.26092.119.0"},
             "installationId": {"String": w.h.app.installation_id()},
             "contractVersion": {"Double": 3.99}
         })

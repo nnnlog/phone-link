@@ -27,6 +27,11 @@ pub mod key {
     pub const INLINE_REPLY_MESSAGE: &str = "inlineReplyMessage";
     pub const NOTIFICATION_KEYS_COUNT: &str = "notificationKeysCount";
     pub const POST_TIMES: &str = "postTimes";
+    /// Sent `true` with the connect's reconcile keys: the phone may answer whether it finished
+    /// reconciling them before replying.
+    pub const SUPPORTS_NOTIFICATION_SYNC_COMPLETION: &str = "supportsNotificationSyncCompletion";
+    /// Connect response: `true` when the phone finished reconciling the connect's keys.
+    pub const NOTIFICATION_SYNC_COMPLETED: &str = "notificationSyncCompleted";
     // `/settings` requests and responses (per-app notification settings).
     pub const TRIGGER_TYPE: &str = "triggerType";
     pub const SETTING_KEY: &str = "settingKey";

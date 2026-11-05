@@ -137,16 +137,14 @@ impl Inner {
             self.record_channel_attempt(phone, &recorded);
 
             match over_channel {
-                Ok(reply) => return Ok(reply),
+                Ok(reply) => {
+                    self.set_ltw_off(phone, false);
+                    return Ok(reply);
+                }
                 Err(TransferError::UserCancelled | TransferError::Status(Status::Cancelled)) => {
                     return Err(RequestError::Cancelled);
                 }
-                Err(TransferError::LtwOff) => {
-                    if !self.with_phone(phone, |p| std::mem::replace(&mut p.ltw_off, true)) {
-                        info!(%phone, "Link to Windows is turned off on the phone; requests go over the relay");
-                    }
-                    self.status_changed(phone);
-                }
+                Err(TransferError::LtwOff) => self.set_ltw_off(phone, true),
                 Err(e) => debug!(%phone, error = %e, "metadata request over the channel failed; over the relay"),
             }
         }
@@ -155,8 +153,13 @@ impl Inner {
             return Err(RequestError::Cancelled);
         }
 
-        self.request_over_drm(peer, request, force_session_start, sync.for_request(sync.trace_state.clone()), cancel)
-            .await
+        let reply = self
+            .request_over_drm(peer, request, force_session_start, sync.for_request(sync.trace_state.clone()), cancel)
+            .await;
+        if reply.is_ok() {
+            self.set_ltw_off(phone, false);
+        }
+        reply
     }
 
     async fn request_over_drm(

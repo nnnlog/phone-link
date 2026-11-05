@@ -1,6 +1,6 @@
 //! The phone's context handle: obtaining it and the channels over it.
 
-use super::{HandleFailure, HandleSlot, Inner, RetrieveError, wire};
+use super::{HandleFailure, HandleSlot, Inner, PhoneRuntime, RetrieveError, SyncTrigger, wire};
 use phonelink_core::seams::PlatformRequestStatus;
 use phonelink_core::types::DcgClient;
 use phonelink_proto::platform_sdk::v1::{ProtoDeviceResourceRequestType, ProtoDeviceResourceType};
@@ -10,22 +10,20 @@ use tokio_util::sync::CancellationToken;
 use tracing::{debug, info, warn};
 
 impl Inner {
-    /// The camera metadata sync: the phone publishes tag 2. At most one per phone in flight.
-    pub(super) fn send_sync(&self, peer: &PeerDevice, force_session_start: bool) {
+    /// The camera metadata sync: the phone publishes tag 2.
+    ///
+    /// At most one sync per phone is in flight. A new sync while one is in flight does nothing, unless
+    /// it is user-initiated and the one in flight is not, or it is a resend; then it replaces the one in
+    /// flight, whose reply is ignored.
+    pub(super) fn send_sync(&self, peer: &PeerDevice, force_session_start: bool, trigger: SyncTrigger) {
         let phone = &peer.client;
-        let generation = self.with_phone(phone, |p| {
-            if p.sync_in_flight {
-                return None;
-            }
-            p.sync_in_flight = true;
-            p.handle_gen += 1;
-            p.handle = HandleSlot::Pending;
-            Some(p.handle_gen)
-        });
-        let Some(generation) = generation else {
+        let Some((generation, replaced)) = self.with_phone(phone, |p| p.start_sync(trigger)) else {
             debug!(%phone, "camera metadata sync already in flight");
             return;
         };
+        if replaced {
+            debug!(%phone, ?trigger, "camera metadata sync replaces the one in flight");
+        }
 
         self.handle_changed.send_modify(|v| *v += 1);
         let (weak, peer) = (self.weak.clone(), peer.clone());
@@ -56,17 +54,27 @@ impl Inner {
                 | DrmSendOutcome::Canceled => Some(HandleFailure::ExpectedNoHandle),
                 _ => Some(HandleFailure::RequestFailed),
             };
+            let Some(failure) = failure else {
+                debug!(phone = %peer.client, "camera metadata sync answered");
+                return;
+            };
 
-            match failure {
-                None => debug!(phone = %peer.client, "camera metadata sync answered"),
-                Some(HandleFailure::RequestFailed) => {
-                    warn!(phone = %peer.client, ?outcome, "camera metadata sync failed; no context handle");
-                }
-                Some(_) => info!(phone = %peer.client, ?outcome, "camera metadata sync left no context handle"),
+            // A later sync or an invalidation replaced this sync's result, or tag 2 completed it: its
+            // reply changes nothing.
+            if !inner.complete_handle(&peer.client, generation, Err(failure)) {
+                debug!(
+                    phone = %peer.client,
+                    ?outcome,
+                    "camera metadata sync reply ignored; its result was replaced or completed"
+                );
+                return;
             }
 
-            if let Some(failure) = failure {
-                inner.complete_handle(&peer.client, generation, Err(failure));
+            match failure {
+                HandleFailure::RequestFailed => {
+                    warn!(phone = %peer.client, ?outcome, "camera metadata sync failed; no context handle");
+                }
+                _ => info!(phone = %peer.client, ?outcome, "camera metadata sync left no context handle"),
             }
         });
     }
@@ -78,15 +86,7 @@ impl Inner {
         generation: u64,
         result: Result<ContextHandle, HandleFailure>,
     ) -> bool {
-        let done = self.with_phone(phone, |p| {
-            if p.handle_gen != generation || !matches!(p.handle, HandleSlot::Pending) {
-                return false;
-            }
-            p.handle = HandleSlot::Done(result);
-            p.sync_in_flight = false;
-            true
-        });
-
+        let done = self.with_phone(phone, |p| p.complete_sync(generation, result));
         if done {
             self.handle_changed.send_modify(|v| *v += 1);
         }
@@ -129,7 +129,7 @@ impl Inner {
         match usable {
             Some(Some(h)) => return Ok(h),
             Some(None) => {}
-            None => self.send_sync(peer, true),
+            None => self.send_sync(peer, true, SyncTrigger::StreamOpening),
         }
 
         let generation = self.with_phone(phone, |p| p.handle_gen);
@@ -153,13 +153,13 @@ impl Inner {
             r = wait => r,
             _ = cancel.cancelled() => return Err(RetrieveError::Cancelled),
             _ = tokio::time::sleep(self.config.handle_timeout) => {
-                self.send_sync(peer, true);
+                self.send_sync(peer, true, SyncTrigger::Resend);
                 return Err(RetrieveError::TimedOut);
             }
         };
 
         if let Err(RetrieveError::Failed(_)) = result {
-            self.send_sync(peer, true);
+            self.send_sync(peer, true, SyncTrigger::Resend);
         }
         result
     }
@@ -243,5 +243,36 @@ impl Inner {
                 }
             }
         }
+    }
+}
+
+impl PhoneRuntime {
+    /// Starts a sync sent for `trigger`, unless the sync in flight keeps it out: the new pending
+    /// result's generation, and whether the sync replaced one in flight.
+    pub(super) fn start_sync(&mut self, trigger: SyncTrigger) -> Option<(u64, bool)> {
+        let user_initiated = trigger.is_user_initiated();
+        let replaces =
+            self.sync_in_flight && (trigger == SyncTrigger::Resend || (user_initiated && !self.sync_user_initiated));
+        if self.sync_in_flight && !replaces {
+            return None;
+        }
+
+        self.sync_in_flight = true;
+        self.sync_user_initiated = user_initiated;
+        self.handle_gen += 1;
+        self.handle = HandleSlot::Pending;
+        Some((self.handle_gen, replaces))
+    }
+
+    /// Completes the pending result of sync `generation`, ending the sync in flight; `false` when that
+    /// result was already completed or was replaced.
+    pub(super) fn complete_sync(&mut self, generation: u64, result: Result<ContextHandle, HandleFailure>) -> bool {
+        if self.handle_gen != generation || !matches!(self.handle, HandleSlot::Pending) {
+            return false;
+        }
+
+        self.handle = HandleSlot::Done(result);
+        self.sync_in_flight = false;
+        true
     }
 }

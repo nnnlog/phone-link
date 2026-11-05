@@ -235,8 +235,7 @@ impl PendingWorkflow<'_> {
     /// and opens it with handlers for `scopes`; the phone's other channels before it are kept.
     ///
     /// The connection or the workflow ending first, or the channel failing to open, fails the start
-    /// with 268, so the window shows its error at once. (Phone Link on Windows shows it only about
-    /// 100 s later.)
+    /// with 268, as on Windows; a channel that fails to open also stops the workflow (`/stopWorkflow`).
     pub async fn open(self, scopes: &[&str]) -> Result<StartedWorkflow, WorkflowStartError> {
         let PendingWorkflow { links, name, id, mut rx, local } = self;
         let mut early = Vec::new();

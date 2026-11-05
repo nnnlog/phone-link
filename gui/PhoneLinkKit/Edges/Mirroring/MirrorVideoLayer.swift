@@ -8,8 +8,9 @@ public protocol MirrorVideoSink: AnyObject, Sendable {
     func present(_ picture: CVPixelBuffer) -> Bool
 }
 
-/// A window's video surface: a sample-buffer display layer that shows each decoded picture at once.
-/// `present` is called on the decoding thread; the layer's renderer takes buffers from any thread.
+/// A window's video surface: a sample-buffer display layer that shows each decoded picture at once,
+/// scaled the same way both ways to fit the layer and centred in it. `present` is called on the
+/// decoding thread; the layer's renderer takes buffers from any thread.
 public final class MirrorVideoLayer: MirrorVideoSink, @unchecked Sendable {
     public let layer: AVSampleBufferDisplayLayer
     private let renderer: AVSampleBufferVideoRenderer
@@ -17,7 +18,7 @@ public final class MirrorVideoLayer: MirrorVideoSink, @unchecked Sendable {
     @MainActor
     public init() {
         layer = AVSampleBufferDisplayLayer()
-        layer.videoGravity = .resize
+        layer.videoGravity = .resizeAspect
         layer.backgroundColor = CGColor(gray: 0, alpha: 1)
         renderer = layer.sampleBufferRenderer
     }

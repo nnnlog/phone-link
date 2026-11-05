@@ -121,6 +121,7 @@ fn session_view(s: sm::SessionView) -> MirrorSessionView {
         button_order: s.button_order,
         recent_task_id: s.recent_task_id,
         screen_layout: s.screen_layout,
+        last_screen_layout: s.last_screen_layout,
         move_to_virtual_display: s.move_to_virtual_display,
         volume: s.audio.volume,
         muted: s.audio.muted,

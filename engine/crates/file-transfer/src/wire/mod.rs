@@ -8,8 +8,8 @@ use prost::Message;
 
 use phonelink_proto::file_transfer::v1::{
     FileShareContentMessage, FileShareFileStatus, FileShareMessage, FileTransferRequestMessage,
-    FileTransferRequestType, FileTransferResponseMessage, NanoDelegateInitRequest, NanoDelegateInitResponse,
-    NanoDelegateInitResponseStatus,
+    FileTransferRequestType, FileTransferResponseMessage, FileTransferResponseStatus, NanoDelegateInitRequest,
+    NanoDelegateInitResponse, NanoDelegateInitResponseStatus,
 };
 use phonelink_proto::permissions::v1::PermissionsResponseMessage;
 
@@ -73,18 +73,16 @@ pub fn probe_request() -> Vec<u8> {
     FileTransferRequestMessage { request_type: FileTransferRequestType::Permission as i32 }.encode_to_vec()
 }
 
-/// The `FileTransferResponseMessage` status of a probe reply, as its enum name.
-pub fn probe_status(payload: &[u8]) -> Result<String, prost::DecodeError> {
+/// The `FileTransferResponseMessage` status of a probe reply: a known status, or the value the phone
+/// sent.
+pub fn probe_status(payload: &[u8]) -> Result<Result<FileTransferResponseStatus, i32>, prost::DecodeError> {
     let reply = FileTransferResponseMessage::decode(payload)?;
-    Ok(match phonelink_proto::file_transfer::v1::FileTransferResponseStatus::try_from(reply.status) {
-        Ok(s) => s.as_str_name().to_owned(),
-        Err(_) => format!("unknown status {}", reply.status),
-    })
+    Ok(FileTransferResponseStatus::try_from(reply.status).map_err(|_| reply.status))
 }
 
-/// The publication's `PermissionsResponseMessage` parses (its content is not used).
-pub fn parse_publication(additional: &[u8]) -> Result<(), prost::DecodeError> {
-    PermissionsResponseMessage::decode(additional).map(|_| ())
+/// The publication's `PermissionsResponseMessage`.
+pub fn parse_publication(additional: &[u8]) -> Result<PermissionsResponseMessage, prost::DecodeError> {
+    PermissionsResponseMessage::decode(additional)
 }
 
 /// How the PC answers a receive request.

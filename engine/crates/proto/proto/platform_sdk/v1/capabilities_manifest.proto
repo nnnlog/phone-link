@@ -1,9 +1,0 @@
-syntax = "proto3";
-package platform_sdk.v1;
-
-message CapabilitiesManifestMessage {
-  int32 version = 1;
-  int32 min_supported_version = 2;
-  repeated string capabilities = 3;
-}
-

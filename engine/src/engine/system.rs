@@ -1,6 +1,6 @@
 //! The Mac's lock, unlock, sleep and wake, the account's removal, and notification responses.
 
-use super::{CdehTrigger, CoreEvent, EngineCore, SystemEvent};
+use super::{CdehStop, CdehTrigger, CoreEvent, EngineCore, SystemEvent};
 use crate::app::ConnectTrigger;
 use crate::features::NotificationResponse;
 use std::collections::HashMap;
@@ -35,7 +35,7 @@ impl EngineCore {
                 }
 
                 if event == SystemEvent::ScreenLocked && started {
-                    self.stop_cdeh_session();
+                    self.stop_cdeh_session(CdehStop::SessionLocked);
                 }
             }
             SystemEvent::ScreenUnlocked | SystemEvent::DidWake => {

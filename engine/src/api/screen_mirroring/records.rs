@@ -297,6 +297,9 @@ pub struct MirrorSessionView {
     pub button_order: Option<String>,
     pub recent_task_id: i64,
     pub screen_layout: Option<i32>,
+    /// The app's last screen layout on this Mac (`0` for the phone screen): the layout whose kept
+    /// frame a new window of the app opens in.
+    pub last_screen_layout: i32,
     /// The phone asks to move the app here: `true` for a task transfer.
     pub move_to_virtual_display: Option<bool>,
     pub volume: i32,

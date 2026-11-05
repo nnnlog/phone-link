@@ -210,18 +210,7 @@ async fn own_entry_is_repaired_with_set_device_info() {
     assert_eq!(service.sync_trust(FetchMode::ForceCloud).await.unwrap().len(), 1);
     assert!(h.dcg.with(|s| s.enrolled.contains_key(&p.own.id)));
 
-    // A stale entry whose repair finds the identity invalid stops the sync.
-    let h2 = Harness::new().await;
-    let (s2, p2, phone2, _) = h2.with_phone().await;
-    let stale = jwt::b64(&KeyPair::generate("trust_z", h2.clock.now()).unwrap().cert.der);
-    h2.dcg.own_entry_mut(&p2.own.id, |e| {
-        e.as_mut().unwrap().certificates.as_mut().unwrap().self_signed = Some(vec![stale])
-    });
-
-    h2.advance(Duration::from_secs(25 * 3600));
-    h2.dcg.script("SignIn", 400, &auth_world::fake_dcg::error_body(Some(2), "InvalidCertificate"));
-    assert_matches!(s2.sync_trust(FetchMode::ForceCloud).await.unwrap_err(), AuthError::InvalidIdentity);
-    assert!(rel(&s2.trust_relationships(), &phone2.id).is_none(), "no relationship bound to the cleared identity");
+    // A stale entry whose repair finds the identity rejected: `auth::identity_rules`.
 
     // A missing own entry whose repair fails: "enrollment expired" → deprovisioned, Unauthorized.
     h.dcg.own_entry_mut(&p.own.id, |e| *e = None);

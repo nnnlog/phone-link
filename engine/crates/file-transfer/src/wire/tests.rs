@@ -41,3 +41,13 @@ fn candidates() {
     assert_eq!(candidate(".bashrc", 1), " (1).bashrc");
     assert_eq!(candidate("notes", 2), "notes (2)");
 }
+
+#[test]
+fn probe_replies_are_read_as_their_status() {
+    let reply = |status: i32| FileTransferResponseMessage { status }.encode_to_vec();
+
+    assert_eq!(probe_status(&reply(1)), Ok(Ok(FileTransferResponseStatus::Ok)));
+    assert_eq!(probe_status(&reply(6)), Ok(Ok(FileTransferResponseStatus::MissingPermission)));
+    assert_eq!(probe_status(&reply(42)), Ok(Err(42)));
+    assert!(probe_status(&[0xff]).is_err(), "a reply that does not parse");
+}

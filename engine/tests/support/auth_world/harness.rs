@@ -121,6 +121,14 @@ impl Harness {
         }
     }
 
+    /// [`Harness::new`] with Phone Link's `PL` identity; the default identity is the Cross Device
+    /// Experience Host's `WEA`; both keep the same identity rules.
+    pub async fn phone_link() -> Self {
+        let mut h = Self::new().await;
+        h.config.identity.profile = PROFILE_PL;
+        h
+    }
+
     /// A fresh broker over the shared store (a new "process": in-memory token cache empty, the
     /// device credential, ticket and session reloaded from the store).
     fn broker(&self) -> Arc<LiveBroker> {

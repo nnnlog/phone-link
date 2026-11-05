@@ -1,4 +1,5 @@
 mod crypto;
+mod identity_rules;
 mod msa;
 mod pairing;
 mod provisioning;

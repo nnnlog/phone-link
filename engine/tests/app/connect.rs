@@ -90,11 +90,11 @@ async fn connect_message_matches_the_derived_example() {
         }},
         "attributes": {"Object": {
             "flightRing": {"String": "Public"},
-            "appVersion": {"String": "1.26082.121.0"},
+            "appVersion": {"String": "1.26092.119.0"},
             "displayName": {"String": "test-mac"}
         }},
         "displayName": {"String": "test-mac"},
-        "appVersion": {"String": "1.26082.121.0"},
+        "appVersion": {"String": "1.26092.119.0"},
         "installationId": {"String": installation_id},
         "contractVersion": {"Double": 3.99}
     });
@@ -626,7 +626,7 @@ async fn triggers_map_to_their_kinds() {
     assert_eq!(ConnectTrigger::EngineStart.kind(), Some(ConnectKind::Background));
     assert_eq!(ConnectTrigger::BecameConnected.kind(), Some(ConnectKind::Background));
     assert_eq!(ConnectTrigger::UnlockOrWake.kind(), Some(ConnectKind::Background));
-    assert_eq!(ConnectTrigger::StatusChanged.kind(), Some(ConnectKind::Background));
+    assert_eq!(ConnectTrigger::SyncOverMeteredEnabled.kind(), Some(ConnectKind::Background));
     assert_eq!(ConnectTrigger::AppActivated.kind(), Some(ConnectKind::Immediate));
     assert_eq!(ConnectTrigger::Refresh.kind(), Some(ConnectKind::Immediate));
     assert_eq!(ConnectTrigger::LockOrSleep.kind(), None);
@@ -747,43 +747,38 @@ async fn background_connect_needs_async_trust_and_no_phone_sends_nothing() {
 }
 
 #[tokio::test(start_paused = true)]
-async fn status_change_to_wifi_on_triggers_a_background_connect() {
+async fn only_sync_over_mobile_data_turning_on_from_off_triggers_a_background_connect() {
     let h = started().await;
     let connects = || h.messenger.requests_on("/connect/v1").len();
     let heartbeat = |extra: ValueSet| phone_content("heartbeat", extra);
-
-    // Wi-Fi recorded off: a change, but neither is on.
-    h.app.handle_inbound(phone(), trace(), heartbeat(ValueSet::new().with("wifiState", false))).await;
-    tokio::time::sleep(Duration::from_secs(1)).await;
-    assert_eq!(connects(), 1, "only the engine-start connect");
-
-    // Wi-Fi on: changed and on → background connect.
-    h.app.handle_inbound(phone(), trace(), heartbeat(ValueSet::new().with("wifiState", true))).await;
-    h.messenger.wait_requests(2).await;
-    assert_eq!(connects(), 2);
-    assert_eq!(h.messenger.requests()[1].trace.trace_state[0].1, "DeviceStatusChanged");
-
-    // Unchanged: nothing more.
-    h.app.handle_inbound(phone(), trace(), heartbeat(ValueSet::new().with("wifiState", true))).await;
-    tokio::time::sleep(Duration::from_secs(1)).await;
-    assert_eq!(connects(), 2);
-
-    // phoneCommand type 0 (and the device-status keys of every phone-content request) write
-    // sync-over-mobile-data: unknown → on is a change → connect.
+    // phoneCommand type 0 (like the device-status keys of every phone-content request) writes
+    // sync-over-mobile-data.
     let cmd = |enabled: bool| {
         phone_content(
             "phoneCommand",
             ValueSet::new().with("phoneCommandType", 0i32).with("syncOverMeteredConnection", enabled),
         )
     };
-    h.app.handle_inbound(phone(), trace(), cmd(true)).await;
-    h.messenger.wait_requests(3).await;
-    assert_eq!(connects(), 3);
 
-    // A failed-request style reset through the feature API also counts as a write.
+    // Wi-Fi off → on, unknown → on, on → off, and the Wi-Fi reset after a failed request: none
+    // is the off → on of the setting.
+    h.app.handle_inbound(phone(), trace(), heartbeat(ValueSet::new().with("wifiState", false))).await;
+    h.app.handle_inbound(phone(), trace(), heartbeat(ValueSet::new().with("wifiState", true))).await;
+    h.app.handle_inbound(phone(), trace(), cmd(true)).await;
+    h.app.handle_inbound(phone(), trace(), cmd(false)).await;
     h.app.update_phone_record(|r| r.status_keys.wifi_state = None);
-    h.messenger.wait_requests(4).await;
-    assert_eq!(connects(), 4);
+    tokio::time::sleep(Duration::from_secs(1)).await;
+    assert_eq!(connects(), 1, "only the engine-start connect");
+
+    h.app.handle_inbound(phone(), trace(), heartbeat(ValueSet::new().with("syncOverMeteredConnection", true))).await;
+    h.messenger.wait_requests(2).await;
+    assert_eq!(connects(), 2);
+    assert_eq!(h.messenger.requests()[1].trace.trace_state[0].1, "SyncOverMeteredConnectionEnabled");
+
+    // Unchanged: nothing more.
+    h.app.handle_inbound(phone(), trace(), cmd(true)).await;
+    tokio::time::sleep(Duration::from_secs(1)).await;
+    assert_eq!(connects(), 2);
 }
 
 #[tokio::test(start_paused = true)]

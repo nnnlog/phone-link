@@ -199,6 +199,7 @@ impl Inner {
             if let Some(inner) = weak.upgrade() {
                 let result =
                     inner.permission(&peer, false, PermissionTrigger::UserGrantFilesPermission, None, None).await;
+                inner.record_send_permission(&peer.client, &result);
                 match result {
                     PermissionResult::Granted => info!(phone = %peer.client, "files permission granted"),
                     PermissionResult::Required => {

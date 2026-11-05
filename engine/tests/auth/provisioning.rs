@@ -164,7 +164,7 @@ async fn enroll_device_publishes_the_metadata_and_the_trust_certificate() {
         format!(
             concat!(
                 r#"{{"metadata":{{"capabilities":["DEVICE_STATUS","UNLINKABLE_V1"],"clientType":"WEA","#,
-                r#""clientVersion":"1.26082.74.0","consentVersion":0,"customData":"","displayName":"test-mac","#,
+                r#""clientVersion":"1.26092.74.0","consentVersion":0,"customData":"","displayName":"test-mac","#,
                 r#""isEnabled":true,"manufacture":"Unknown","modelName":"Unknown","modelVersion":"Unknown","#,
                 r#""osName":"Windows","osVersion":"10.0.26100"}},"certificates":{{"SelfSigned":["{}"]}}}}"#
             ),
@@ -443,34 +443,6 @@ async fn create_identity_gives_up_after_three_retries() {
     h.dcg.script("CreateIdentity", 400, &error_body(Some(2), "InvalidCertificate"));
     let service = h.signed_in().await;
     assert_matches!(service.ensure_provisioned().await.unwrap_err(), AuthError::InvalidIdentity);
-}
-
-#[tokio::test]
-async fn invalid_certificate_on_sign_in_clears_the_identity() {
-    let h = Harness::new().await;
-    let (service, p) = h.provisioned().await;
-
-    h.dcg.script("SignIn", 400, &error_body(Some(2), "InvalidCertificate"));
-    let err = service.services_token_for(Environment::Prod, true).await.unwrap_err();
-    assert_matches!(err, AuthError::InvalidIdentity);
-
-    assert!(service.own_client().is_none());
-    for key in
-        ["auth/prod/identity", "auth/prod/identity-pair", "auth/prod/identity-pair-pending", "auth/prod/trust-pair"]
-    {
-        assert!(h.store_bytes(key).is_none(), "{key} cleared");
-    }
-    assert!(service.trust_relationships().is_empty(), "relationships with SelfClientId trust_<id> removed");
-    assert_matches!(
-        service.services_token_for(Environment::Prod, false).await.unwrap_err(),
-        AuthError::NotProvisioned(m) if m == "no identity in Prod"
-    );
-
-    // The next start deprovisions the inactive account and provisions anew.
-    let restarted = h.service();
-    let p2 = restarted.ensure_provisioned().await.unwrap();
-    assert_ne!(p2.own.id, p.own.id);
-    assert_eq!(h.dcg.count("CreateIdentity"), 2);
 }
 
 #[tokio::test]
@@ -763,84 +735,12 @@ async fn another_accounts_record_is_deprovisioned_first() {
 }
 
 #[tokio::test]
-async fn identity_inactive_after_180_days_is_recreated() {
-    let h = Harness::new().await;
-    let (service, p) = h.provisioned().await;
-    drop(service);
-
-    h.advance(Duration::from_secs(181 * DAY));
-    h.dcg.take_requests();
-    let restarted = h.service();
-    let p2 = restarted.ensure_provisioned().await.unwrap();
-    assert_ne!(p2.own.id, p.own.id, "a new identity");
-
-    let ops: Vec<String> = h.dcg.requests().iter().map(|r| r.op().to_string()).collect();
-    assert_eq!(ops, ["UserServiceEnvironment", "GenerateNonce", "CreateIdentity", "EnrollDevice"]);
-    let rels = restarted.trust_relationships();
-    assert_eq!(rels.len(), 1, "the old A2D went with the deprovisioned account");
-    assert_eq!(rels[0].self_client_id, format!("trust_{}", p2.own.id));
-}
-
-#[tokio::test]
 async fn sign_in_is_required_before_provisioning() {
     let h = Harness::new().await;
     let service = h.service();
     assert!(matches!(service.ensure_provisioned().await, Err(AuthError::UserInteractionRequired(_))));
     assert!(h.dcg.requests().is_empty());
     assert!(h.web.kinds().is_empty() && h.msa.exchanges().is_empty(), "provisioning never signs in itself");
-}
-
-#[tokio::test]
-async fn a_missing_identity_key_clears_the_identity_at_load() {
-    let h = Harness::new().await;
-    let (service, p) = h.provisioned().await;
-    drop(service);
-    h.store.delete("auth/prod/identity-pair".into()).unwrap();
-
-    let restarted = h.service();
-    assert!(restarted.own_client().is_none());
-    assert!(h.store_bytes("auth/prod/identity").is_none());
-    assert!(restarted.trust_relationships().is_empty(), "relationships of trust_<id> go with it");
-
-    let p2 = restarted.ensure_provisioned().await.unwrap();
-    assert_ne!(p2.own.id, p.own.id);
-}
-
-#[tokio::test]
-async fn an_unusable_identity_pair_clears_the_identity_at_load() {
-    const PAIR: &str = "auth/prod/identity-pair";
-    for case in ["a key of another pair", "a torn entry", "the pair of another identity"] {
-        let h = Harness::new().await;
-        let (service, p, _, _) = h.with_phone().await;
-        drop(service);
-
-        let (_, cert) = h.pair_entry(PAIR).unwrap();
-        let now = h.clock.now();
-        match case {
-            "a key of another pair" => {
-                let other = KeyPair::generate(&p.own.id, now).unwrap();
-                h.put_pair_entry(PAIR, &other.pkcs8().unwrap(), &cert);
-            }
-            "a torn entry" => h.store.store(PAIR.into(), br#"{"key":"MIG2AgEA"#.to_vec()).unwrap(),
-            _ => {
-                let other = KeyPair::generate(&new_guid_lower(), now).unwrap();
-                h.put_pair_entry(PAIR, &other.pkcs8().unwrap(), &other.cert.der);
-            }
-        }
-
-        // Loading never fails over it: the identity counts as missing and is cleared.
-        let restarted = h.service();
-        assert!(restarted.own_client().is_none(), "{case}");
-        for key in ["auth/prod/identity", PAIR, "auth/prod/trust-pair"] {
-            assert!(h.store_bytes(key).is_none(), "{case}: {key} cleared");
-        }
-        assert!(restarted.trust_relationships().is_empty(), "{case}: relationships of trust_<id> go with it");
-
-        // The next start creates a new identity.
-        let p2 = restarted.ensure_provisioned().await.unwrap();
-        assert_ne!(p2.own.id, p.own.id, "{case}");
-        assert_eq!(h.dcg.count("CreateIdentity"), 2, "{case}");
-    }
 }
 
 #[tokio::test]

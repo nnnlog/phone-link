@@ -109,9 +109,15 @@ impl AppliedPeers {
 impl AuthService {
     /// Trust synchronization with `mode`; returns the cached peers that still have a `trust_<id>`
     /// relationship. A failed `GetDeviceInfoList` fails only `ForceCloud`; otherwise the cache is
-    /// returned.
+    /// returned. An account enrolled under an identity that was since created anew in place is
+    /// enrolled again under the new one first.
     pub async fn sync_trust(&self, mode: FetchMode) -> Result<Vec<PeerDevice>, AuthError> {
         let _guard = self.sync_lock.lock().await;
+
+        if let Some(env) = self.account_environment() {
+            self.reenroll_replaced(env).await?;
+        }
+
         let (account, env) = self.enrolled()?;
 
         let refresh = match mode {
@@ -181,14 +187,26 @@ impl AuthService {
 
     /// Cloud refresh steps 1–6.
     async fn cloud_refresh(&self, env: Environment, account: &LocalAccount, mode: FetchMode) -> Result<(), AuthError> {
-        // 1. The device list.
-        let Some(list) = self.cloud_device_list(env, mode).await? else {
-            return Ok(());
-        };
+        let mut fetched_again = false;
+        let (list, own_id) = loop {
+            // 1. The device list.
+            let Some(list) = self.cloud_device_list(env, mode).await? else {
+                return Ok(());
+            };
 
-        // 2. Own-entry check: our id with a `SelfSigned` certificate equal to a stored one.
-        let (own_id, stored) = self.own_id_and_certificates(env)?;
-        self.check_own_entry(env, account, &list, &own_id, &stored).await?;
+            // 2. Own-entry check: our id with a `SelfSigned` certificate equal to a stored one.
+            let (own_id, stored) = self.own_id_and_certificates(env)?;
+            self.check_own_entry(env, account, &list, &own_id, &stored).await?;
+
+            // The repair's token request may have created the identity anew (and enrolled it): the
+            // list predates the new identity, so it is fetched once more for it.
+            let current = self.own_id_and_certificates(env)?.0;
+            if fetched_again || current.eq_ignore_ascii_case(&own_id) {
+                break (list, own_id);
+            }
+            tracing::info!(%env, "identity created anew during the own-entry repair; the device list is fetched again");
+            fetched_again = true;
+        };
 
         // 3–6 under the state lock.
         let before = self.peers();
@@ -234,6 +252,13 @@ impl AuthService {
                 Ok(None)
             }
         }
+    }
+
+    /// The environment of the signed-in account's record, if it has one.
+    fn account_environment(&self) -> Option<Environment> {
+        let st = self.state.lock_or_panic();
+        let account = st.account.as_ref()?;
+        st.account_info.get(&account.account_id)?.environment
     }
 
     /// The identity's device id and the DER of every stored certificate of `env`.

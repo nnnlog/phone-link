@@ -1,40 +1,48 @@
+import AppKit
 import PhoneLinkEngine
 import PhoneLinkKit
 import SwiftUI
 
 /// A mirroring window's content: the phone's video (or app's) with its input, the takeover the
-/// window's state calls for, a moment's notice when the app does not let its audio be captured, and
-/// the toolbar — Back while the video shows, Home and Recents while the phone navigates by gestures,
-/// the app's volume once it plays sound (or *Enable audio* while its audio is off on the phone), its
-/// other layout, and the phone's keyboard settings.
+/// window's state calls for, a moment's notice when the app does not let its audio be captured, the
+/// navigation bar under the video while the phone navigates by gestures (hidden while the user resizes
+/// the window), and the toolbar — Back while the video shows, the app's volume once it plays sound (or
+/// *Enable audio* while its audio is off on the phone), its other layout, and the phone's keyboard
+/// settings. The window around it (`MirrorWindowController`) sets its size and gives it its state.
 struct MirrorWindowView: View {
     let sessionId: String
     let video: MirrorVideoLayer
     @Environment(ScreenMirroringModel.self) private var model
+    @Environment(MirrorWindowContext.self) private var window
 
     var body: some View {
         let session = model.session(sessionId)
-        ZStack {
-            MirrorVideoRepresentable(
-                sessionId: sessionId,
-                video: video,
-                model: model,
-                display: session.map(MirrorDisplay.init) ?? MirrorDisplay(),
-                inputEnabled: session.map(model.takesInput) ?? false
-            )
-            if let session, let overlay = model.overlay(for: session) {
-                MirrorTakeover(session: session, overlay: overlay)
+        VStack(spacing: 0) {
+            ZStack {
+                MirrorVideoRepresentable(
+                    sessionId: sessionId,
+                    video: video,
+                    model: model,
+                    display: session.map(MirrorDisplay.init) ?? MirrorDisplay(),
+                    inputEnabled: session.map(model.takesInput) ?? false
+                )
+                if let session, let overlay = model.overlay(for: session) {
+                    MirrorTakeover(session: session, overlay: overlay)
+                }
+            }
+            .overlay(alignment: .top) {
+                if model.showsCaptureNotice(sessionId) {
+                    MirrorCaptureNotice()
+                        .padding(.top, 12)
+                        .transition(.opacity)
+                }
+            }
+            .animation(.default, value: model.showsCaptureNotice(sessionId))
+
+            if let session, model.showsNavigationBar(session), !window.liveResizing {
+                MirrorNavigationBar(sessionId: sessionId)
             }
         }
-        .overlay(alignment: .top) {
-            if model.showsCaptureNotice(sessionId) {
-                MirrorCaptureNotice()
-                    .padding(.top, 12)
-                    .transition(.opacity)
-            }
-        }
-        .animation(.default, value: model.showsCaptureNotice(sessionId))
-        // The window sets the content's size and its minimum (it keeps the video's aspect).
         .toolbar {
             if let session {
                 MirrorToolbar(session: session)
@@ -339,6 +347,42 @@ private struct MirrorCaptureNotice: View {
     }
 }
 
+/// The navigation bar under the video: Recent Apps, Home and Back, each 40 points wide, 60 points
+/// apart (less in a window under 240 points wide), centred. Its buttons do not take the keyboard
+/// focus from the video.
+private struct MirrorNavigationBar: View {
+    let sessionId: String
+    @Environment(ScreenMirroringModel.self) private var model
+
+    var body: some View {
+        GeometryReader { geometry in
+            let width = geometry.size.width
+            HStack(spacing: width >= 240 ? 60 : max(0, (width - 120) / 2)) {
+                button("Recent Apps", symbol: "square.on.square", .recents)
+                button("Home", symbol: "circle", .home)
+                button("Back", symbol: "chevron.backward", .back)
+            }
+            .frame(width: width, height: geometry.size.height)
+        }
+        .frame(height: MirrorWindowSizing.navigationBarHeight)
+        .background(.bar)
+    }
+
+    private func button(_ title: LocalizedStringKey, symbol: String, _ button: MirrorNavButton) -> some View {
+        Button {
+            model.navigationBarButton(sessionId, button)
+        } label: {
+            Image(systemName: symbol)
+                .frame(width: 40, height: MirrorWindowSizing.navigationBarHeight)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .focusable(false)
+        .help(title)
+        .accessibilityLabel(title)
+    }
+}
+
 /// The window's toolbar.
 private struct MirrorToolbar: ToolbarContent {
     let session: MirrorSessionView
@@ -353,20 +397,6 @@ private struct MirrorToolbar: ToolbarContent {
                     Label("Back", systemImage: "chevron.backward")
                 }
                 .help("Back")
-            }
-            if model.showsNavigation(session) {
-                Button {
-                    model.navButton(session.id, .home)
-                } label: {
-                    Label("Home", systemImage: "circle")
-                }
-                .help("Home")
-                Button {
-                    model.navButton(session.id, .recents)
-                } label: {
-                    Label("Recent Apps", systemImage: "square.on.square")
-                }
-                .help("Recent Apps")
             }
         }
         ToolbarItemGroup(placement: .primaryAction) {
@@ -407,45 +437,174 @@ private struct MirrorToolbar: ToolbarContent {
     }
 }
 
-/// The app's volume on the phone: a mute button and a slider in a popover.
+/// The app's volume on the phone: a mute button and a slider in a popover (`MirrorVolumePopup`).
+/// Closing the popover commits the slider's change.
 private struct MirrorVolumeControl: View {
     let session: MirrorSessionView
-    @Environment(ScreenMirroringModel.self) private var model
+    @Environment(MirrorWindowContext.self) private var window
     @State private var shown = false
-    @State private var volume: Double = 50
 
     var body: some View {
+        let volume = window.volume
         Button {
-            volume = Double(session.volume)
             shown.toggle()
         } label: {
-            Label("Volume", systemImage: symbol)
+            Label("Volume", systemImage: symbol(volume.state))
         }
         .help("Volume")
         .popover(isPresented: $shown, arrowEdge: .bottom) {
             HStack(spacing: 8) {
                 Button {
-                    model.setVolume(session, volume: session.volume, muted: !session.muted)
+                    volume.toggleMute()
                 } label: {
-                    Image(systemName: session.muted ? "speaker.slash.fill" : "speaker.fill")
+                    Image(systemName: volume.state.muted ? "speaker.slash.fill" : "speaker.fill")
                 }
                 .buttonStyle(.borderless)
-                .help(session.muted ? "Unmute" : "Mute")
-                Slider(value: $volume, in: 0 ... 100) { editing in
-                    if !editing {
-                        // A slider at 0 mutes; moving it up unmutes.
-                        let level = Int32(volume.rounded())
-                        model.setVolume(session, volume: level, muted: level == 0)
-                    }
-                }
-                .frame(width: 160)
+                .help(volume.state.muted ? "Unmute" : "Mute")
+                MirrorVolumeSlider(volume: volume, value: volume.slider)
+                    .frame(width: 160)
             }
             .padding(12)
+            .onDisappear { volume.commit() }
         }
     }
 
-    private var symbol: String {
-        if session.muted || session.volume == 0 { return "speaker.slash" }
+    private func symbol(_ state: MirrorVolumePopup.State) -> String {
+        if state.muted || state.volume == 0 { return "speaker.slash" }
         return session.silent ? "speaker" : "speaker.wave.2"
+    }
+}
+
+/// The popover's slider, showing `value`.
+private struct MirrorVolumeSlider: NSViewRepresentable {
+    let volume: MirrorVolumePopup
+    let value: Double
+
+    func makeNSView(context: Context) -> MirrorVolumeSliderView {
+        MirrorVolumeSliderView(volume: volume)
+    }
+
+    func updateNSView(_ slider: MirrorVolumeSliderView, context: Context) {
+        slider.volume = volume
+        if slider.doubleValue != value {
+            slider.doubleValue = value
+        }
+    }
+}
+
+/// The volume slider: it takes the keyboard focus when the popover opens, and tells the popup what
+/// the user does. Arrow keys move it by 1, Page Up and Page Down by 10, Home and End to its ends; the
+/// release of the pointer, of an arrow key, Home or End, and the slider losing the focus commit the
+/// change (Page Up and Page Down do not). A scroll-wheel notch moves it by 2: a mouse wheel's event is
+/// a notch, a trackpad's scrolling a notch per line of the system's points per line.
+final class MirrorVolumeSliderView: NSSlider {
+    var volume: MirrorVolumePopup
+    /// Precise (trackpad) scrolling, in lines, that has not yet added up to a whole line.
+    private var lines: Double = 0
+
+    private enum Key {
+        static let left: UInt16 = 0x7B
+        static let right: UInt16 = 0x7C
+        static let down: UInt16 = 0x7D
+        static let up: UInt16 = 0x7E
+        static let home: UInt16 = 0x73
+        static let end: UInt16 = 0x77
+        static let pageUp: UInt16 = 0x74
+        static let pageDown: UInt16 = 0x79
+        /// The keys whose release commits the change.
+        static let committing: Set<UInt16> = [left, right, down, up, home, end]
+    }
+
+    init(volume: MirrorVolumePopup) {
+        self.volume = volume
+        super.init(frame: .zero)
+        minValue = MirrorVolumePopup.range.lowerBound
+        maxValue = MirrorVolumePopup.range.upperBound
+        doubleValue = volume.slider
+        isContinuous = true
+        target = self
+        action = #selector(moved)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("not used from a nib")
+    }
+
+    @objc private func moved() {
+        volume.moved(to: doubleValue)
+    }
+
+    override var acceptsFirstResponder: Bool { true }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        window?.makeFirstResponder(self)
+    }
+
+    /// The slider tracks the pointer until it is released.
+    override func mouseDown(with event: NSEvent) {
+        super.mouseDown(with: event)
+        volume.commit()
+    }
+
+    override func keyDown(with event: NSEvent) {
+        switch event.keyCode {
+        case Key.left, Key.down: set(doubleValue - 1)
+        case Key.right, Key.up: set(doubleValue + 1)
+        case Key.pageDown: set(doubleValue - 10)
+        case Key.pageUp: set(doubleValue + 10)
+        case Key.home: set(minValue)
+        case Key.end: set(maxValue)
+        default: super.keyDown(with: event)
+        }
+    }
+
+    override func keyUp(with event: NSEvent) {
+        guard Key.committing.contains(event.keyCode) else {
+            super.keyUp(with: event)
+            return
+        }
+        volume.commit()
+    }
+
+    override func resignFirstResponder() -> Bool {
+        let resigned = super.resignFirstResponder()
+        if resigned {
+            volume.commit()
+        }
+        return resigned
+    }
+
+    /// Scrolling up (away from the user) raises the volume. The momentum after a trackpad swipe does
+    /// not scroll.
+    override func scrollWheel(with event: NSEvent) {
+        guard event.momentumPhase.isEmpty else { return }
+        let delta = Double(event.scrollingDeltaY)
+
+        guard event.hasPreciseScrollingDeltas else {
+            if delta != 0 { scrolled(up: delta > 0) }
+            return
+        }
+
+        if event.phase == .began || event.phase == .mayBegin {
+            lines = 0
+        }
+        let pointsPerLine = CGEventSource(stateID: .hidSystemState).map { Double($0.pixelsPerLine) } ?? 10
+        lines += delta / max(pointsPerLine, 1)
+        while abs(lines) >= 1 {
+            scrolled(up: lines > 0)
+            lines -= lines > 0 ? 1 : -1
+        }
+    }
+
+    private func scrolled(up: Bool) {
+        volume.scrolled(up: up)
+        doubleValue = volume.slider
+    }
+
+    private func set(_ value: Double) {
+        doubleValue = min(max(value, minValue), maxValue)
+        moved()
     }
 }

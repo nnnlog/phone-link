@@ -90,10 +90,11 @@ pub enum AuthError {
     /// A 401 status of the DCG status mapping, or "enrollment expired".
     #[error("DCG answered Unauthorized: {0}")]
     Unauthorized(String),
-    /// 403 + `categoryCode 13`: identity cleared, accounts deprovisioned.
-    #[error("the device was unlinked: identity cleared and every account deprovisioned")]
+    /// 403 + `categoryCode 13`: the identity cleared, the accounts enrolled with it deprovisioned.
+    #[error("the device was unlinked: identity cleared and the accounts enrolled with it deprovisioned")]
     UnlinkedDevice,
-    /// 400 + `InvalidCertificate`: the identity was cleared.
+    /// 400 + `InvalidCertificate` while provisioning (`GenerateNonce`, `CreateIdentity`): the identity
+    /// was cleared.
     #[error("the identity certificate was rejected; the identity was cleared")]
     InvalidIdentity,
     #[error("MultipleAccountNotSupported: {0}")]
@@ -289,8 +290,8 @@ fn identity_pair(stored: StoredPair, device_id: &str) -> Result<Option<KeyPair>,
 
 impl State {
     /// The persisted state. A key + certificate entry that cannot be used counts as missing: an
-    /// identity without its key is cleared, a trust certificate is rotated as missing. A failing
-    /// store is an error.
+    /// identity without its key is kept and created anew at the next services-token refresh, a trust
+    /// certificate is rotated as missing. A failing store is an error.
     fn load(store: &Persist<'_>, capabilities: Vec<String>) -> Result<Self, AuthError> {
         let saved_env = match store.string(keys::ENVIRONMENT)? {
             Some(name) => Some(
@@ -310,11 +311,15 @@ impl State {
 
             let (identity_keys, pending_identity_keys) = match &identity {
                 Some(record) => {
-                    // `AuthService::new` clears an identity whose key this leaves out.
+                    // An identity whose key this leaves out is created anew when it signs in next.
                     let identity_keys = identity_pair(stored_identity, &record.device_id)
                         .and_then(|pair| pair.ok_or_else(|| "missing".to_owned()))
                         .map_err(|reason| {
-                            tracing::warn!(%env, %reason, "identity key + certificate unusable; the identity is cleared");
+                            tracing::warn!(
+                                %env,
+                                %reason,
+                                "identity key + certificate unusable; the identity is created anew at the next services-token refresh"
+                            );
                         })
                         .ok();
                     let pending = identity_pair(stored_pending, &record.device_id).unwrap_or_else(|reason| {
@@ -392,6 +397,9 @@ pub struct AuthService {
     /// Serializes `SetDeviceInfo` (the client-info refresh and the own-entry repair), each of which
     /// may mint a trust certificate.
     device_info_lock: tokio::sync::Mutex<()>,
+    /// Serializes `EnrollDevice`: a provisioning run and the enrollment of an identity created anew
+    /// in place.
+    enroll_lock: tokio::sync::Mutex<()>,
     peer_events: broadcast::Sender<PeerEvent>,
     device_list_events: broadcast::Sender<DeviceListApplied>,
     account_events: broadcast::Sender<AccountRemoved>,
@@ -402,8 +410,9 @@ pub struct AuthService {
 
 impl AuthService {
     /// Loads the persisted state (the first step of startup and provisioning). An identity whose
-    /// key + certificate entry is missing or unusable is cleared; an unusable trust entry is
-    /// missing, so the next `EnrollDevice` / `SetDeviceInfo` sends a new trust certificate.
+    /// key + certificate entry is missing or unusable is kept, to be created anew at the next
+    /// services-token refresh; an unusable trust entry is missing, so the next `EnrollDevice` /
+    /// `SetDeviceInfo` sends a new trust certificate.
     pub fn new(
         config: Arc<EngineConfig>,
         edges: Edges,
@@ -441,23 +450,13 @@ impl AuthService {
             token_lock: tokio::sync::Mutex::new(()),
             sync_lock: tokio::sync::Mutex::new(()),
             device_info_lock: tokio::sync::Mutex::new(()),
+            enroll_lock: tokio::sync::Mutex::new(()),
             peer_events,
             device_list_events,
             account_events,
             forced_refreshes: Mutex::new(HashMap::new()),
             weak: weak.clone(),
         });
-
-        {
-            let mut st = service.state.lock_or_panic();
-            for env in Environment::ALL {
-                let slot = st.env(env);
-                // `State::load` logged why the key is missing.
-                if slot.identity.is_some() && slot.identity_keys.is_none() {
-                    service.clear_identity_locked(&mut st, env)?;
-                }
-            }
-        }
 
         Ok(service)
     }
@@ -597,13 +596,15 @@ impl AuthService {
         st.trust.resolve_partner(id)
     }
 
-    /// The PC's own `DcgClient` once an account is enrolled or provisioned.
+    /// The PC's own `DcgClient` once an account is enrolled or provisioned: the stored identity of
+    /// its environment, expired or not.
     pub fn own_client(&self) -> Option<DcgClient> {
         let st = self.state.lock_or_panic();
         let account = st.account.as_ref()?;
         let info = st.account_info.get(&account.account_id).filter(|i| i.is_provisioned())?;
         let env = info.environment?;
-        st.env(env).identity.as_ref().map(|i| DcgClient::new(i.device_id.clone(), env))
+        let identity = st.env(env).identity.as_ref()?;
+        Some(DcgClient::new(identity.device_id.clone(), env))
     }
 
     /// The account's environment (the saved, snapped environment).

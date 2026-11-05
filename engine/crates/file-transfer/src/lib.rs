@@ -10,10 +10,10 @@
 //! | [`wire`] | the requests and their replies, the receive request, the control messages, file names |
 //! | [`store`] | the per-phone settings (*Share*, the received-files folder, whether its setting shows) |
 //! | [`channel`] | creating and opening a transfer's channel |
-//! | `send` | a send: gate, permission, handle, channel, the phone's messages, progress, cancel |
+//! | `send` | a send: gate, permission, handle, channel, the phone's messages, progress, cancel; the send window's permission request |
 //! | `receive` | the receive request and the receive session, destinations, the received notification |
 //! | `notify` | the notifications: send states, grant permission, received files |
-//! | this module | the options, tag 3 and the context handles, the permission request, the probe and its triggers, the settings |
+//! | this module | the options, tag 3 and the context handles, the permission request and what its answers say, the probe and its triggers, the settings |
 
 #![cfg_attr(feature = "test-support", warn(unreachable_pub))]
 
@@ -33,12 +33,13 @@ use std::sync::{Arc, Mutex, Weak};
 use tokio::runtime::Handle;
 use tokio::sync::broadcast;
 use tokio_util::sync::CancellationToken;
-use tracing::{debug, info, warn};
+use tracing::{debug, error, info, warn};
 
 use phonelink_core::types::{DcgClient, TraceContext};
 use phonelink_features::shared::db::{PhoneStores, StoreError};
 use phonelink_features::shared::files_permission::{self, PermissionResult};
 use phonelink_features::{FeatureEnv, FeatureError, PhoneSwitchChanged};
+use phonelink_proto::file_transfer::v1::FileTransferResponseStatus;
 use phonelink_proto::platform_sdk::v1::{ProtoDeviceResourceRequestType, ProtoDeviceResourceType};
 use phonelink_transport::auth::{PeerDevice, PeerEvent};
 use phonelink_transport::platform::{
@@ -87,6 +88,8 @@ pub struct PhoneSettings {
     pub offered_as_send_target: bool,
     /// The received-files-folder setting shows.
     pub folder_setting_shown: bool,
+    /// The phone needs the files permission: the send window asks for it instead of offering files.
+    pub needs_permission: bool,
     /// Where files from the phone go; `None` when there is no folder (no home folder).
     pub received_files_folder: Option<PathBuf>,
 }
@@ -137,6 +140,23 @@ pub enum FileTransferError {
     Store(#[from] StoreError),
 }
 
+/// Which side of a transfer a request serves: the answers to a send's permission requests say whether
+/// the phone holds the permission, a receive's do not.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Side {
+    Send,
+    Receive,
+}
+
+/// What a send's permission request says of the phone's permission: held, not held, or nothing.
+fn permission_held(result: &PermissionResult) -> Option<bool> {
+    match result {
+        PermissionResult::Granted => Some(true),
+        PermissionResult::Required => Some(false),
+        _ => None,
+    }
+}
+
 /// Why no context handle was obtained.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum HandleError {
@@ -165,6 +185,8 @@ struct State {
     sending: HashMap<DcgClient, CancellationToken>,
     /// Phones with a receive starting or running.
     receiving: HashSet<DcgClient>,
+    /// Phones the send window's permission request is in flight for.
+    permission_requests: HashSet<DcgClient>,
     transfers: HashMap<DcgClient, Transfers>,
 }
 
@@ -283,6 +305,7 @@ impl FileTransfer {
             share_enabled: data.share_enabled,
             offered_as_send_target: config.share_enabled && capable && data.share_enabled && phone_enabled,
             folder_setting_shown: android && config.phone_to_pc_enabled && data.show_folder_setting,
+            needs_permission: android && !data.files_permission_granted,
             received_files_folder: self.inner.folder(&data),
         })
     }
@@ -325,10 +348,12 @@ impl FileTransfer {
         self.inner.cancel_send(phone);
     }
 
-    /// Asks the phone for the files permission (prompting), as the grant-permission notification does.
+    /// The send window's request for the files permission (the phone prompts). It is sent only while the
+    /// phone needs the permission (else: granted) and one at a time (a second one: the phone is asked
+    /// already, so required).
     pub async fn request_permission(&self, phone: &DcgClient) -> Result<PermissionResult, FileTransferError> {
         let peer = self.inner.env.peers.peer(phone).ok_or(FileTransferError::UnknownPhone)?;
-        Ok(self.inner.permission(&peer, false, PermissionTrigger::UserGrantFilesPermission, None, None).await)
+        self.inner.window_permission(&peer).await
     }
 }
 
@@ -485,7 +510,13 @@ impl Inner {
             let phone = &peer.client;
             match outcome {
                 DrmSendOutcome::Success { payload } => match wire::probe_status(&payload) {
-                    Ok(status) => info!(%phone, trigger, %status, "FILE_SHARE probe answered"),
+                    Ok(Ok(status)) => {
+                        info!(%phone, trigger, status = status.as_str_name(), "FILE_SHARE probe answered");
+                        if status == FileTransferResponseStatus::Ok {
+                            inner.set_files_permission(phone, true);
+                        }
+                    }
+                    Ok(Err(raw_status)) => info!(%phone, trigger, raw_status, "FILE_SHARE probe answered"),
                     Err(e) => warn!(%phone, trigger, error = %e, "FILE_SHARE probe reply does not parse"),
                 },
                 other => warn!(%phone, trigger, outcome = ?other, error = other.cause(), "FILE_SHARE probe failed"),
@@ -545,6 +576,25 @@ impl Inner {
     // The files permission and the context handle
     // --------------------------------------------------------------------------------------------
 
+    /// Records whether the phone holds the files permission; a change is logged and shown.
+    fn set_files_permission(&self, phone: &DcgClient, granted: bool) {
+        match self.update(phone, |d| d.files_permission_granted = granted) {
+            Ok(true) => {
+                info!(%phone, is_granted = granted, "files permission state changed");
+                self.changed(phone);
+            }
+            Ok(false) => {}
+            Err(e) => error!(%phone, is_granted = granted, error = %e, "files permission state not stored"),
+        }
+    }
+
+    /// What a send's permission request answered says of the phone's permission.
+    fn record_send_permission(&self, phone: &DcgClient, result: &PermissionResult) {
+        if let Some(granted) = permission_held(result) {
+            self.set_files_permission(phone, granted);
+        }
+    }
+
     /// The files permission request: `GET` when `silent`, `SYNC` (the phone prompts) otherwise; within
     /// `operation` when a transfer sends it.
     async fn permission(
@@ -592,6 +642,7 @@ impl Inner {
     async fn ensure_handle(
         &self,
         peer: &PeerDevice,
+        side: Side,
         operation: &TraceContext,
         cancel: Option<CancellationToken>,
     ) -> Result<ContextHandle, HandleError> {
@@ -603,6 +654,9 @@ impl Inner {
         let mut updated = self.handle_updated.subscribe();
         let permission =
             self.permission(peer, false, PermissionTrigger::GetContextHandle, Some(operation), cancel.clone()).await;
+        if side == Side::Send {
+            self.record_send_permission(phone, &permission);
+        }
 
         let cancel = cancel.unwrap_or_default();
         let wanted = key(phone);
@@ -661,7 +715,8 @@ impl Inner {
         true
     }
 
-    /// Parses the permission publication of a phone of the account.
+    /// Parses the permission publication of a phone of the account: a `FILES` grant records the
+    /// permission as held (a publication never records it as not held).
     fn parse_permissions(&self, publication: &Publication) {
         let source = &publication.source;
         if self.env.peers.peer(source).is_none() {
@@ -669,9 +724,11 @@ impl Inner {
             return;
         }
 
-        // Only checked: its content is not used, and phone files reads the same publication.
-        if let Err(e) = wire::parse_publication(&publication.payload.additional) {
-            debug!(partner = %source, error = %e, "permission publication does not parse");
+        // Phone files reads the same publication and logs what is wrong with it.
+        match wire::parse_publication(&publication.payload.additional) {
+            Ok(p) if files_permission::grants_files(&p) => self.set_files_permission(source, true),
+            Ok(_) => {}
+            Err(e) => debug!(partner = %source, error = %e, "permission publication does not parse"),
         }
     }
 
@@ -697,3 +754,6 @@ impl PublicationObserver for PermissionObserver {
         }
     }
 }
+
+#[cfg(test)]
+mod tests;

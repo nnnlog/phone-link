@@ -1,5 +1,9 @@
 //! Lookup by address, done locally: the app's single rule for every consumer.
 //!
+//! Only an address that passes [`is_lookup_address`] is looked up; any other address resolves to no
+//! contact, and a stored value that fails the same test (a phone number in its normalized form, an
+//! e-mail address as stored) is not indexed.
+//!
 //! Every stored `phoneNumbers` value (not the display number) is normalized to E.164 with the
 //! phone's country and compared with the address normalized with the caller's region (the message's
 //! subscription country), else the phone's; an address that looks like an e-mail address is matched
@@ -57,6 +61,54 @@ pub fn is_email(address: &str) -> bool {
     EMAIL.is_match(address)
 }
 
+/// One printable UTF-16 code unit outside the phone-number characters.
+///
+/// A code unit is printable when it is a whole character (not half of a surrogate pair) of Unicode
+/// general category letter, mark, number, punctuation, symbol or space separator (Unicode 16.0, the
+/// regex library's tables); control, format, private-use and unassigned characters, line and paragraph
+/// separators, and both halves of a character outside the Basic Multilingual Plane are not printable.
+/// The phone-number characters are `0`–`9`, `+`, `-`, `(`, `)`, space, `*`, `#`, `?`, `.`, `/`,
+/// U+00A0 NO-BREAK SPACE and U+2011 NON-BREAKING HYPHEN.
+static NOT_PHONE_NUMBER_CHAR: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"[[\p{L}\p{M}\p{N}\p{P}\p{S}\p{Zs}]&&[\x{0}-\x{FFFF}]&&[^0-9+\-()\x{20}*#?./\x{A0}\x{2011}]]")
+        .expect("the phone-number character class is a valid regex")
+});
+
+/// Whether every printable UTF-16 code unit of `address` is a phone-number character
+/// ([`NOT_PHONE_NUMBER_CHAR`]); code units that are not printable are ignored, so an empty address
+/// passes.
+pub fn has_only_phone_number_chars(address: &str) -> bool {
+    !NOT_PHONE_NUMBER_CHAR.is_match(address)
+}
+
+/// The white-space characters: U+0009–U+000D, U+0020, U+0085, U+00A0, U+1680, U+2000–U+200A, U+2028,
+/// U+2029, U+202F, U+205F and U+3000.
+fn is_white_space(c: char) -> bool {
+    matches!(
+        c,
+        '\u{9}'..='\u{D}'
+            | ' '
+            | '\u{85}'
+            | '\u{A0}'
+            | '\u{1680}'
+            | '\u{2000}'..='\u{200A}'
+            | '\u{2028}'
+            | '\u{2029}'
+            | '\u{202F}'
+            | '\u{205F}'
+            | '\u{3000}'
+    )
+}
+
+/// Whether `address` takes part in the lookup at all.
+///
+/// It must not be empty or white space alone, and must be an e-mail address ([`is_email`]) or made
+/// only of phone-number characters ([`has_only_phone_number_chars`]). A sender name such as `AMAZON`
+/// or a number written with letters fails, so it never resolves to a contact.
+pub fn is_lookup_address(address: &str) -> bool {
+    !address.chars().all(is_white_space) && (is_email(address) || has_only_phone_number_chars(address))
+}
+
 /// One phone's lookup index, built from its store for one phone country.
 struct Index {
     country: Option<String>,
@@ -75,12 +127,17 @@ impl Index {
     fn build(store: &ContactsStore, country: Option<String>) -> Result<Self, StoreError> {
         let mut by_number = HashMap::new();
         for row in store.phone_number_rows()? {
-            push(&mut by_number, normalize(&row.address, country.as_deref()), row.contact_id);
+            let key = normalize(&row.address, country.as_deref());
+            if is_lookup_address(&key) {
+                push(&mut by_number, key, row.contact_id);
+            }
         }
 
         let mut by_email = HashMap::new();
         for row in store.email_rows()? {
-            push(&mut by_email, row.address, row.contact_id);
+            if is_lookup_address(&row.address) {
+                push(&mut by_email, row.address, row.contact_id);
+            }
         }
         Ok(Self { country, by_number, by_email })
     }
@@ -113,6 +170,10 @@ impl LookupCache {
         address: &str,
         region: Option<&str>,
     ) -> Result<Vec<i64>, StoreError> {
+        if !is_lookup_address(address) {
+            return Ok(Vec::new());
+        }
+
         // Held while an index is built, so an invalidation after a write waits for the build and
         // then drops it.
         let mut indexes = self.indexes.lock_or_panic();

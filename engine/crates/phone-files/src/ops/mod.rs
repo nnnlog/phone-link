@@ -1,6 +1,6 @@
 //! Changes the Mac makes to the phone's tree over `/DeviceResourceManager`: a new folder, a rename or
 //! move inside the tree, and deletes — collected into batches when the phone takes them, one request
-//! per item otherwise.
+//! per item otherwise. A rename or move takes its item out of a batch still being collected.
 
 use std::sync::Arc;
 
@@ -97,11 +97,45 @@ pub(super) struct DeleteQueue {
     timer: Option<CancellationToken>,
 }
 
+impl DeleteQueue {
+    /// Takes the item `uri` out of the batch being collected; its delete ends as not done. `true` when
+    /// the batch held it.
+    fn withdraw(&mut self, uri: &str) -> bool {
+        let Some(at) = self.pending.iter().position(|d| d.row.uri == uri) else {
+            return false;
+        };
+
+        let withdrawn = self.pending.remove(at);
+        // The delete's caller may have gone; nothing then waits for the answer.
+        let _ = withdrawn.reply.send(Err(OpFailure::Status(Status::Cancelled)));
+        true
+    }
+}
+
 /// The result of an item's single delete request.
 fn single_result(status: Status) -> Result<(), OpFailure> {
     match status {
         Status::Success | Status::NotFound => Ok(()),
         other => Err(OpFailure::Status(other)),
+    }
+}
+
+/// What the phone's status for an item of a delete batch means for the item.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum BatchItem {
+    /// The phone deleted it: it leaves the tree.
+    Deleted,
+    /// A folder the phone kept because it is not empty. It counts as deleted, but its row stays, as the
+    /// phone still has it.
+    Kept,
+    Failed,
+}
+
+fn batch_item(status: Status) -> BatchItem {
+    match status {
+        Status::Success => BatchItem::Deleted,
+        Status::DirectoryNotEmpty => BatchItem::Kept,
+        _ => BatchItem::Failed,
     }
 }
 
@@ -144,6 +178,7 @@ impl Inner {
             Status::Success => reply.target_metadata.ok_or(OpError::Phone(OpFailure::Status(Status::IoError)))?,
             other => return Err(OpError::Phone(OpFailure::Status(other))),
         };
+        self.set_ltw_off(phone, false);
 
         let row = to_row(&metadata).map_err(OpError::from)?;
         store.apply(std::slice::from_ref(&row), &[], None).map_err(OpError::from)?;
@@ -170,6 +205,10 @@ impl Inner {
             // The phone has no entry for it: it answers that it does not know the item.
             Entry::Folder(l) => (String::new(), 0, l.clone()),
         };
+
+        if !path::ignored(name) && self.with_phone(phone, |p| p.deletes.withdraw(&uri)) {
+            debug!(%phone, identifier, "renamed item taken out of the delete batch");
+        }
 
         if path::key(&location) != path::key(&current) {
             let taken = store.row_at(&location).map_err(OpError::from)?.is_some()
@@ -201,7 +240,7 @@ impl Inner {
             other => Err(OpFailure::Request(other)),
         };
         match status {
-            Ok(Status::Success) => {}
+            Ok(Status::Success) => self.set_ltw_off(phone, false),
             Ok(Status::NotFound) => return Err(OpError::NotInSync),
             Ok(Status::NotSupported) => return Err(OpError::NotSupported),
             Ok(other) => return Err(OpError::Phone(OpFailure::Status(other))),
@@ -246,8 +285,9 @@ impl Inner {
         };
 
         let mut failed: Vec<OpFailure> = results.into_iter().filter_map(Result::err).collect();
-        // A failure is the app's to log: it gets the error. The file manager deletes a selection one
-        // item at a time, so a success is detail; a batch's answer is logged where it arrives.
+        // A failure is not logged here: the app gets the error and logs it. A success is only debug
+        // detail, as the file manager deletes a selection one item at a time; a batch's answer is
+        // logged where it arrives.
         match failed.as_slice() {
             [] => {
                 debug!(%phone, item_count = total, "items deleted");
@@ -306,12 +346,17 @@ impl Inner {
                 )
                 .await;
 
-            let result = match outcome {
-                DrmSendOutcome::Success { payload } => wire::delete_response(&payload)
-                    .map_err(OpFailure::Status)
-                    .and_then(|r| single_result(Status::from_wire(r.status))),
+            let status = match outcome {
+                DrmSendOutcome::Success { payload } => {
+                    wire::delete_response(&payload).map(|r| Status::from_wire(r.status)).map_err(OpFailure::Status)
+                }
                 other => Err(OpFailure::Request(other)),
             };
+            if status == Ok(Status::Success) {
+                self.set_ltw_off(&peer.client, false);
+            }
+
+            let result = status.and_then(single_result);
 
             match &result {
                 Ok(()) => {
@@ -400,7 +445,7 @@ impl Inner {
             )
             .await;
 
-        // A failure is each waiting delete's, whose caller gets it.
+        // A failed request fails every delete waiting in the batch; each one's caller gets the failure.
         let reply = match outcome {
             DrmSendOutcome::Success { payload } => wire::delete_response(&payload).map_err(OpFailure::Status),
             other => Err(OpFailure::Request(other)),
@@ -415,10 +460,12 @@ impl Inner {
                 return;
             }
         };
+        self.set_ltw_off(phone, false);
 
         let config = self.phone_config(phone);
         let bin = path::recycle_bin(&config.recycle_bin_path);
         let mut deleted = Vec::new();
+        let mut kept_count = 0usize;
         let mut any_failed = false;
         let mut file_outside_bin = false;
         let item_count = batch.len();
@@ -431,19 +478,28 @@ impl Inner {
                 .map(|r| Status::from_wire(r.status))
                 .unwrap_or(Status::Other(0));
 
-            if status == Status::Success {
-                deleted.push(d.row.id);
-                if !d.row.is_directory && !bin.as_ref().is_some_and(|b| path::is_within(&d.row.location, b)) {
-                    file_outside_bin = true;
+            if !d.row.is_directory && !bin.as_ref().is_some_and(|b| path::is_within(&d.row.location, b)) {
+                file_outside_bin = true;
+            }
+
+            // A send to a caller that has gone fails; nothing waits for the result, so it is ignored.
+            match batch_item(status) {
+                BatchItem::Deleted => {
+                    deleted.push(d.row.id);
+                    let _ = d.reply.send(Ok(()));
                 }
-                let _ = d.reply.send(Ok(()));
-            } else {
-                any_failed = true;
-                let _ = d.reply.send(Err(OpFailure::Status(status)));
+                BatchItem::Kept => {
+                    kept_count += 1;
+                    let _ = d.reply.send(Ok(()));
+                }
+                BatchItem::Failed => {
+                    any_failed = true;
+                    let _ = d.reply.send(Err(OpFailure::Status(status)));
+                }
             }
         }
 
-        info!(%phone, item_count, deleted_count = deleted.len(), "delete batch answered");
+        info!(%phone, item_count, deleted_count = deleted.len(), kept_count, "delete batch answered");
         if let Err(e) = self.deleted(peer, &deleted) {
             self.log_not_removed(peer, &e);
         }
@@ -454,3 +510,6 @@ impl Inner {
         }
     }
 }
+
+#[cfg(test)]
+mod tests;

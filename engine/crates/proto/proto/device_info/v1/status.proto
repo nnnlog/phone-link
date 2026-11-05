@@ -51,6 +51,7 @@ message DeviceStatus {
   device_info.v1.NetworkType network_type = 16;
   bool is_connection_metered = 17;
   optional bool do_not_disturb_rule_enabled = 18;
+  optional bool ring_my_phone_stopped = 19;
 }
 
 message DeviceStatusRequestMessage {

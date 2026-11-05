@@ -492,7 +492,7 @@ impl Inner {
         let orchestrator = started.channel.clone();
         let settings = self.settings();
         let geometry = self.presenter.display_geometry();
-        let feature_type = values.apps_feature_type(self.separate_window());
+        let feature_type = values.apps_feature_type();
         let fps = if self.config.max_fps_60 {
             60
         } else if feature_type == AppsFeatureType::PhoneScreenOnly {

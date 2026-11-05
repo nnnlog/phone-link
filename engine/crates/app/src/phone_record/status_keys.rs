@@ -81,11 +81,23 @@ impl StatusKeys {
 
     /// Every inbound phone-content payload, whatever its `contentType`: the keys present with their
     /// stated types (`batteryPowerSave` spelling, `networkOperator` only as a `String`); a key of
-    /// another type is ignored; no capability bit is added.
-    pub fn record(&mut self, values: &ValueSet) {
-        rec_i32(&mut self.battery_percent, values, "batteryPercent");
-        rec_bool(&mut self.battery_charging, values, "batteryCharging");
-        rec_bool(&mut self.battery_power_save, values, "batteryPowerSave");
+    /// another type is ignored. Returns the capability bits the recorded keys add: `BatteryIndicator`
+    /// when a battery key was taken, nothing for the others.
+    pub fn record(&mut self, values: &ValueSet) -> u32 {
+        let mut battery = false;
+        if let Some(v) = rec_value(values, "batteryPercent", as_i32) {
+            self.battery_percent = Some(v);
+            battery = true;
+        }
+        if let Some(v) = rec_value(values, "batteryCharging", as_bool) {
+            self.battery_charging = Some(v);
+            battery = true;
+        }
+        if let Some(v) = rec_value(values, "batteryPowerSave", as_bool) {
+            self.battery_power_save = Some(v);
+            battery = true;
+        }
+
         rec_i32(&mut self.bluetooth_state, values, "bluetoothState");
 
         if let Some(v) = rec_value(values, "doNotDisturbStatus", as_i32) {
@@ -109,6 +121,8 @@ impl StatusKeys {
         rec_i32(&mut self.wifi_signal_level, values, "wifiSignalLevel");
         rec_bool(&mut self.wifi_state, values, "wifiState");
         rec_bool(&mut self.airplane_mode, values, "airplaneMode");
+
+        if battery { status_capability::BATTERY_INDICATOR } else { 0 }
     }
 
     /// The status keys of a `deviceStatus` item or of a `connect` reply's top level:

@@ -222,7 +222,7 @@ impl Inner {
 
         // A recent task always opens in a window of its own; other apps without app windows open
         // inside the phone-screen window.
-        if transfer_task_id.is_none() && v.apps_feature_type(self.separate_window()) != AppsFeatureType::MultipleApps {
+        if transfer_task_id.is_none() && v.apps_feature_type() != AppsFeatureType::MultipleApps {
             return self.open_phone_screen(Some(PendingPhoneScreen::App(package.to_string())));
         }
 

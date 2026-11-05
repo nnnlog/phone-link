@@ -21,6 +21,6 @@ fn logical_device_id_is_minted_once_and_the_session_id_is_the_processs() {
     assert_eq!(a.session_id, a.session_id.to_lowercase());
 
     assert_eq!(a.app_id, "MicrosoftWindows.CrossDevice_cw5n1h2txyewy");
-    assert_eq!(a.app_version, "1.26082.74.0");
+    assert_eq!(a.app_version, "1.26092.74.0");
     assert_eq!(a.headers()[0].0, "DCG-LogicalDeviceId");
 }

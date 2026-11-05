@@ -110,6 +110,9 @@ pub struct SessionView {
     pub button_order: Option<String>,
     pub recent_task_id: i64,
     pub screen_layout: Option<i32>,
+    /// The app's last screen layout on this Mac, kept per package from the phone's layout statuses
+    /// (`0` for the phone screen, which keeps none).
+    pub last_screen_layout: i32,
     /// The phone asks to move the app here (a task transfer when `true`).
     pub move_to_virtual_display: Option<bool>,
     pub audio: PackageAudio,

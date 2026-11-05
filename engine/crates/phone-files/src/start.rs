@@ -1,5 +1,6 @@
 //! What starts the feature for a phone, and its registrations.
 
+use super::requests::ConfigFollowUp;
 use super::{Cause, Inner, PhoneData, PhoneFilesEvent, SyncState, Trigger, Triggers, key};
 use phonelink_core::seams::SessionEvent;
 use phonelink_core::sync::MutexExt;
@@ -71,13 +72,13 @@ impl Inner {
         };
 
         if self.phone_enabled(phone) && !data.permission_granted && !data.capable {
-            self.spawn_config_sync(peer.clone(), false, Trigger::DeviceInitialization);
+            self.spawn_config_sync(peer.clone(), false, Trigger::DeviceInitialization, ConfigFollowUp::None);
             return;
         }
 
         let running = self.reconcile(peer, Cause::Registered);
         if running {
-            self.spawn_config_sync(peer.clone(), false, Trigger::FilesServiceStarted);
+            self.spawn_config_sync(peer.clone(), false, Trigger::FilesServiceStarted, ConfigFollowUp::RecordLtw);
         }
     }
 
@@ -148,7 +149,7 @@ impl Inner {
         self.emit(PhoneFilesEvent::Running { phone: phone.clone(), running: true });
         self.status_changed(phone);
         if cause == Cause::Switch {
-            self.spawn_config_sync(peer.clone(), true, Trigger::FilesServiceStarted);
+            self.spawn_config_sync(peer.clone(), true, Trigger::FilesServiceStarted, ConfigFollowUp::RecordLtw);
         }
     }
 
@@ -212,7 +213,7 @@ impl Inner {
 
         if let Some(peer) = self.env.peers.peer(phone) {
             if peer.info.is_android() && !up_to_date && self.phone_enabled(phone) {
-                self.spawn_config_sync(peer, false, Trigger::DeviceBecameAvailable);
+                self.spawn_config_sync(peer, false, Trigger::DeviceBecameAvailable, ConfigFollowUp::None);
             }
         }
     }
@@ -226,7 +227,8 @@ impl Inner {
         self.status_changed(phone);
     }
 
-    /// The phone's device-list entry changed while it is connected.
+    /// The phone's device-list entry changed while it is connected: the changes since the last sync, or
+    /// first the configuration when it is stale.
     pub(super) fn availability_update(&self, peer: &PeerDevice) {
         let phone = &peer.client;
         if !peer.info.is_android() || !self.available(phone) {
@@ -242,7 +244,7 @@ impl Inner {
         if up_to_date && running && data.initial_sync_done && data.permission_granted {
             self.spawn_refresh(peer.clone(), false, Trigger::DeviceUpdated);
         } else if !up_to_date {
-            self.spawn_config_sync(peer.clone(), false, Trigger::DeviceUpdated);
+            self.spawn_config_sync(peer.clone(), false, Trigger::DeviceUpdated, ConfigFollowUp::Reconnect);
         }
     }
 

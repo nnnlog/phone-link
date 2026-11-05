@@ -95,8 +95,7 @@ impl RcWorld {
 
     /// The phone sends `control_type` on `/remotecontrol` (path-addressed, `UPDATE`) and reads the answer.
     pub async fn drm(&self, control_type: i32) -> RemoteControlResponseMessage {
-        let payload = RemoteControlRequestMessage { control_type }.encode_to_vec();
-        self.drm_raw(4, 2, "/remotecontrol", &payload).await
+        self.drm_raw(4, 2, "/remotecontrol", &request_bytes(control_type)).await
     }
 
     /// The phone sends a raw `/DeviceResourceManager` request and reads the answer.
@@ -125,6 +124,11 @@ impl RcWorld {
         }
         out
     }
+}
+
+/// The `RemoteControlRequestMessage` of `control_type`.
+pub fn request_bytes(control_type: i32) -> Vec<u8> {
+    RemoteControlRequestMessage { control_type }.encode_to_vec()
 }
 
 /// The payload of a `SUCCESS` `/DeviceResourceManager` answer.

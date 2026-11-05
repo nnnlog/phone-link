@@ -12,7 +12,7 @@ EngineConfig {
             client_type: "WEA",
             msa_client_id: "ca3b40e4-3001-4842-8f21-49c0045404f8",
             package_family: "MicrosoftWindows.CrossDevice_cw5n1h2txyewy",
-            package_version: "1.26082.74.0",
+            package_version: "1.26092.74.0",
             friendly_name: "CrossDevice",
         },
         cdeh: None,
@@ -134,7 +134,7 @@ EngineConfig {
         drm_minimum_client_version: "1.23112.189.0",
     },
     app: AppConfig {
-        app_version: "1.26082.121.0",
+        app_version: "1.26092.119.0",
         contract_version: 3.99,
         request_timeout: 120s,
         background_connect_timeout: 600s,
@@ -229,7 +229,6 @@ EngineConfig {
             mute_all_duration: 86400s,
         },
         phone_apps: PhoneAppsConfig {
-            separate_window: false,
             office_desktop_uri_rewrite: false,
             syncing_indicator_max: 120s,
             recent_apps_max: 3,
@@ -338,7 +337,7 @@ EngineConfig {
             client_type: "PL",
             msa_client_id: "8CF55838-E496-42C5-829B-F8D6945288F3",
             package_family: "Microsoft.YourPhone_8wekyb3d8bbwe",
-            package_version: "1.26082.121.0",
+            package_version: "1.26092.119.0",
             friendly_name: "Microsoft Your Phone",
         },
         cdeh: Some(
@@ -347,7 +346,7 @@ EngineConfig {
                     client_type: "WEA",
                     msa_client_id: "ca3b40e4-3001-4842-8f21-49c0045404f8",
                     package_family: "MicrosoftWindows.CrossDevice_cw5n1h2txyewy",
-                    package_version: "1.26082.74.0",
+                    package_version: "1.26092.74.0",
                     friendly_name: "CrossDevice",
                 },
                 capabilities: [
@@ -474,7 +473,7 @@ EngineConfig {
         drm_minimum_client_version: "1.23112.189.0",
     },
     app: AppConfig {
-        app_version: "1.26082.121.0",
+        app_version: "1.26092.119.0",
         contract_version: 3.99,
         request_timeout: 120s,
         background_connect_timeout: 600s,
@@ -569,7 +568,6 @@ EngineConfig {
             mute_all_duration: 86400s,
         },
         phone_apps: PhoneAppsConfig {
-            separate_window: false,
             office_desktop_uri_rewrite: false,
             syncing_indicator_max: 120s,
             recent_apps_max: 3,

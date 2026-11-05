@@ -92,9 +92,9 @@ impl EngineCore {
 
     /// Stops the CDEH identity's session to the selected phone in the background (a local
     /// disconnect), as CDEH does when the session locks, the phone is disabled or leaves the CDEH
-    /// identity's linked devices. Nothing without a CDEH identity.
-    pub(super) fn stop_cdeh_session(&self) {
-        self.submit_cdeh_change(SessionChange::Stop);
+    /// identity's linked devices; `stop` names which. Nothing without a CDEH identity.
+    pub(super) fn stop_cdeh_session(&self, stop: CdehStop) {
+        self.submit_cdeh_change(SessionChange::Stop(stop));
     }
 
     pub(super) fn submit_cdeh_change(&self, change: SessionChange) {
@@ -121,7 +121,7 @@ pub(super) enum SessionChange {
     },
     /// A start that returns without starting; it still supersedes the changes before it.
     Skip(Refusal),
-    Stop,
+    Stop(CdehStop),
 }
 
 impl SessionChange {
@@ -130,7 +130,7 @@ impl SessionChange {
         match self {
             Self::Start { .. } => "start",
             Self::Skip(_) => "skip",
-            Self::Stop => "stop",
+            Self::Stop(_) => "stop",
         }
     }
 
@@ -181,6 +181,41 @@ impl CdehTrigger {
             Self::DeviceEnabled => "CDEH.DeviceEnabled",
             Self::SessionUnlocked => "CDEH.SessionUnlocked",
         }
+    }
+}
+
+/// What stopped a session to a phone. The stop's trace context, which its `/PlatformDisconnectRequest`
+/// carries, names the scenario and the trigger.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum CdehStop {
+    SessionLocked,
+    DeviceDisabled,
+    /// The phone's session loop ended: the CDEH identity's device list lost the phone, another phone was
+    /// selected, or the engine stops. The stop runs in the loop's own trace, scenario `StartSession`.
+    SessionLoopEnded,
+}
+
+impl CdehStop {
+    /// The `ypScenarioId` and `ypTriggerId` of the stop's trace state.
+    fn trace_names(self) -> (&'static str, &'static str) {
+        match self {
+            Self::SessionLocked => ("StopSession", "CDEH.SessionLocked"),
+            Self::DeviceDisabled => ("StopSession", "CDEH.DeviceDisabled"),
+            Self::SessionLoopEnded => ("StartSession", CdehTrigger::ProcessSessionChanges.trigger_id()),
+        }
+    }
+
+    pub(super) fn trigger_id(self) -> &'static str {
+        self.trace_names().1
+    }
+
+    /// A fresh root trace context whose trace state names the stop's scenario and trigger.
+    pub(super) fn trace(self) -> TraceContext {
+        let (scenario, trigger) = self.trace_names();
+        TraceContext::new_root(vec![
+            (crate::types::trace_key::SCENARIO.to_string(), scenario.to_string()),
+            (crate::types::trace_key::TRIGGER.to_string(), trigger.to_string()),
+        ])
     }
 }
 
@@ -258,9 +293,9 @@ async fn run_change(
 ) -> Ran {
     match change {
         SessionChange::Skip(refusal) => refusal.log(&phone, identity),
-        SessionChange::Stop => {
-            info!(%phone, identity_type = identity, "the identity's session stopping");
-            sessions.disconnect(&phone).await;
+        SessionChange::Stop(stop) => {
+            info!(%phone, identity_type = identity, trigger = stop.trigger_id(), "the identity's session stopping");
+            sessions.disconnect(&phone, stop.trace()).await;
         }
         SessionChange::Start { request, trigger } => {
             info!(%phone, identity_type = identity, trigger = trigger.trigger_id(), "the identity's session starting");

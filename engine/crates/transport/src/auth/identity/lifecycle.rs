@@ -15,10 +15,10 @@ pub(crate) enum Deprovision {
     AccountSwitch,
     /// Account enumeration found the record of another account (one account at a time).
     OtherAccount,
-    /// Account enumeration found the account's identity no longer active.
-    IdentityInactive,
     /// The service reported the device unlinked.
     Unlinked,
+    /// The identity the account was enrolled with was cleared.
+    IdentityCleared,
     /// The client-info refresh's `SetDeviceInfo` was refused as unauthorized.
     Unauthorized,
     /// The trust synchronization found the own device-list entry gone and could not restore it.
@@ -27,10 +27,12 @@ pub(crate) enum Deprovision {
 
 impl AuthService {
     /// Clears the identity of `env` (with a pending rotation key) and every relationship whose
-    /// `self_client_id == trust_<deviceId>`, with its trust certificate and cached token.
-    pub(crate) fn clear_identity_locked(&self, st: &mut State, env: Environment) -> Result<(), AuthError> {
-        if let Some(record) = st.env_mut(env).identity.take() {
-            let self_id = trust_client_id(&record.device_id);
+    /// `self_client_id == trust_<deviceId>`, with its trust certificate and cached token. Returns the
+    /// `dcgClientId` it cleared, if there was one.
+    pub(crate) fn clear_identity_locked(&self, st: &mut State, env: Environment) -> Result<Option<String>, AuthError> {
+        let cleared = st.env_mut(env).identity.take().map(|record| record.device_id);
+        if let Some(device_id) = &cleared {
+            let self_id = trust_client_id(device_id);
             st.trust.remove_where(|r| r.self_client_id.eq_ignore_ascii_case(&self_id));
         }
 
@@ -42,7 +44,8 @@ impl AuthService {
 
         self.persist_identity(st, env)?;
         self.persist_trust_keys(st, env)?;
-        self.persist_trust(st)
+        self.persist_trust(st)?;
+        Ok(cleared)
     }
 
     /// Deprovisioning an account: its relationships (by CID), its trust certificate and peer cache
@@ -81,12 +84,45 @@ impl AuthService {
         Ok(())
     }
 
-    /// The device was unlinked: the identity of `env` is cleared and every account deprovisioned.
-    /// Returns the error to report.
+    /// The accounts whose records are bound to the identity `device_id` of `env` — the accounts that
+    /// identity enrolled.
+    fn accounts_bound_to(st: &State, env: Environment, device_id: &str) -> Vec<String> {
+        st.account_info
+            .iter()
+            .filter(|(_, info)| {
+                info.environment == Some(env)
+                    && info.dcg_client_id.as_deref().is_some_and(|id| id.eq_ignore_ascii_case(device_id))
+            })
+            .map(|(id, _)| id.clone())
+            .collect()
+    }
+
+    /// A cleared identity takes the accounts it enrolled with it.
+    pub(super) fn deprovision_bound_locked(
+        &self,
+        st: &mut State,
+        env: Environment,
+        cleared: Option<&str>,
+    ) -> Result<(), AuthError> {
+        let Some(device_id) = cleared else {
+            return Ok(());
+        };
+
+        for id in Self::accounts_bound_to(st, env, device_id) {
+            self.deprovision_locked(st, &id, Deprovision::IdentityCleared)?;
+        }
+        Ok(())
+    }
+
+    /// The device was unlinked: the identity of `env` is cleared, and with it the accounts that
+    /// identity enrolled. Returns the error to report.
     pub(crate) fn unlinked(&self, env: Environment) -> AuthError {
         let mut st = self.state.lock_or_panic();
-        let outcome = self.clear_identity_locked(&mut st, env).and_then(|()| {
-            let ids: Vec<String> = st.account_info.keys().cloned().collect();
+        let outcome = self.clear_identity_locked(&mut st, env).and_then(|cleared| {
+            let ids: Vec<String> = match cleared {
+                Some(device_id) => Self::accounts_bound_to(&st, env, &device_id),
+                None => Vec::new(),
+            };
             ids.iter().try_for_each(|id| self.deprovision_locked(&mut st, id, Deprovision::Unlinked))
         });
 
@@ -96,15 +132,22 @@ impl AuthService {
         AuthError::UnlinkedDevice
     }
 
-    /// The `/Auth` error rules: `InvalidCertificate` → identity cleared (`InvalidIdentity`);
-    /// 403 + 13 → unlinked; a 401 drops the cached MSA token; the rest maps generically.
+    /// A rejected identity while provisioning (`InvalidCertificate` on `GenerateNonce` or
+    /// `CreateIdentity`): it is cleared. Returns the error to report.
+    pub(super) fn identity_rejected(&self, env: Environment) -> AuthError {
+        let mut st = self.state.lock_or_panic();
+        if let Err(err) = self.clear_identity_locked(&mut st, env) {
+            tracing::error!(error = %err, "cleared invalid identity not persisted");
+        }
+        AuthError::InvalidIdentity
+    }
+
+    /// The error rules of `GenerateNonce` and `CreateIdentity` while provisioning: `InvalidCertificate`
+    /// → identity cleared (`InvalidIdentity`); 403 + 13 → unlinked; a 401 drops the cached MSA token;
+    /// the rest maps generically.
     pub(super) fn auth_failure(&self, env: Environment, e: RestError) -> AuthError {
         if e.is_invalid_certificate() {
-            let mut st = self.state.lock_or_panic();
-            if let Err(err) = self.clear_identity_locked(&mut st, env) {
-                tracing::error!(error = %err, "cleared invalid identity not persisted");
-            }
-            return AuthError::InvalidIdentity;
+            return self.identity_rejected(env);
         }
 
         if e.is_unlinked() {

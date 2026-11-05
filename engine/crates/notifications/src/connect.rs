@@ -1,8 +1,9 @@
 //! The `SyncNotifications` connect provider, Android only: `configuration.AudioInfoSyncEnabled`
-//! always; with both notification permissions on, the reconcile keys when the stored
-//! `NotificationsCapabilities` has `EcrHandlesNotifications`, else a separate full sync (a) started
-//! while the connect is built, without waiting. From the response: `permissions.notifications` and
-//! `capabilities.notifications`.
+//! always; with both notification permissions on, the reconcile keys and
+//! `supportsNotificationSyncCompletion` when the stored `NotificationsCapabilities` has
+//! `EcrHandlesNotifications`, else a separate full sync (a) started while the connect is built,
+//! without waiting. From the response: `permissions.notifications`, `capabilities.notifications`,
+//! and `notificationSyncCompleted`, whose `true` sets the "last updated" time.
 
 use std::sync::Arc;
 
@@ -69,6 +70,7 @@ impl ConnectContributor for Contributor {
                     c.top_level.insert(key::NOTIFICATION_KEYS_COUNT, count);
                     c.top_level.insert(key::NOTIFICATION_KEYS, Value::StringArray(keys));
                     c.top_level.insert(key::POST_TIMES, Value::Int64Array(post_times));
+                    c.top_level.insert(key::SUPPORTS_NOTIFICATION_SYNC_COMPLETION, true);
                 }
                 Err(e) => error!(error = %e, "stored notifications not read; the connect carries no reconcile keys"),
             }
@@ -103,6 +105,10 @@ impl ConnectContributor for Contributor {
                 Ok(_) => {}
                 Err(e) => error!(error = %e, "NotificationsCapabilities not stored; the stored capabilities are kept"),
             }
+        }
+
+        if response.bool(key::NOTIFICATION_SYNC_COMPLETED) == Some(true) {
+            self.inner.set_last_updated(ctx.phone);
         }
     }
 }

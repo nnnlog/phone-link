@@ -1,6 +1,6 @@
 //! The tasks that carry the layers' events into the core: device lists, sessions, the App layer, the clipboard switch.
 
-use super::{CdehTrigger, CoreEvent, EngineCore, IdentityStack};
+use super::{CdehStop, CdehTrigger, CoreEvent, EngineCore, IdentityStack};
 use crate::app::{AppEvent, ConnectKind};
 use crate::auth::{AccountRemoved, PeerEvent};
 use crate::features::clipboard::ClipboardEvent;
@@ -245,7 +245,7 @@ impl EngineCore {
                             if let Some(features) = core.features() {
                                 features.screen_mirroring.device_connection_lost();
                             }
-                            core.stop_cdeh_session();
+                            core.stop_cdeh_session(CdehStop::DeviceDisabled);
                         }
                     }
                     Err(tokio::sync::broadcast::error::RecvError::Lagged(n)) => {
@@ -259,7 +259,7 @@ impl EngineCore {
                                 if let Some(features) = core.features() {
                                     features.screen_mirroring.device_connection_lost();
                                 }
-                                core.stop_cdeh_session();
+                                core.stop_cdeh_session(CdehStop::DeviceDisabled);
                             }
                             Err(e) => {
                                 error!(%phone, error = %e, "the per-phone switch not read; the CDEH session stays as it is")
@@ -287,7 +287,7 @@ impl EngineCore {
                         let Some(core) = weak.upgrade() else { break };
                         if selected(&core, &client) {
                             info!(phone = %client, "the CDEH identity's device list lost the selected phone");
-                            core.stop_cdeh_session();
+                            core.stop_cdeh_session(CdehStop::SessionLoopEnded);
                         }
                     }
                     Ok(PeerEvent::Updated(_)) => {}

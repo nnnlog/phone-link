@@ -7,12 +7,15 @@ use phonelink_features::shared::db::{FeatureDb, StoreError};
 /// The feature's name: its store and its notification ids (`file_transfer/…`).
 pub const FEATURE: &str = "file_transfer";
 
-pub const MIGRATIONS: &[&str] = &["CREATE TABLE phone_state (
+pub const MIGRATIONS: &[&str] = &[
+    "CREATE TABLE phone_state (
         id INTEGER PRIMARY KEY CHECK (id = 0),
         share_enabled INTEGER NOT NULL,
         received_files_folder TEXT,
         show_folder_setting INTEGER NOT NULL
-    );"];
+    );",
+    "ALTER TABLE phone_state ADD COLUMN files_permission_granted INTEGER NOT NULL DEFAULT 0;",
+];
 
 /// One phone's settings.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -23,28 +26,36 @@ pub struct PhoneData {
     pub received_files_folder: Option<String>,
     /// The received-files-folder setting is shown (set once a receive request was accepted).
     pub show_folder_setting: bool,
+    /// The phone holds the files permission, as its last answers and publications said.
+    pub files_permission_granted: bool,
 }
 
 impl Default for PhoneData {
     fn default() -> Self {
-        Self { share_enabled: true, received_files_folder: None, show_folder_setting: false }
+        Self {
+            share_enabled: true,
+            received_files_folder: None,
+            show_folder_setting: false,
+            files_permission_granted: false,
+        }
     }
 }
 
 pub(crate) fn load(db: &FeatureDb) -> Result<PhoneData, StoreError> {
-    let row: Option<(bool, Option<String>, bool)> = db.read(|c| {
+    let row: Option<(bool, Option<String>, bool, bool)> = db.read(|c| {
         c.query_row(
-            "SELECT share_enabled, received_files_folder, show_folder_setting FROM phone_state WHERE id = 0",
+            "SELECT share_enabled, received_files_folder, show_folder_setting, files_permission_granted
+             FROM phone_state WHERE id = 0",
             [],
-            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)),
         )
         .optional()
     })?;
 
     Ok(match row {
         None => PhoneData::default(),
-        Some((share_enabled, received_files_folder, show_folder_setting)) => {
-            PhoneData { share_enabled, received_files_folder, show_folder_setting }
+        Some((share_enabled, received_files_folder, show_folder_setting, files_permission_granted)) => {
+            PhoneData { share_enabled, received_files_folder, show_folder_setting, files_permission_granted }
         }
     })
 }
@@ -52,12 +63,19 @@ pub(crate) fn load(db: &FeatureDb) -> Result<PhoneData, StoreError> {
 pub(crate) fn save(db: &FeatureDb, data: &PhoneData) -> Result<(), StoreError> {
     db.transaction(|tx| -> Result<(), StoreError> {
         tx.execute(
-            "INSERT INTO phone_state (id, share_enabled, received_files_folder, show_folder_setting)
-             VALUES (0, ?1, ?2, ?3)
+            "INSERT INTO phone_state (id, share_enabled, received_files_folder, show_folder_setting,
+                 files_permission_granted)
+             VALUES (0, ?1, ?2, ?3, ?4)
              ON CONFLICT (id) DO UPDATE SET share_enabled = excluded.share_enabled,
                  received_files_folder = excluded.received_files_folder,
-                 show_folder_setting = excluded.show_folder_setting",
-            rusqlite::params![data.share_enabled, data.received_files_folder, data.show_folder_setting],
+                 show_folder_setting = excluded.show_folder_setting,
+                 files_permission_granted = excluded.files_permission_granted",
+            rusqlite::params![
+                data.share_enabled,
+                data.received_files_folder,
+                data.show_folder_setting,
+                data.files_permission_granted
+            ],
         )
         .map(|_| ())
         .map_err(StoreError::from)

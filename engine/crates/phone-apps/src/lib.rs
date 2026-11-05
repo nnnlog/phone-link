@@ -166,14 +166,14 @@ struct RecordView {
     gates: [bool; 7],
 }
 
-fn gates_of(record: &PhoneRecord, app: &AppConfig, config: &PhoneAppsConfig) -> [bool; 7] {
+fn gates_of(record: &PhoneRecord, app: &AppConfig) -> [bool; 7] {
     [
         launch_gates::phone_apps_capable(record),
         launch_gates::recent_apps_supported(record),
         launch_gates::app_handoff_enabled(record),
         launch_gates::phone_screen_apps(record, app),
         launch_gates::remoting_supported(record),
-        launch_gates::hosted_apps(record, app, config.separate_window),
+        launch_gates::hosted_apps(record, app),
         launch_gates::apps_view_visible(record, app),
     ]
 }
@@ -324,8 +324,7 @@ impl Inner {
     }
 
     fn status_of(&self, ps: &PhoneState, record: &PhoneRecord) -> Result<PhoneAppsStatus, PhoneAppsError> {
-        let [capable, recent, handoff, screen, remoting, hosted, visible] =
-            gates_of(record, &self.app_config, &self.config);
+        let [capable, recent, handoff, screen, remoting, hosted, visible] = gates_of(record, &self.app_config);
         let sync = store::sync_state(&ps.db)?;
 
         Ok(PhoneAppsStatus {
@@ -370,7 +369,7 @@ impl Inner {
     /// Announces a change of the record-derived gates; a newly selected phone's store is opened.
     fn on_record_changed(self: &Arc<Self>) {
         let Some(record) = self.app.upgrade().and_then(|a| a.phone_record()) else { return };
-        let view = RecordView { phone: record.phone(), gates: gates_of(&record, &self.app_config, &self.config) };
+        let view = RecordView { phone: record.phone(), gates: gates_of(&record, &self.app_config) };
         let previous = self.last_view.lock_or_panic().replace(view.clone());
         if previous.as_ref() == Some(&view) {
             return;
@@ -464,7 +463,7 @@ impl PhoneApps {
         if let Some(record) = env.app.phone_record() {
             inner.phone_state(&record.phone())?;
             *inner.last_view.lock_or_panic() =
-                Some(RecordView { phone: record.phone(), gates: gates_of(&record, &inner.app_config, &inner.config) });
+                Some(RecordView { phone: record.phone(), gates: gates_of(&record, &inner.app_config) });
         }
         Ok(Arc::new(Self { inner }))
     }

@@ -17,7 +17,7 @@ use tokio::time::Instant;
 use tracing::debug;
 
 use super::channel::{ChannelError, ChannelLink, RawChannel};
-use super::contract::{IceServers, IceSrtpOffer, MasterKey, ip_srtp_offer};
+use super::contract::{IceServers, IceSrtpOffer, MasterKey, ip_srtp_offer, turn_address_usable};
 use super::ice::agent::{Base, IceAgent, IceConfig, TurnServer};
 use super::metrics::Aggregators;
 use super::netif::{HostAddress, host_addresses};
@@ -341,9 +341,16 @@ impl NanoSocket {
     }
 }
 
-async fn resolve(host: &str, port: u16) -> Option<SocketAddr> {
+/// The first address of `host` that `usable` accepts.
+async fn resolve(host: &str, port: u16, usable: impl Fn(&SocketAddr) -> bool) -> Option<SocketAddr> {
     match tokio::net::lookup_host((host, port)).await {
-        Ok(mut addrs) => addrs.next(),
+        Ok(mut addrs) => {
+            let found = addrs.find(&usable);
+            if found.is_none() {
+                debug!(host, "STUN/TURN host has no address of the family it is reached over");
+            }
+            found
+        }
         Err(e) => {
             debug!(host, error = %e, "STUN/TURN host did not resolve");
             None
@@ -392,7 +399,7 @@ impl Runner {
 
         let mut stun = Vec::new();
         for entry in options.servers.stun_servers() {
-            match resolve(&entry.host, entry.port).await {
+            match resolve(&entry.host, entry.port, |_| true).await {
                 Some(a) => stun.push(a),
                 None => runner.resolution_failed = true,
             }
@@ -400,7 +407,7 @@ impl Runner {
 
         let mut turn = None;
         if let Some(entry) = options.servers.turn_server() {
-            match resolve(&entry.host, entry.port).await {
+            match resolve(&entry.host, entry.port, turn_address_usable).await {
                 Some(address) => {
                     turn = Some(TurnServer {
                         address,
@@ -469,3 +476,9 @@ async fn sleep_until(t: Option<Instant>) {
         None => std::future::pending().await,
     }
 }
+
+#[cfg(test)]
+pub(crate) mod testing;
+
+#[cfg(test)]
+mod tests;

@@ -1,6 +1,6 @@
 //! Selecting the phone, persisting the selection, and the phone leaving the account.
 
-use super::{CdehTrigger, CoreEvent, EngineCore, EngineError, SELECTED_PHONE_KEY, linked_phone, setup_err};
+use super::{CdehStop, CdehTrigger, CoreEvent, EngineCore, EngineError, SELECTED_PHONE_KEY, linked_phone, setup_err};
 use crate::app::ConnectTrigger;
 use crate::auth::PeerDevice;
 use crate::features::shared::peers::is_phone;
@@ -51,7 +51,7 @@ impl EngineCore {
 
         if let Some(previous) = previous.filter(|p| !p.is_same_client(&phone.client)) {
             let sessions = self.sessions.clone();
-            tokio::spawn(async move { sessions.disconnect(&previous).await });
+            tokio::spawn(async move { sessions.disconnect(&previous, CdehStop::SessionLoopEnded.trace()).await });
         }
 
         self.events.core_event(CoreEvent::PhoneChanged);

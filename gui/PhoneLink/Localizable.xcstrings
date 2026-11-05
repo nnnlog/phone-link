@@ -4976,6 +4976,16 @@
         }
       }
     },
+    "No results" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "결과 없음"
+          }
+        }
+      }
+    },
     "No service" : {
       "localizations" : {
         "ko" : {

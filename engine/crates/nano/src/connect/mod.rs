@@ -216,6 +216,9 @@ fn log_no_relay(error: &RelayServersError, skipped: &'static str) {
 
 /// The screen-mirroring path's attempts: `Ip`, and with ICE support `Ice` and `IceStun` (when a STUN
 /// server is known), plus `IceStunAndTurn` when configured and a TURN server is available.
+///
+/// `IceStunAndTurn` passes the first `CloudRelay` TURN URL unchanged; the agent reaches its host over IPv4
+/// only ([`crate::contract::turn_address_usable`]).
 pub async fn mirroring_attempts(config: &NanoConfig, phone: PhoneRemoting, relay: &dyn RelaySource) -> Vec<Attempt> {
     if !phone.ice_supported() {
         let mut ip = Attempt::new(mirroring_transport::IP, ConnectionType::IpSrtp, IceServers::default());
@@ -375,9 +378,9 @@ pub async fn initialize_context(
 /// The device-connection path's attempts: `Ip` and `IceLocal`; `IceStun` and `IceTurn` when `CloudRelay`
 /// returned both STUN and TURN servers.
 ///
-/// STUN and TURN URLs are space-joined, unchanged. There is never
-/// a Wi-Fi Direct attempt (differs from Phone Link on Windows, which can add one): macOS has no public
-/// API to join a Wi-Fi Direct group.
+/// STUN and TURN URLs are space-joined, unchanged; `IceTurn` reaches the TURN host over IPv4 only
+/// ([`crate::contract::turn_address_usable`]). There is never a Wi-Fi Direct attempt (differs from Phone Link on
+/// Windows, which can add one): macOS has no public API to join a Wi-Fi Direct group.
 pub async fn device_attempts(relay: &dyn RelaySource) -> Vec<Attempt> {
     let mut attempts = vec![
         Attempt::new(device_transport::IP, ConnectionType::IpSrtp, IceServers::default()),

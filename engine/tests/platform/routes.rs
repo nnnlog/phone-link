@@ -14,9 +14,9 @@ use fakes::*;
 use phonelink_engine::config::EngineConfig;
 use phonelink_engine::edge::LockState;
 use phonelink_engine::platform::{
-    AcceptedCapabilities, DeviceFilter, DrmAddress, DrmChannel, DrmReceiver, DrmReceiverError, DrmRegistrationError,
-    DrmRequest, DrmSendOutcome, DrmSendRequest, Publication, PublicationObserver, PublishOutcome, SessionPhase,
-    ValidationOutcome, route,
+    AcceptedCapabilities, AnswerDelivery, DeviceFilter, DrmAddress, DrmAnswer, DrmChannel, DrmFollowUpReceiver,
+    DrmReceiver, DrmReceiverError, DrmRegistrationError, DrmRequest, DrmSendOutcome, DrmSendRequest, Publication,
+    PublicationObserver, PublishOutcome, SessionPhase, ValidationOutcome, route,
 };
 use phonelink_engine::proto::platform_sdk::v1 as pb;
 use phonelink_engine::seams::{
@@ -65,7 +65,7 @@ async fn session_validation_on_connect_sends_the_baseline_request_and_caches() {
     assert_eq!(request.message.payload, vec![0x0A, 0x01, 0x01], "[SESSION_VALIDATION]");
 
     let sent = &w.pair.pc_link.sent_on(route::SESSION_VALIDATION)[0];
-    assert_eq!(sent.priority, 100);
+    assert_eq!(sent.priority, 0);
     assert_eq!(sent.options, SendOptions { skip_wake_if_not_connected: true, ..SendOptions::NONE });
 
     settle().await;
@@ -202,6 +202,72 @@ async fn session_validation_failure_mapping() {
     );
     assert_eq!(start.elapsed(), Duration::from_secs(120));
     assert!(w.sessions.is_connected(&phone_id()), "validation failure never tears down the session");
+}
+
+#[tokio::test(start_paused = true)]
+async fn a_context_source_without_capabilities_keeps_its_refresh_unless_the_partner_was_unreachable() {
+    let w = world();
+    validation_not_supported(&w);
+    w.connect_phone().await;
+    settle().await;
+    let validator = w.routes.validator.clone();
+
+    // Validation does not succeed, so the source is created without capabilities.
+    assert_eq!(validator.context_source(&phone_id()).await.capabilities, None);
+    assert_eq!(w.phone_validation.count(), 2, "the on-connect validation and the context source's");
+
+    // A refresh the phone rejects for disabled sync is not kept: the next caller asks again.
+    for reason in ["AllSyncDisabled", "MeteredSyncDisabled"] {
+        w.phone_validation.set_reply(Box::new(move |_| {
+            Some(platform(&[("_rejectedReason", reason), ("ms-content-type", "text/json")], b"{}"))
+        }));
+        let before = w.phone_validation.count();
+        assert!(matches!(validator.validate(&phone_id()).await, ValidationOutcome::Failed(_)), "{reason}");
+        assert!(matches!(validator.validate(&phone_id()).await, ValidationOutcome::Failed(_)), "{reason}");
+        assert_eq!(w.phone_validation.count(), before + 2, "{reason}: asked twice");
+    }
+
+    // Nor is a refresh whose send found the partner not connected.
+    w.pair.pc_link.script(Behavior::Fail(DcgSendStatus::PartnerNotConnected));
+    assert_eq!(
+        validator.validate(&phone_id()).await,
+        ValidationOutcome::Failed(PlatformRequestStatus::RequestSendFailed(DcgSendStatus::PartnerNotConnected))
+    );
+
+    // Any other outcome is kept until the source goes: no second request.
+    validation_not_supported(&w);
+    let before = w.phone_validation.count();
+    assert_eq!(validator.validate(&phone_id()).await, ValidationOutcome::NotSupported);
+    w.phone_validation.set_reply(Box::new(|_| Some(full_validation_response())));
+    assert_eq!(validator.validate(&phone_id()).await, ValidationOutcome::NotSupported, "the kept outcome");
+    assert_eq!(validator.context_source(&phone_id()).await.capabilities, None);
+    assert_eq!(w.phone_validation.count(), before + 1);
+
+    // The source goes with the session; the next connect validates afresh.
+    w.hub.partner_leaves(&phone_id(), PartnerDisconnectReason::NoticeFromHub);
+    settle().await;
+    w.connect_phone().await;
+    settle().await;
+    assert_eq!(w.phone_validation.count(), before + 2);
+    assert_eq!(validator.cached(&phone_id()).unwrap().capabilities, validated_baseline());
+}
+
+#[tokio::test(start_paused = true)]
+async fn a_capability_refresh_that_succeeds_records_the_capabilities_on_the_source() {
+    let w = world();
+    validation_not_supported(&w);
+    w.connect_phone().await;
+    settle().await;
+    let validator = w.routes.validator.clone();
+    assert_eq!(validator.context_source(&phone_id()).await.capabilities, None);
+
+    w.phone_validation.set_reply(Box::new(|_| Some(full_validation_response())));
+    assert_eq!(validator.validate(&phone_id()).await, ValidationOutcome::Validated(validated_baseline().unwrap()));
+    assert_eq!(validator.cached(&phone_id()).unwrap().capabilities, validated_baseline());
+
+    let count = w.phone_validation.count();
+    assert!(matches!(validator.validate(&phone_id()).await, ValidationOutcome::Validated(_)));
+    assert_eq!(w.phone_validation.count(), count, "cached");
 }
 
 #[tokio::test(start_paused = true)]
@@ -1045,6 +1111,32 @@ impl DrmReceiver for Receiver {
     }
 }
 
+/// A receiver whose answers carry a follow-up recording how each answer's send ended.
+struct FollowingReceiver {
+    answer: Vec<u8>,
+    deliveries: Arc<Mutex<Vec<AnswerDelivery>>>,
+}
+
+impl FollowingReceiver {
+    fn answering(answer: &[u8]) -> Arc<Self> {
+        Arc::new(Self { answer: answer.to_vec(), deliveries: Arc::default() })
+    }
+
+    fn deliveries(&self) -> Vec<AnswerDelivery> {
+        self.deliveries.lock().unwrap().clone()
+    }
+}
+
+#[async_trait]
+impl DrmFollowUpReceiver for FollowingReceiver {
+    async fn receive(&self, _request: DrmRequest) -> Result<Option<DrmAnswer>, DrmReceiverError> {
+        let deliveries = self.deliveries.clone();
+        Ok(Some(DrmAnswer::then(self.answer.clone(), move |delivery| async move {
+            deliveries.lock().unwrap().push(delivery);
+        })))
+    }
+}
+
 fn drm(resource_type: i32, request_type: i32, path: &str, payload: &[u8]) -> phonelink_engine::types::TransportMessage {
     let body = pb::DeviceResourceManagerMessage {
         resource_type,
@@ -1180,6 +1272,43 @@ async fn drm_requests_that_get_no_reply() {
     }
     assert!(receiver.seen().is_empty());
     assert!(w.pair.pc_link.sent_on(route::INTERNAL_RESPONSE).is_empty());
+}
+
+#[tokio::test(start_paused = true)]
+async fn a_receivers_follow_up_runs_once_its_answer_was_sent_or_could_not_be() {
+    use AnswerDelivery::{NotSent, Sent};
+    let w = world();
+    let receiver = FollowingReceiver::answering(b"a");
+    w.routes.drm.register_follow_up_receiver("/remotecontrol", receiver.clone()).unwrap();
+
+    // Sent: the phone has the answer.
+    let response = phone_drm_request(&w, drm(4, 2, "/remotecontrol", b"")).await;
+    assert_eq!(response.status, PlatformRequestStatus::Success);
+    settle().await;
+    assert_eq!(receiver.deliveries(), [Sent]);
+
+    // The answer's send failed.
+    w.pair.pc_link.script(Behavior::Fail(DcgSendStatus::TimedOut));
+    let response = phone_drm_request(&w, drm(4, 2, "/remotecontrol", b"")).await;
+    assert_eq!(response.status, PlatformRequestStatus::ResponseTimedOut);
+    settle().await;
+    assert_eq!(receiver.deliveries(), [Sent, NotSent]);
+
+    // No _requestId: no answer can be sent.
+    w.pair.inject(drm(4, 2, "/remotecontrol", b""));
+    settle().await;
+    assert_eq!(receiver.deliveries(), [Sent, NotSent, NotSent]);
+
+    // The device-proxy variant: a reply that is sent, and one over its size limit.
+    w.pair.inject(proxy_message(Some("r-1"), "64", proxy_command(4.into(), 2.into(), b"", "/remotecontrol")));
+    settle().await;
+    assert_eq!(receiver.deliveries(), [Sent, NotSent, NotSent, Sent]);
+
+    let big = FollowingReceiver::answering(&[0u8; 2048]);
+    w.routes.drm.register_follow_up_receiver("/big", big.clone()).unwrap();
+    w.pair.inject(proxy_message(Some("r-2"), "1", proxy_command(4.into(), 2.into(), b"", "/big")));
+    settle().await;
+    assert_eq!(big.deliveries(), [NotSent]);
 }
 
 #[tokio::test(start_paused = true)]

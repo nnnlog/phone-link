@@ -199,7 +199,7 @@ async fn open_relayed_device(
     let Ok(servers) = servers else {
         return Err("no CloudRelay servers".into());
     };
-    open_relayed(handle, config, &servers, phone).await.map(Arc::new)
+    open_relayed(handle, config, &servers, phone).await.map(|d| d.bound_to(handle))
 }
 
 /// Creates an `InternalMessaging` platform channel on the device connection and closes it.

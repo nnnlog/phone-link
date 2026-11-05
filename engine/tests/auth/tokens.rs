@@ -1,7 +1,6 @@
 //! The services token refresh policy and identity key rotation, and the `TokenSource` seam the
 //! relay consumes.
 
-use crate::assert_matches;
 use crate::support::auth_world;
 
 use std::sync::{Arc, Mutex};
@@ -254,6 +253,8 @@ async fn identity_key_rotation_by_key_valid_remaining_days() {
     assert_eq!(h.dcg.count("RotateKeys"), 1);
 }
 
+/// A failed rotation keeps the current key; a rotation that finds the identity certificate rejected
+/// is the identity rules' case (`auth::identity_rules`).
 #[tokio::test]
 async fn identity_key_rotation_failures() {
     let mut h = Harness::new().await;
@@ -287,16 +288,6 @@ async fn identity_key_rotation_failures() {
     assert_eq!(seen[1], seen[2], "the InvalidNonce retry offers the same incoming key");
     assert_eq!(seen[2].as_ref(), Some(&h.identity_cert(Environment::Prod)));
     assert_eq!(h.pending_identity_cert(Environment::Prod), None);
-
-    // InvalidCertificate clears the identity.
-    h.advance(Duration::from_secs(2 * DAY + 1));
-    h.dcg.script("RotateKeys", 400, &error_body(Some(2), "InvalidCertificate"));
-    assert_matches!(service.services_token_for(Environment::Prod, true).await.unwrap_err(), AuthError::InvalidIdentity);
-    assert!(service.own_client().is_none());
-
-    for key in ["auth/prod/identity", "auth/prod/identity-pair", PENDING] {
-        assert!(h.store_bytes(key).is_none(), "{key} cleared");
-    }
 }
 
 #[tokio::test]
@@ -395,8 +386,10 @@ async fn rotate_keys_without_a_reply_keeps_the_incoming_key_pending() {
     }
 }
 
+/// When the service holds neither the identity key nor the incoming one, the identity is lost and
+/// created anew in place.
 #[tokio::test]
-async fn a_pending_key_the_server_also_rejects_clears_the_identity() {
+async fn a_pending_key_the_server_also_rejects_loses_the_identity() {
     let mut h = Harness::new().await;
     h.config.auth.identity_key_rotation = Duration::from_secs(2 * DAY);
     h.dcg.with(|s| s.key_valid_remaining_days = None);
@@ -412,14 +405,12 @@ async fn a_pending_key_the_server_also_rejects_clears_the_identity() {
 
     drop(service);
     let restarted = h.service();
-    let err = restarted.services_token(Environment::Prod, false).await.unwrap_err();
-    assert_eq!(err, TokenError::NotProvisioned);
+    restarted.services_token(Environment::Prod, false).await.unwrap();
     assert_eq!(h.dcg.count("SignIn"), 3, "the old key, then the incoming key");
-    assert!(restarted.own_client().is_none());
-
-    for key in ["auth/prod/identity", "auth/prod/identity-pair", PENDING] {
-        assert!(h.store_bytes(key).is_none(), "{key} cleared");
-    }
+    assert_eq!(h.dcg.count("CreateIdentity"), 2, "then a new identity");
+    let new = restarted.own_client().unwrap();
+    assert_ne!(new.id, p.own.id);
+    assert_eq!(h.pending_identity_cert(Environment::Prod), None, "the lost identity's incoming key is gone");
 }
 
 #[tokio::test]

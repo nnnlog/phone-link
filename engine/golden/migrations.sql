@@ -159,7 +159,7 @@ CREATE TABLE low_battery_notification (
         enabled INTEGER NOT NULL,
         last_shown_ms INTEGER
     );
-== phone file_transfer: 1 migrations
+== phone file_transfer: 2 migrations
 -- 0
 CREATE TABLE phone_state (
         id INTEGER PRIMARY KEY CHECK (id = 0),
@@ -167,6 +167,8 @@ CREATE TABLE phone_state (
         received_files_folder TEXT,
         show_folder_setting INTEGER NOT NULL
     );
+-- 1
+ALTER TABLE phone_state ADD COLUMN files_permission_granted INTEGER NOT NULL DEFAULT 0;
 == phone messaging: 1 migrations
 -- 0
 

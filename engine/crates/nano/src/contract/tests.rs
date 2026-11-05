@@ -19,6 +19,23 @@ fn server_entries() {
 }
 
 #[test]
+fn the_turn_string_is_taken_as_given() {
+    let servers = |turn_url: &str| IceServers { turn_url: turn_url.into(), ..Default::default() };
+    let cases = [
+        ("t:3479", Some(ServerEntry { host: "t".into(), port: 3479 })),
+        (" t:3479", Some(ServerEntry { host: " t".into(), port: 3479 })),
+        // A trailing space leaves the port unparsed: the whole string is the host name.
+        ("t:3479 ", Some(ServerEntry { host: "t:3479 ".into(), port: 3478 })),
+        (" ", Some(ServerEntry { host: " ".into(), port: 3478 })),
+        ("", None),
+    ];
+
+    for (url, expected) in cases {
+        assert_eq!(servers(url).turn_server(), expected, "{url:?}");
+    }
+}
+
+#[test]
 fn ice_offer_shape() {
     let base: SocketAddr = "192.168.1.20:51000".parse().unwrap();
     let offer = IceSrtpOffer {

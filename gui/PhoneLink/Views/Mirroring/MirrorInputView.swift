@@ -7,28 +7,46 @@ import UniformTypeIdentifiers
 /// A mirroring window's video and input: shows the session's video layer laid out by its display
 /// state, and sends the mouse, the scroll wheel, a tablet's pen and the keyboard to the phone.
 ///
-/// Positions are normalized to the phone's whole screen as drawn (`MirrorDisplay.screenRect`), outside
-/// it included; the engine scales them to the phone's resolution and decides what goes (a point outside
-/// the video only while a press that began inside it is held). Keys go as Mac key codes with the
+/// The video is scaled the same way both ways to fit the view and centred (`MirrorDisplay.screenRect`).
+/// A new video size or rotation after the first is shown behind a fade (`MirrorVideoTransitions`): the
+/// video fades out, stays hidden a moment, takes its new layout, and fades in; until then positions
+/// map to the layout shown.
+///
+/// Positions are normalized to the video as drawn, outside it included; the engine scales them to the
+/// phone's resolution and decides what goes (a point outside the video only while a press that began
+/// inside it is held). Keys go as Mac key codes with the
 /// event's modifier flags, which the engine maps to what the phone receives. A key pressed with Command
 /// is the Mac's: neither it nor its release is sent, so the Mac's own shortcuts (⌘W, ⌘Q) keep working
 /// (Phone Link on Windows sends keys pressed while the Windows key is held). Releases are always
 /// passed on, so a press the phone got is released even after the window stopped taking input; the
 /// engine drops a release whose press it did not send.
 ///
-/// Files dragged from the Mac onto the view go to the phone app under the drop; files the phone drags
-/// past the video's edge become a Mac drag of file promises, written where they are dropped once they
-/// arrived from the phone.
+/// Files dragged from the Mac onto the view go to the phone app under the drop, while the window is
+/// connected and not telling the user of a drop over the limits (other drags are refused, and one in
+/// progress leaves); files the phone drags past the video's edge become a Mac drag of file promises,
+/// written where they are dropped once they arrived from the phone.
 final class MirrorInputView: NSView {
     let sessionId: String
     let video: MirrorVideoLayer
     weak var model: ScreenMirroringModel?
 
+    /// The session's display state, as last given.
     var display = MirrorDisplay() {
         didSet {
-            if display != oldValue { needsLayout = true }
+            guard display != oldValue else { return }
+            switch transitions.receive(display.transform) {
+            case .apply:
+                show(display)
+            case .fade:
+                fadeToDisplay()
+            }
         }
     }
+
+    /// The display state the video is laid out by, and positions mapped with.
+    private var shown = MirrorDisplay()
+    private var transitions = MirrorVideoTransitions()
+    private var fade: Task<Void, Never>?
 
     /// Input reaches the phone (the video shows and the phone takes input). Each change takes the input
     /// focus anew or drops it, releasing what is held.
@@ -47,6 +65,9 @@ final class MirrorInputView: NSView {
     private var dragOverLimit = false
     /// The drag over the view was dropped on it.
     private var dragDropped = false
+    /// The drag over the view entered while the window took drops; it left when the window stopped
+    /// taking them.
+    private var dragInside = false
     /// The file promises of the phone's files being dragged out (a promise holds its delegate weakly).
     private lazy var promises = MirrorPhoneDragPromises { [weak self, sessionId] dataId, url in
         guard let model = await self?.model else { throw CocoaError(.userCancelled) }
@@ -78,18 +99,54 @@ final class MirrorInputView: NSView {
         CATransaction.setDisableActions(true)
         defer { CATransaction.commit() }
 
-        guard let rect = display.screenRect(in: bounds.size) else {
+        guard let rect = shown.screenRect(in: bounds.size) else {
             video.layer.isHidden = true
             return
         }
         video.layer.isHidden = false
 
         // The layer's own size is the video's unrotated one; the transform turns it into `rect`.
-        let size = display.swapsSides ? CGSize(width: rect.height, height: rect.width) : rect.size
+        let size = shown.swapsSides ? CGSize(width: rect.height, height: rect.width) : rect.size
         video.layer.bounds = CGRect(origin: .zero, size: size)
         // `rect` has its origin at the top; this view's y axis points up.
         video.layer.position = CGPoint(x: rect.midX, y: bounds.height - rect.midY)
-        video.layer.setAffineTransform(CGAffineTransform(rotationAngle: display.layerRotation))
+        video.layer.setAffineTransform(CGAffineTransform(rotationAngle: shown.layerRotation))
+    }
+
+    private func show(_ display: MirrorDisplay) {
+        shown = display
+        needsLayout = true
+    }
+
+    /// Fades the video out, keeps it hidden, lays it out by the display state given last, and fades
+    /// it in. A new transform meanwhile starts again from the video's opacity then.
+    private func fadeToDisplay() {
+        fade?.cancel()
+        fade = Task { [weak self] in
+            await self?.fadeVideo(to: 0)
+            guard !Task.isCancelled else { return }
+            try? await Task.sleep(for: MirrorVideoTransitions.hiddenLength)
+            guard !Task.isCancelled, let self else { return }
+
+            show(display)
+            await fadeVideo(to: 1)
+            if !Task.isCancelled {
+                fade = nil
+            }
+        }
+    }
+
+    /// Animates the video's opacity from where it is to `opacity`, evenly over the fade's length.
+    private func fadeVideo(to opacity: Float) async {
+        let layer = video.layer
+        let animation = CABasicAnimation(keyPath: "opacity")
+        animation.fromValue = layer.presentation()?.opacity ?? layer.opacity
+        animation.toValue = opacity
+        animation.duration = MirrorVideoTransitions.fadeSeconds
+        animation.timingFunction = CAMediaTimingFunction(name: .linear)
+        layer.opacity = opacity
+        layer.add(animation, forKey: "fade")
+        try? await Task.sleep(for: MirrorVideoTransitions.fadeLength)
     }
 
     override func updateTrackingAreas() {
@@ -119,10 +176,10 @@ final class MirrorInputView: NSView {
 
     // MARK: - Mouse
 
-    /// `event`'s position normalized to the phone's screen (0–1 inside it).
+    /// `event`'s position normalized to the video as drawn (0–1 inside it).
     private func position(_ event: NSEvent) -> CGPoint? {
         let point = convert(event.locationInWindow, from: nil)
-        return display.normalized(CGPoint(x: point.x, y: bounds.height - point.y), in: bounds.size)
+        return shown.normalized(CGPoint(x: point.x, y: bounds.height - point.y), in: bounds.size)
     }
 
     private func isPen(_ event: NSEvent) -> Bool {
@@ -234,8 +291,15 @@ final class MirrorInputView: NSView {
     override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
         dragOverLimit = false
         dragDropped = false
+        dragInside = false
+        return enter(sender)
+    }
 
-        guard let model else { return [] }
+    /// The drag enters a window that takes drops.
+    private func enter(_ sender: NSDraggingInfo) -> NSDragOperation {
+        guard let model, model.acceptsDrops(sessionId) else { return [] }
+        dragInside = true
+
         let urls = sender.draggingPasteboard.readObjects(
             forClasses: [NSURL.self],
             options: [.urlReadingFileURLsOnly: true]
@@ -253,24 +317,39 @@ final class MirrorInputView: NSView {
         }
     }
 
+    /// A window that stops taking drops makes the drag over it leave; one that takes them again makes
+    /// it enter anew.
     override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
-        dragOver(sender)
+        guard let model else { return [] }
+        let takes = model.acceptsDrops(sessionId)
+        if dragInside, !takes {
+            dragInside = false
+            model.dragLeave(sessionId)
+            return []
+        }
+        if !dragInside {
+            return takes ? enter(sender) : []
+        }
+        return dragOver(sender)
     }
 
-    /// The drag's position goes to the phone as a mouse move; outside the phone's screen (or before
-    /// it shows) as a point the engine does not send.
+    /// The drag's position goes to the phone as a mouse move; outside the video (or before it shows)
+    /// as a point the engine does not send.
     private func dragOver(_ sender: NSDraggingInfo) -> NSDragOperation {
         guard let model else { return [] }
         let point = convert(sender.draggingLocation, from: nil)
-        let p = display.normalized(CGPoint(x: point.x, y: bounds.height - point.y), in: bounds.size) ?? CGPoint(x: -1, y: -1)
+        let p = shown.normalized(CGPoint(x: point.x, y: bounds.height - point.y), in: bounds.size) ?? CGPoint(x: -1, y: -1)
         return model.dragOver(sessionId, x: p.x, y: p.y) ? .copy : []
     }
 
     override func draggingExited(_ sender: NSDraggingInfo?) {
+        guard dragInside else { return }
+        dragInside = false
         model?.dragLeave(sessionId)
     }
 
     override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        guard dragInside else { return false }
         dragDropped = true
         model?.dragDrop(sessionId)
         return true
@@ -278,10 +357,13 @@ final class MirrorInputView: NSView {
 
     /// A drag over the limits dropped on the view tells the user why nothing happened.
     override func draggingEnded(_ sender: NSDraggingInfo) {
-        defer { dragOverLimit = false }
+        defer {
+            dragOverLimit = false
+            dragInside = false
+        }
         guard dragOverLimit, !dragDropped else { return }
         if bounds.contains(convert(sender.draggingLocation, from: nil)) {
-            model?.dragOverLimitDropped()
+            model?.dragOverLimitDropped(sessionId)
         }
     }
 

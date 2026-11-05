@@ -125,13 +125,18 @@ impl Inner {
             other => return Err(TransferError::Request(other)),
         };
 
-        match wire::parse_get_response(&payload) {
-            Ok(FilesGetResponse { response: Some(files_get_response::Response::ThumbnailResponse(t)), .. }) => {
+        let reply = match wire::parse_get_response(&payload) {
+            Ok(reply) => reply,
+            Err(Status::NotFound) => return Ok(None),
+            Err(s) => return Err(TransferError::Status(s)),
+        };
+
+        self.set_ltw_off(&peer.client, false);
+        match reply {
+            FilesGetResponse { response: Some(files_get_response::Response::ThumbnailResponse(t)), .. } => {
                 Ok(Some(t.thumbnail))
             }
-            Ok(_) => Err(TransferError::Status(Status::NotSupported)),
-            Err(Status::NotFound) => Ok(None),
-            Err(s) => Err(TransferError::Status(s)),
+            _ => Err(TransferError::Status(Status::NotSupported)),
         }
     }
 

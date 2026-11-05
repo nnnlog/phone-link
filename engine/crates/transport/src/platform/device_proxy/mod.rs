@@ -10,7 +10,8 @@
 //! `FileSize`; body
 //! `{"type":"SendCommandResponse","value":"<json of {responseType, payload(base64)}>"}` of at most
 //! `ChunkSize × 1024` bytes. The reply echoes the inbound `connectionSessionId`, as a session-based
-//! reply.
+//! reply. The receiver's follow-up runs once the reply's send has finished, as on
+//! `/DeviceResourceManager`.
 //!
 //! The engine's own choices: the command's enum fields are accepted as numbers or as
 //! (case-insensitive) member names; `responseType` is written as a number; a reply larger than
@@ -24,7 +25,7 @@ use base64::Engine as _;
 use serde::Deserialize;
 use tracing::{debug, warn};
 
-use super::drm::{Drm, DrmChannel, DrmDispatch, DrmRequest};
+use super::drm::{AnswerDelivery, Drm, DrmAnswer, DrmChannel, DrmDispatch, DrmRequest, finish_answer};
 use super::priority;
 use super::router::{InboundMessage, PlatformRouteHandler, RESPONSE_OPTIONS, Router};
 use super::tap_decode::{self, BodyContext};
@@ -217,13 +218,15 @@ impl PlatformRouteHandler for DeviceProxyReceiver {
                 return;
             }
         };
-        let DrmDispatch::Answer(payload) = self.drm.dispatch(request).await else {
+        let path = request.path.clone();
+        let DrmDispatch::Answer(DrmAnswer { payload, follow_up }) = self.drm.dispatch(request).await else {
             return;
         };
 
         let body = reply_body(&payload);
         if body.len() > chunk_limit {
             warn!(partner = %inbound.source, reply_len = body.len(), limit_bytes = chunk_limit, "device-proxy reply exceeds ChunkSize × 1024; not sent");
+            finish_answer(follow_up, AnswerDelivery::NotSent, &inbound.source, &path).await;
             return;
         }
 
@@ -250,9 +253,13 @@ impl PlatformRouteHandler for DeviceProxyReceiver {
             })
             .await;
 
-        if status != DcgSendStatus::Success {
+        let delivery = if status == DcgSendStatus::Success {
+            AnswerDelivery::Sent
+        } else {
             warn!(partner = %inbound.source, request_id, ?status, error = status.cause(), "device-proxy reply not delivered");
-        }
+            AnswerDelivery::NotSent
+        };
+        finish_answer(follow_up, delivery, &inbound.source, &path).await;
     }
 }
 

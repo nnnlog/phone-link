@@ -487,6 +487,36 @@ async fn lookup_takes_shared_addresses_by_name_while_birthday_text_is_off() {
 }
 
 #[tokio::test(start_paused = true)]
+async fn only_email_addresses_and_phone_number_characters_are_looked_up() {
+    // An address that is blank, or neither an e-mail address nor made only of phone-number
+    // characters, resolves to no contact, even when a stored value equals it.
+    let world = world();
+    world.h.app.update_phone_record(|r| r.country_code = Some("KR".into()));
+    let contacts =
+        with(contacts_batch(&[1, 2, 3]), ValueSet::new().with("displayNames", vec!["Bank", "Short", "Mail"]));
+    let numbers = phone_batch(&[(11, 1, "BANK", ""), (12, 2, "22395", ""), (13, 2, "1-800-FLOWERS", "")]);
+    let msg = item(
+        ValueSet::new()
+            .with("syncID", "book")
+            .with("contacts", contacts)
+            .with("phoneNumbers", numbers)
+            .with("emailAddresses", email_batch(&[(21, 3, "mail@example.com"), (22, 3, "not an address")])),
+    );
+    assert_eq!(send(&world.h, msg).await, result(0));
+
+    let d = world.contacts.directory();
+    let id = |address: &str| d.lookup(&phone(), address, None).map(|m| m.contact_id);
+
+    assert_eq!(id("BANK"), None, "letters are not phone-number characters");
+    assert_eq!(id("1-800-FLOWERS"), None);
+    assert_eq!(id("22395"), Some(2), "a short code is made of phone-number characters");
+    assert_eq!(id("mail@example.com"), Some(3));
+    assert_eq!(id("not an address"), None, "neither an e-mail address nor phone-number characters");
+    assert_eq!(id(""), None);
+    assert_eq!(id(" "), None);
+}
+
+#[tokio::test(start_paused = true)]
 async fn lookup_falls_back_to_the_pc_region() {
     let h = Harness::new();
     let w = feature_world::feature_world(&h);

@@ -5,15 +5,19 @@
 //! outbound feature request goes through.
 //!
 //! A failing receiver is isolated — logged, no response, the session continues (differs from Phone
-//! Link on Windows). The wrapper's certificate-recovery prompt is not built.
+//! Link on Windows). A receiver may hand back work that waits for its answer to be sent
+//! ([`DrmAnswer::follow_up`]): it runs once the send has finished, told whether the transport reported
+//! the answer sent. The wrapper's certificate-recovery prompt is not built.
 
 use std::collections::HashMap;
+use std::future::Future;
 use std::panic::AssertUnwindSafe;
 use std::sync::{Arc, Mutex, RwLock, Weak};
 use std::time::Duration;
 
 use async_trait::async_trait;
 use futures_util::FutureExt;
+use futures_util::future::BoxFuture;
 use prost::Message;
 use tokio_util::sync::CancellationToken;
 use tracing::{error, warn};
@@ -73,6 +77,81 @@ pub trait DrmReceiver: Send + Sync {
     /// `Ok(Some(bytes))`: answer with `DeviceResourceManagerResponseMessage { payload: bytes,
     /// response_type: SUCCESS }`; `Ok(None)`: send no answer; `Err`: isolated failure, no answer.
     async fn receive(&self, request: DrmRequest) -> Result<Option<Vec<u8>>, DrmReceiverError>;
+}
+
+/// Whether the transport reported an answer sent.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AnswerDelivery {
+    Sent,
+    /// The send failed, or no answer could be sent (no request id, a reply over its size limit).
+    NotSent,
+}
+
+/// Work that waits for an answer's send to finish.
+pub type FollowUp = Box<dyn FnOnce(AnswerDelivery) -> BoxFuture<'static, ()> + Send>;
+
+/// A receiver's answer, and the work to run once its send has finished.
+pub struct DrmAnswer {
+    /// `DeviceResourceManagerResponseMessage.payload` (the response type is `SUCCESS`).
+    pub payload: Vec<u8>,
+    pub follow_up: Option<FollowUp>,
+}
+
+impl DrmAnswer {
+    /// An answer with `follow_up` to run after its send.
+    pub fn then<F, Fut>(payload: Vec<u8>, follow_up: F) -> Self
+    where
+        F: FnOnce(AnswerDelivery) -> Fut + Send + 'static,
+        Fut: Future<Output = ()> + Send + 'static,
+    {
+        Self { payload, follow_up: Some(Box::new(move |delivery| follow_up(delivery).boxed())) }
+    }
+}
+
+impl From<Vec<u8>> for DrmAnswer {
+    fn from(payload: Vec<u8>) -> Self {
+        Self { payload, follow_up: None }
+    }
+}
+
+impl std::fmt::Debug for DrmAnswer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DrmAnswer")
+            .field("payload_len", &self.payload.len())
+            .field("has_follow_up", &self.follow_up.is_some())
+            .finish()
+    }
+}
+
+/// A receiver whose answer may carry a [`FollowUp`]; registered with
+/// [`Drm::register_follow_up_receiver`].
+#[async_trait]
+pub trait DrmFollowUpReceiver: Send + Sync {
+    /// As [`DrmReceiver::receive`], the answer with its follow-up.
+    async fn receive(&self, request: DrmRequest) -> Result<Option<DrmAnswer>, DrmReceiverError>;
+}
+
+/// A [`DrmReceiver`] in the registry: its answers have no follow-up.
+struct PlainReceiver(Arc<dyn DrmReceiver>);
+
+#[async_trait]
+impl DrmFollowUpReceiver for PlainReceiver {
+    async fn receive(&self, request: DrmRequest) -> Result<Option<DrmAnswer>, DrmReceiverError> {
+        Ok(self.0.receive(request).await?.map(DrmAnswer::from))
+    }
+}
+
+/// Runs an answer's follow-up, if any, once its send finished; a panic in it is isolated.
+pub(crate) async fn finish_answer(
+    follow_up: Option<FollowUp>,
+    delivery: AnswerDelivery,
+    source: &DcgClient,
+    path: &str,
+) {
+    let Some(follow_up) = follow_up else { return };
+    if let Err(panic) = AssertUnwindSafe(follow_up(delivery)).catch_unwind().await {
+        error!(partner = %source, %path, panic = %panic_text(panic.as_ref()), "DRM answer follow-up panicked; isolated, the session continues");
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
@@ -152,9 +231,9 @@ impl DrmRequest {
 }
 
 /// What dispatching an inbound request produced.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug)]
 pub(crate) enum DrmDispatch {
-    Answer(Vec<u8>),
+    Answer(DrmAnswer),
     NoAnswer,
     NoReceiver,
     Failed,
@@ -294,7 +373,7 @@ pub struct Drm {
     sessions: Arc<PartnerSessions>,
     lock: Arc<dyn SessionLock>,
     minimum_client_version: ClientVersion,
-    receivers: RwLock<HashMap<String, Arc<dyn DrmReceiver>>>,
+    receivers: RwLock<HashMap<String, Arc<dyn DrmFollowUpReceiver>>>,
     metered_sync_disabled: Mutex<HashMap<DcgClient, bool>>,
 }
 
@@ -328,6 +407,15 @@ impl Drm {
     /// also subscribes `/DeviceResourceManager` on the router — before it the route is rejected
     /// `NotSubscribedToRoute`, as Phone Link on Windows rejects it.
     pub fn register_receiver(&self, path: &str, receiver: Arc<dyn DrmReceiver>) -> Result<(), DrmRegistrationError> {
+        self.register_follow_up_receiver(path, Arc::new(PlainReceiver(receiver)))
+    }
+
+    /// [`Drm::register_receiver`] for a receiver whose answers may carry a follow-up.
+    pub fn register_follow_up_receiver(
+        &self,
+        path: &str,
+        receiver: Arc<dyn DrmFollowUpReceiver>,
+    ) -> Result<(), DrmRegistrationError> {
         if !path.starts_with('/') || path.contains('?') {
             return Err(DrmRegistrationError::InvalidPath(path.to_owned()));
         }
@@ -367,7 +455,7 @@ impl Drm {
 
         let (source, path) = (request.source.clone(), request.path.clone());
         match AssertUnwindSafe(receiver.receive(request)).catch_unwind().await {
-            Ok(Ok(Some(payload))) => DrmDispatch::Answer(payload),
+            Ok(Ok(Some(answer))) => DrmDispatch::Answer(answer),
             Ok(Ok(None)) => DrmDispatch::NoAnswer,
             Ok(Err(failure)) => {
                 warn!(partner = %source, %path, %failure, "DRM receiver failed; isolated, no response, the session continues");
@@ -388,20 +476,25 @@ impl Drm {
         };
 
         let path = request.path.clone();
-        let DrmDispatch::Answer(payload) = self.dispatch(request).await else {
+        let DrmDispatch::Answer(DrmAnswer { payload, follow_up }) = self.dispatch(request).await else {
             return;
         };
 
         if request_id.is_none() {
             warn!(partner = %source, %path, "DRM request without _requestId; the answer is dropped");
+            finish_answer(follow_up, AnswerDelivery::NotSent, &source, &path).await;
             return;
         }
 
         let status =
             self.router.respond(&source, &message, response_message(payload), priority::PROTOBUF_DEFAULT, trace).await;
-        if status != DcgSendStatus::Success {
+        let delivery = if status == DcgSendStatus::Success {
+            AnswerDelivery::Sent
+        } else {
             warn!(partner = %source, %path, ?status, error = status.cause(), "DRM answer not delivered");
-        }
+            AnswerDelivery::NotSent
+        };
+        finish_answer(follow_up, delivery, &source, &path).await;
     }
 
     /// The Cross Device Experience Host request wrapper, in order: relative-path check, per-phone switch,

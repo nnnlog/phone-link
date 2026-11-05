@@ -38,7 +38,8 @@ impl Inner {
         }
     }
 
-    /// Stores the context handle the publication from `source` delivered, when it is a new one.
+    /// Stores the context handle the publication from `source` delivered, when it is a new one, and
+    /// tells a handle request waiting for one.
     fn adopt_delivered_handle(&self, source: &DcgClient) {
         match self.validator.current_handle(source) {
             None => warn!(partner = %source, "files publication without a context source; no handle"),
@@ -47,6 +48,7 @@ impl Inner {
                     Some(h) if h.same_source(&handle) && !h.is_dropped() => false,
                     _ => {
                         p.handle = Some(handle);
+                        p.handle_arrivals.send_modify(|n| *n += 1);
                         true
                     }
                 });

@@ -79,12 +79,7 @@ impl Inner {
     /// Launches what `uri` names, as a PC launch.
     fn launch_from_phone(&self, uri: &RemotingUri) {
         let target = match self.values() {
-            Ok(v) => remoting_target(
-                uri,
-                v.remoting_supported(),
-                v.phone_screen_apps(),
-                v.apps_feature_type(self.separate_window()),
-            ),
+            Ok(v) => remoting_target(uri, v.remoting_supported(), v.phone_screen_apps(), v.apps_feature_type()),
             Err(_) => RemotingTarget::MainWindow,
         };
 

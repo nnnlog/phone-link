@@ -79,6 +79,10 @@ pub enum PlatformChannelError {
     RemoteScenarioRejectedChannel(AcceptanceReason),
     #[error("PartnerChannelCreationFailure ({0:?})")]
     PartnerChannelCreationFailure(AcceptanceReason),
+    /// The phone's context source was dropped: the context handle the connection was opened for
+    /// dropped, or the phone answered that it dropped it (`Unspecified` when the PC saw the drop).
+    #[error("ContextSourceDropped ({0:?})")]
+    ContextSourceDropped(AcceptanceReason),
     #[error("the Nano channels were not announced or opened in time")]
     Timeout,
     #[error("a second channel of one kind for this platform channel")]
@@ -97,6 +101,7 @@ pub enum AcceptanceReason {
     NotSupported,
     InvalidScenario,
     NoCallbackProvided,
+    ContextSourceDropped,
     Unspecified,
 }
 
@@ -110,6 +115,7 @@ impl AcceptanceReason {
             Ok(ChannelAcceptanceStatus::NotSupported) => Self::NotSupported,
             Ok(ChannelAcceptanceStatus::InvalidScenario) => Self::InvalidScenario,
             Ok(ChannelAcceptanceStatus::NoCallbackProvided) => Self::NoCallbackProvided,
+            Ok(ChannelAcceptanceStatus::ContextSourceDropped) => Self::ContextSourceDropped,
             _ => Self::Unspecified,
         }
     }
@@ -293,6 +299,8 @@ pub struct DeviceConnection {
     results: PendingResults,
     closed: watch::Receiver<bool>,
     config: NanoConfig,
+    /// The context handle the connection was opened for; `None` for one completed without a handle.
+    context: Option<ContextHandle>,
 }
 
 impl std::fmt::Debug for DeviceConnection {
@@ -385,7 +393,33 @@ impl DeviceConnection {
 
         let closed = watch_closed(partner.clone(), &message, &connection);
         info!(partner = %partner, "device connection open");
-        Ok(Self { partner, connection, message, dispatch, results, closed, config })
+        Ok(Self { partner, connection, message, dispatch, results, closed, config, context: None })
+    }
+
+    /// The connection, opened for `handle`: it closes when the handle drops, and a platform channel
+    /// requested over it once the handle has dropped fails `ContextSourceDropped`.
+    pub(crate) fn bound_to(mut self, handle: &ContextHandle) -> Arc<Self> {
+        self.context = Some(handle.clone());
+        let device = Arc::new(self);
+
+        let (weak, dropped, mut closed) = (Arc::downgrade(&device), handle.dropped(), device.closed());
+        tokio::spawn(async move {
+            tokio::select! {
+                () = dropped.cancelled() => {}
+                _ = closed.wait_for(|c| *c) => return,
+            }
+
+            if let Some(device) = weak.upgrade() {
+                info!(partner = %device.partner, "device connection closed; its context handle dropped");
+                device.close();
+            }
+        });
+        device
+    }
+
+    /// The context handle the connection was opened for has dropped.
+    fn context_dropped(&self) -> bool {
+        self.context.as_ref().is_some_and(ContextHandle::is_dropped)
     }
 
     pub fn is_closed(&self) -> bool {
@@ -426,6 +460,9 @@ impl DeviceConnection {
     ) -> Result<(PlatformChannel, HashMap<String, Listener>), PlatformChannelError> {
         if self.is_closed() {
             return Err(PlatformChannelError::DeviceConnectionFailed);
+        }
+        if self.context_dropped() {
+            return Err(PlatformChannelError::ContextSourceDropped(AcceptanceReason::Unspecified));
         }
 
         let channel_id = new_guid_lower();
@@ -516,15 +553,29 @@ impl DeviceConnection {
         result_rx
     }
 
-    /// Waits up to `timeout` for the creation result, or until the connection closes.
+    /// Waits up to `timeout` for the creation result, or until the context handle drops or the
+    /// connection closes.
     async fn await_creation_result(
         &self,
         timeout: Duration,
         result_rx: oneshot::Receiver<ProtoPeerPlatformChannelCreationResult>,
     ) -> Result<ProtoPeerPlatformChannelCreationResult, PlatformChannelError> {
         let mut closed = self.closed.clone();
+        let context = self.context.clone();
+        let dropped = async move {
+            match context {
+                Some(handle) => handle.dropped().cancelled().await,
+                None => std::future::pending().await,
+            }
+        };
+
+        // A dropped handle also closes the connection, a moment later: the drop is the failure.
         let result = tokio::select! {
+            biased;
             r = tokio::time::timeout(timeout, result_rx) => r,
+            () = dropped => {
+                return Err(PlatformChannelError::ContextSourceDropped(AcceptanceReason::Unspecified));
+            }
             _ = closed.wait_for(|c| *c) => return Err(PlatformChannelError::DeviceConnectionFailed),
         };
 
@@ -665,6 +716,10 @@ type Opening = Shared<BoxFuture<'static, Result<Arc<DeviceConnection>, DeviceCon
 
 /// One device connection per partner: a second request reuses the open one, concurrent requests join
 /// the one opening.
+///
+/// An open connection closes when the context handle it was opened for drops, and is not reused
+/// after that. These are the camera's and the file features' connections; screen mirroring opens its
+/// connection on its own path.
 pub struct DeviceConnections {
     config: NanoConfig,
     relay: Arc<dyn RelaySource>,
@@ -698,7 +753,7 @@ impl DeviceConnections {
 
         let partner = handle.partner.clone();
         if let Some(c) = self.open.lock_or_panic().get(&partner).and_then(Weak::upgrade) {
-            if !c.is_closed() {
+            if !c.is_closed() && !c.context_dropped() {
                 return Ok(c);
             }
         }
@@ -710,7 +765,8 @@ impl DeviceConnections {
                 None => {
                     let me = self.clone();
                     let h = handle.clone();
-                    let fut: BoxFuture<'static, _> = async move { me.open_now(h).await.map(Arc::new) }.boxed();
+                    let fut: BoxFuture<'static, _> =
+                        async move { me.open_now(&h).await.map(|c| c.bound_to(&h)) }.boxed();
                     let shared = fut.shared();
                     opening.insert(partner.clone(), shared.clone());
                     shared
@@ -726,12 +782,12 @@ impl DeviceConnections {
         result
     }
 
-    async fn open_now(&self, handle: ContextHandle) -> Result<DeviceConnection, DeviceConnectionError> {
+    async fn open_now(&self, handle: &ContextHandle) -> Result<DeviceConnection, DeviceConnectionError> {
         let dropped = handle.dropped();
         let run = async {
             // The phone's Initialize ack has its own bound; the device-connection timeout starts
             // after it and covers the Nano connection through the open `DeviceConnection` channel.
-            initialize_context(&handle, self.transport_preference, self.config.initialize_ack_timeout).await?;
+            initialize_context(handle, self.transport_preference, self.config.initialize_ack_timeout).await?;
 
             let connect = async {
                 let attempts = device_attempts(self.relay.as_ref()).await;
@@ -764,19 +820,30 @@ pub fn is_lost(reason: &CloseReason) -> bool {
     !matches!(reason, CloseReason::UserEnded | CloseReason::UserCanceled)
 }
 
-/// The error of a creation result other than `Success`.
+/// The error of a creation result other than `Success`: a failure whose reason is
+/// `CONTEXT_SOURCE_DROPPED` is that, whatever its code.
 fn creation_failure(result: &ProtoPeerPlatformChannelCreationResult) -> Option<PlatformChannelError> {
     let reason = AcceptanceReason::from_wire(result.result_reason);
-    match ProtoCreatePlatformChannelStatus::try_from(result.result_code) {
-        Ok(ProtoCreatePlatformChannelStatus::Success) => None,
+    let code = ProtoCreatePlatformChannelStatus::try_from(result.result_code);
+    if code == Ok(ProtoCreatePlatformChannelStatus::Success) {
+        return None;
+    }
+    if reason == AcceptanceReason::ContextSourceDropped {
+        return Some(PlatformChannelError::ContextSourceDropped(reason));
+    }
+
+    Some(match code {
         Ok(ProtoCreatePlatformChannelStatus::NoRemoteScenarioAvailable) => {
-            Some(PlatformChannelError::NoRemoteScenarioAvailable(reason))
+            PlatformChannelError::NoRemoteScenarioAvailable(reason)
         }
         Ok(ProtoCreatePlatformChannelStatus::RemoteScenarioRejectedChannel) => {
-            Some(PlatformChannelError::RemoteScenarioRejectedChannel(reason))
+            PlatformChannelError::RemoteScenarioRejectedChannel(reason)
         }
-        _ => Some(PlatformChannelError::PartnerChannelCreationFailure(reason)),
-    }
+        Ok(ProtoCreatePlatformChannelStatus::ContextSourceDropped) => {
+            PlatformChannelError::ContextSourceDropped(reason)
+        }
+        _ => PlatformChannelError::PartnerChannelCreationFailure(reason),
+    })
 }
 
 #[cfg(test)]

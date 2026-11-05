@@ -433,8 +433,8 @@ impl AppLayer {
         }
     }
 
-    /// Events of a record change, and the connect trigger for a changed Wi-Fi state or
-    /// sync-over-mobile-data setting when afterwards either is on.
+    /// Events of a record change, and the connect trigger for the sync-over-mobile-data setting
+    /// going from off to on.
     fn after_record_change(&self, before: &PhoneRecord, after: &PhoneRecord) {
         if before == after {
             return;
@@ -455,10 +455,10 @@ impl AppLayer {
             self.emit(AppEvent::AllFeaturesDisabled { phone: phone.clone(), disabled: after.all_features_disabled });
         }
 
-        let (b, a) = (&before.status_keys, &after.status_keys);
-        let wrote = b.wifi_state != a.wifi_state || b.sync_over_metered_connection != a.sync_over_metered_connection;
-        if wrote && (a.wifi_state == Some(true) || a.sync_over_metered_connection == Some(true)) {
-            self.trigger(ConnectTrigger::StatusChanged);
+        // Only off → on: unknown → on and every Wi-Fi state change send nothing.
+        let metered = (before.status_keys.sync_over_metered_connection, after.status_keys.sync_over_metered_connection);
+        if metered == (Some(false), Some(true)) {
+            self.trigger(ConnectTrigger::SyncOverMeteredEnabled);
         }
 
         self.emit(AppEvent::PhoneRecordChanged { phone });

@@ -45,7 +45,10 @@ pub use context_message::ContextHub;
 pub use context_message::{ContextHandle, ContextRoute, ContextSendError};
 #[cfg(feature = "test-support")]
 pub use device_proxy::DeviceProxyReceiver;
-pub use drm::{Drm, DrmAddress, DrmReceiver, DrmReceiverError, DrmRequest, DrmSendOutcome, DrmSendRequest};
+pub use drm::{
+    AnswerDelivery, Drm, DrmAddress, DrmAnswer, DrmFollowUpReceiver, DrmReceiver, DrmReceiverError, DrmRequest,
+    DrmSendOutcome, DrmSendRequest, FollowUp,
+};
 #[cfg(feature = "test-support")]
 pub use drm::{DrmChannel, DrmRegistrationError};
 #[cfg(feature = "test-support")]
@@ -92,6 +95,8 @@ pub mod priority {
     pub const PROTOBUF_DEFAULT: u32 = LOW;
     /// KVP-bodied platform messages are always `0`.
     pub const KVP: u32 = HIGH;
+    /// `/SessionValidation` and `/PlatformDisconnectRequest`, protobuf-bodied, go at `0`.
+    pub const SESSION_CONTROL: u32 = HIGH;
     /// Context-source messages pass `0`.
     pub const CONTEXT_SOURCE: u32 = HIGH;
     /// Device-proxy replies are `0`.

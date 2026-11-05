@@ -4,39 +4,39 @@ import PhoneLinkEngine
 /// How a mirroring window lays out the phone's video, and where a point of the window falls on the
 /// phone's screen.
 ///
-/// The phone reports its screen size in its current orientation (the device resolution), how many
-/// degrees to turn the video to show it upright, and optionally the part of the screen that has
-/// content (a folded phone's half). The whole screen as drawn has the aspect of the turned video
-/// (of the device resolution the phone registered, which the window starts with, until a video size
-/// is known; a later device resolution does not change it), and the video fills it. The window keeps
-/// the content's aspect: it fits the content rectangle into its bounds, and draws the whole screen
-/// scaled the same way around it, clipped. Input coordinates are normalized to that whole-screen
-/// rectangle, which the engine scales to the device resolution. Rectangles here have their origin at
-/// the top left, y downwards.
+/// The phone reports its screen size in its current orientation (the device resolution) and how many
+/// degrees to turn the video to show it upright. The turned video is scaled the same way both ways to
+/// fit the window's video area and centred in it, bars filling the rest; input positions are normalized
+/// to the video as drawn, which the engine scales to the device resolution. The part of the screen the
+/// phone says has content (a folded phone's half) is not used: the whole video shows. Rectangles here
+/// have their origin at the top left, y downwards.
 public struct MirrorDisplay: Equatable, Sendable {
     /// The phone's screen in its current orientation, in pixels.
     public var deviceSize: CGSize?
-    /// The device resolution the window started with (the one the phone registered).
+    /// The phone record's device resolution the window started with.
     public var initialDeviceSize: CGSize?
     /// The decoded video's size, before rotation.
     public var videoSize: CGSize?
     /// Degrees to turn the video: 0, −90, −180 or −270 (negative = counter-clockwise on screen).
     public var rotation: Int
-    /// The content's rectangle inside the device resolution.
-    public var contentArea: CGRect?
+
+    /// What the video is drawn with: its decoded size and its rotation. A window fades the video out
+    /// and in around a change of it (`MirrorVideoTransitions`).
+    public struct Transform: Equatable, Sendable {
+        public var videoSize: CGSize
+        public var rotation: Int
+    }
 
     public init(
         deviceSize: CGSize? = nil,
         initialDeviceSize: CGSize? = nil,
         videoSize: CGSize? = nil,
-        rotation: Int = 0,
-        contentArea: CGRect? = nil
+        rotation: Int = 0
     ) {
         self.deviceSize = deviceSize
         self.initialDeviceSize = initialDeviceSize
         self.videoSize = videoSize
         self.rotation = rotation
-        self.contentArea = contentArea
     }
 
     public init(_ session: MirrorSessionView) {
@@ -45,16 +45,11 @@ public struct MirrorDisplay: Equatable, Sendable {
             return CGSize(width: CGFloat(s.width), height: CGFloat(s.height))
         }
 
-        let area = session.contentArea.map {
-            CGRect(x: CGFloat($0.left), y: CGFloat($0.top), width: CGFloat($0.right - $0.left), height: CGFloat($0.bottom - $0.top))
-        }
-
         self.init(
             deviceSize: size(session.deviceResolution),
             initialDeviceSize: size(session.initialDeviceResolution),
             videoSize: size(session.videoSize),
-            rotation: Int(session.rotation),
-            contentArea: area
+            rotation: Int(session.rotation)
         )
     }
 
@@ -68,49 +63,44 @@ public struct MirrorDisplay: Equatable, Sendable {
         videoSize.map { swapsSides ? CGSize(width: $0.height, height: $0.width) : $0 }
     }
 
-    /// The phone's whole screen as the window shows it: the turned video, else the device resolution
-    /// the window started with.
+    /// The phone's screen as the window shows it: the turned video; nothing before its size is known.
     public var screenSize: CGSize? {
+        rotatedVideoSize
+    }
+
+    /// The size whose aspect a new window opens with: the turned video, else the phone record's device
+    /// resolution.
+    public var openingSize: CGSize? {
         rotatedVideoSize ?? initialDeviceSize
     }
 
-    /// The part of the screen the window keeps in view: the content area (given inside the device
-    /// resolution, scaled to the screen as drawn) when it lies inside the device resolution, else the
-    /// whole screen.
-    public var visibleArea: CGRect? {
-        guard let screen = screenSize else { return nil }
-        let whole = CGRect(origin: .zero, size: screen)
-        if let area = contentArea, area.width > 0, area.height > 0, let device = deviceSize,
-           CGRect(origin: .zero, size: device).contains(area) {
-            let sx = screen.width / device.width
-            let sy = screen.height / device.height
-            return CGRect(x: area.minX * sx, y: area.minY * sy, width: area.width * sx, height: area.height * sy)
-        }
-        return whole
+    /// The size whose aspect the window's video area has once the phone sent its screen: the turned
+    /// video, else the current device resolution.
+    public var shownSize: CGSize? {
+        rotatedVideoSize ?? deviceSize
     }
 
-    /// The size whose aspect the window keeps.
-    public var aspectSize: CGSize? {
-        visibleArea?.size
+    /// The video's transform; `nil` before its size is known.
+    public var transform: Transform? {
+        videoSize.map { Transform(videoSize: $0, rotation: rotation) }
     }
 
-    /// Where the whole screen goes in `bounds` (top-left origin): the visible area fitted into the
-    /// bounds and centred, the rest of the screen around it at the same scale.
+    /// Where the turned video goes in `bounds` (top-left origin): scaled the same way both ways to fit
+    /// and centred.
     public func screenRect(in bounds: CGSize) -> CGRect? {
-        guard let screen = screenSize, let visible = visibleArea, bounds.width > 0, bounds.height > 0 else { return nil }
-        let scale = min(bounds.width / visible.width, bounds.height / visible.height)
-        let shown = CGSize(width: visible.width * scale, height: visible.height * scale)
-        let origin = CGPoint(x: (bounds.width - shown.width) / 2, y: (bounds.height - shown.height) / 2)
+        guard let screen = screenSize, bounds.width > 0, bounds.height > 0 else { return nil }
+        let scale = min(bounds.width / screen.width, bounds.height / screen.height)
+        let shown = CGSize(width: screen.width * scale, height: screen.height * scale)
 
         return CGRect(
-            x: origin.x - visible.minX * scale,
-            y: origin.y - visible.minY * scale,
-            width: screen.width * scale,
-            height: screen.height * scale
+            x: (bounds.width - shown.width) / 2,
+            y: (bounds.height - shown.height) / 2,
+            width: shown.width,
+            height: shown.height
         )
     }
 
-    /// `point` (top-left origin, in `bounds`) normalized to the screen rectangle: 0–1 inside it.
+    /// `point` (top-left origin, in `bounds`) normalized to the video as drawn: 0–1 inside it.
     public func normalized(_ point: CGPoint, in bounds: CGSize) -> CGPoint? {
         guard let rect = screenRect(in: bounds), rect.width > 0, rect.height > 0 else { return nil }
         return CGPoint(x: (point.x - rect.minX) / rect.width, y: (point.y - rect.minY) / rect.height)
@@ -120,6 +110,36 @@ public struct MirrorDisplay: Equatable, Sendable {
     /// positive angle turns counter-clockwise).
     public var layerRotation: CGFloat {
         CGFloat(-rotation) * .pi / 180
+    }
+}
+
+/// When a window applies a new video transform: the first at once; a different one after fading the
+/// video out for `fadeLength`, keeping it hidden for `hiddenLength`, then fading it in for `fadeLength`.
+/// A transform is compared with the last one received, applied yet or not.
+public struct MirrorVideoTransitions: Sendable {
+    public enum Step: Equatable, Sendable {
+        /// Show the display at once.
+        case apply
+        /// Fade the video out, show the display, fade it in.
+        case fade
+    }
+
+    public static let fadeLength: Duration = .milliseconds(125)
+    public static let hiddenLength: Duration = .milliseconds(400)
+    /// `fadeLength` in seconds, for an animation.
+    public static let fadeSeconds: Double = 0.125
+
+    private var last: MirrorDisplay.Transform?
+
+    public init() {}
+
+    /// How to show a display of `transform`.
+    public mutating func receive(_ transform: MirrorDisplay.Transform?) -> Step {
+        guard let transform else { return .apply }
+        defer { last = transform }
+
+        guard let last, last != transform else { return .apply }
+        return .fade
     }
 }
 

@@ -69,7 +69,7 @@ impl TokenSource for FakeTokens {
 pub fn ident() -> ClientIdentification {
     ClientIdentification {
         logical_device_id: "bG9naWNhbC1kZXZpY2UtaWQtZm9yLXRlc3RzLTMyYnl0ZXM=".into(),
-        app_version: "1.26082.74.0".into(),
+        app_version: "1.26092.74.0".into(),
         app_id: "MicrosoftWindows.CrossDevice_cw5n1h2txyewy".into(),
         session_id: "0f8fad5b-d9cb-469f-a165-70867728950e".into(),
         ring_name: "Public".into(),

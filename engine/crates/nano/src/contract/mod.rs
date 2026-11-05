@@ -73,7 +73,7 @@ fn from_hex<const N: usize>(text: &str, key: &'static str) -> Result<[u8; N], Co
 pub struct IceServers {
     /// `ice.stun.url`: whitespace-separated STUN servers.
     pub stun_url: String,
-    /// `ice.turn.url`: one TURN server, the whole string.
+    /// `ice.turn.url`: one TURN server, the whole string as given.
     pub turn_url: String,
     pub turn_username: String,
     pub turn_password: String,
@@ -85,11 +85,17 @@ impl IceServers {
         self.stun_url.split_whitespace().map(|e| ServerEntry::parse(e, STUN_DEFAULT_PORT)).collect()
     }
 
-    /// The TURN server of `turn_url`, not split; `None` when it is empty.
+    /// The TURN server of `turn_url`: the string as given, neither trimmed nor split; `None` when it
+    /// is empty.
     pub fn turn_server(&self) -> Option<ServerEntry> {
-        let url = self.turn_url.trim();
-        (!url.is_empty()).then(|| ServerEntry::parse(url, TURN_DEFAULT_PORT))
+        (!self.turn_url.is_empty()).then(|| ServerEntry::parse(&self.turn_url, TURN_DEFAULT_PORT))
     }
+}
+
+/// Whether the PC contacts the TURN host at its resolved `address`: on both Nano paths only over IPv4,
+/// so the TURN requests go out from IPv4 addresses and the relayed candidates are IPv4.
+pub fn turn_address_usable(address: &SocketAddr) -> bool {
+    address.is_ipv4()
 }
 
 /// One STUN or TURN server entry as the agents read it: anything that is not `host`, `host:port` or

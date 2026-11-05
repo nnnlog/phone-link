@@ -115,20 +115,13 @@ pub fn remoting_supported_of(mirror_capability: bool, client_model: u32, revisio
 }
 
 /// *Hosted apps*: each phone app opens in a window of its own (else the one phone-screen window).
-/// `separate_window` is the PC's "one window per app" switch turned off when `true`.
-pub fn hosted_apps(record: &PhoneRecord, app: &AppConfig, separate_window: bool) -> bool {
-    hosted_apps_of(
-        record.remoting_flags(),
-        record.contract_version(app),
-        record.android_major_version(),
-        separate_window,
-    )
+pub fn hosted_apps(record: &PhoneRecord, app: &AppConfig) -> bool {
+    hosted_apps_of(record.remoting_flags(), record.contract_version(app), record.android_major_version())
 }
 
 /// [`hosted_apps`] over the values it reads.
-pub fn hosted_apps_of(remoting: u32, contract_version: f64, android_major: Option<i32>, separate_window: bool) -> bool {
+pub fn hosted_apps_of(remoting: u32, contract_version: f64, android_major: Option<i32>) -> bool {
     remoting & remoting::APPS_ON_WINDOWS_SUPPORTED != 0
-        && !separate_window
         && contract_version >= HOSTED_APPS_MIN_CONTRACT
         && android_major.is_some_and(|v| v >= HOSTED_APPS_MIN_ANDROID)
 }

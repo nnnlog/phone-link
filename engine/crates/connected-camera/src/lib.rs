@@ -260,6 +260,25 @@ enum RetrieveError {
     Failed(HandleFailure),
 }
 
+/// What sends a camera metadata sync.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum SyncTrigger {
+    /// Listening started, or the phone became available.
+    Background,
+    /// A stream is opening and has no usable handle: user-initiated.
+    StreamOpening,
+    /// A stream's wait for the handle timed out or ended without one: sent even while a sync is in
+    /// flight.
+    Resend,
+}
+
+impl SyncTrigger {
+    /// The sync is one the user's action asked for (it may replace a sync in flight that is not).
+    fn is_user_initiated(self) -> bool {
+        self == Self::StreamOpening
+    }
+}
+
 /// A phone's context-handle result.
 #[derive(Debug, Clone, Default)]
 enum HandleSlot {
@@ -293,6 +312,8 @@ struct PhoneRuntime {
     registered: bool,
     registration_failed: bool,
     sync_in_flight: bool,
+    /// The sync in flight is user-initiated.
+    sync_user_initiated: bool,
     /// Bumped whenever the handle result is replaced or discarded.
     handle_gen: u64,
     handle: HandleSlot,
@@ -324,6 +345,7 @@ impl PhoneRuntime {
             registered: false,
             registration_failed: false,
             sync_in_flight: false,
+            sync_user_initiated: false,
             handle_gen: 0,
             handle: HandleSlot::Empty,
             permission_requested: false,

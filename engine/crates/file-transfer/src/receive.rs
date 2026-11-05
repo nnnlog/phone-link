@@ -15,7 +15,7 @@ use tracing::{debug, error, info, warn};
 
 use super::send::SendError;
 use super::wire::{self, Control, FileEntry, ReceiveRequest, scenario};
-use super::{Inner, ReceiveProgress, key};
+use super::{Inner, ReceiveProgress, Side, key};
 use phonelink_core::sync::MutexExt;
 use phonelink_core::types::{DcgClient, TraceContext};
 use phonelink_features::shared::nano_channels::{OpenedChannel, TransferChannel};
@@ -276,7 +276,7 @@ impl Inner {
 
     /// The context handle, then the receive channel over it.
     async fn open_receive_channel(&self, peer: &PeerDevice, trace: &TraceContext) -> Result<OpenedChannel, SendError> {
-        let handle = self.ensure_handle(peer, trace, None).await.map_err(SendError::from)?;
+        let handle = self.ensure_handle(peer, Side::Receive, trace, None).await.map_err(SendError::from)?;
         self.open_channel(&handle, wire::RECEIVE_SCENARIO, trace, &self.shutdown.child_token(), false).await
     }
 

@@ -38,7 +38,7 @@ pub trait PcPowerControl: Send + Sync {
 }
 
 /// Runs `action` on `power` on the blocking pool; `true` when the edge reports the request made.
-/// A failing or panicking edge is logged and is `false`.
+/// A failing or panicking edge is logged and is `false`; what the phone hears is the caller's.
 pub(crate) async fn perform(power: Arc<dyn PcPowerControl>, action: PowerAction) -> bool {
     let outcome = tokio::task::spawn_blocking(move || match action {
         PowerAction::LockScreen => power.lock_screen(),
@@ -54,11 +54,11 @@ pub(crate) async fn perform(power: Arc<dyn PcPowerControl>, action: PowerAction)
             true
         }
         Ok(Err(e)) => {
-            warn!(?action, error = %e, "power action failed; the phone is answered failure");
+            warn!(?action, error = %e, "power action failed");
             false
         }
         Err(e) => {
-            warn!(?action, error = %e, "power action edge panicked; the phone is answered failure");
+            warn!(?action, error = %e, "power action edge panicked");
             false
         }
     }

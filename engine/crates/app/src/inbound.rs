@@ -176,9 +176,9 @@ impl AppLayer {
             return self.answer(&phone, &msg.headers, &message.payload, refusal, trace).await;
         }
 
-        // Device-status keys, from every phone-content request.
+        // Device-status keys, from every phone-content request; a battery key adds BatteryIndicator.
         let mut values = msg.values.clone();
-        self.update_record_for(&phone, |r| r.status_keys.record(&values));
+        self.update_record_for(&phone, |r| r.status_capabilities |= r.status_keys.record(&values));
 
         // A non-empty correlationVector header into the payload.
         if !values.contains_key(key::CORRELATION_VECTOR) {

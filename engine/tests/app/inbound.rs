@@ -616,6 +616,21 @@ async fn device_status_keys_are_recorded_from_every_request_with_type_checks() {
 }
 
 #[tokio::test(start_paused = true)]
+async fn a_battery_key_of_any_request_adds_the_battery_indicator_and_the_other_keys_add_none() {
+    let h = Harness::new();
+    h.app.update_phone_record(|r| r.status_capabilities = 0);
+    let caps = |h: &Harness| h.app.phone_record().unwrap().status_capabilities;
+
+    let others = ValueSet::new().with("bluetoothState", 12i32).with("wifiState", true).with("airplaneMode", true);
+    handle(&h, phone_content("heartbeat", others)).await;
+    handle(&h, phone_content("heartbeat", ValueSet::new().with("batteryPercent", "80"))).await;
+    assert_eq!(caps(&h), 0, "no bit for the other keys or a mistyped battery key");
+
+    handle(&h, phone_content("heartbeat", ValueSet::new().with("batteryCharging", true))).await;
+    assert_eq!(caps(&h), 0x8);
+}
+
+#[tokio::test(start_paused = true)]
 async fn a_rejected_message_still_records_its_device_status_keys() {
     let h = Harness::new();
     // `heartbeat` has no metadata phase: a heartbeat with `metadata` is rejected (answered 1) …

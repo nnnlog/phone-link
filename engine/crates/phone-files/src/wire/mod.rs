@@ -90,6 +90,7 @@ pub enum Trigger {
     FilesServiceStarted,
     DeviceBecameAvailable,
     DeviceUpdated,
+    DeviceReconnectedSync,
     FilesSyncPublished,
     RefreshClicked,
     SequenceNumberExpired,
@@ -108,6 +109,7 @@ impl Trigger {
             Self::FilesServiceStarted => "FilesServiceStarted",
             Self::DeviceBecameAvailable => "DeviceBecameAvailable",
             Self::DeviceUpdated => "DeviceUpdated",
+            Self::DeviceReconnectedSync => "DeviceReconnectedSync",
             Self::FilesSyncPublished => "FilesSyncPublished",
             Self::RefreshClicked => "RefreshClicked",
             Self::SequenceNumberExpired => "SequenceNumberExpired",
@@ -121,8 +123,8 @@ impl Trigger {
     }
 }
 
-/// A `FilesResponseStatus` as the phone sent it. The phone also sends `13` (directory not empty),
-/// which the schema lacks; every value but `SUCCESS` is a failure.
+/// A `FilesResponseStatus` as the phone sent it. Every value but `SUCCESS` is a failure, except that an
+/// item of a batch delete answered `DirectoryNotEmpty` counts as deleted.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Status {
     Success,
@@ -144,9 +146,6 @@ pub enum Status {
 
 impl Status {
     pub fn from_wire(v: i32) -> Self {
-        if v == 13 {
-            return Self::DirectoryNotEmpty;
-        }
         match FilesResponseStatus::try_from(v) {
             Ok(FilesResponseStatus::Success) => Self::Success,
             Ok(FilesResponseStatus::NoPermission) => Self::NoPermission,
@@ -160,6 +159,7 @@ impl Status {
             Ok(FilesResponseStatus::Cancelled) => Self::Cancelled,
             Ok(FilesResponseStatus::SyncFailed) => Self::SyncFailed,
             Ok(FilesResponseStatus::BatchRestartRequired) => Self::BatchRestartRequired,
+            Ok(FilesResponseStatus::DirectoryNotEmpty) => Self::DirectoryNotEmpty,
             Ok(FilesResponseStatus::Unspecified) | Err(_) => Self::Other(v),
         }
     }

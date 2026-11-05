@@ -19,3 +19,13 @@ fn v2_types_and_answer_bytes() {
         "UNSPECIFIED encodes as zero bytes"
     );
 }
+
+#[test]
+fn a_lock_and_a_sleep_are_answered_before_the_mac_acts() {
+    let first: Vec<PowerAction> =
+        [PowerAction::LockScreen, PowerAction::Sleep, PowerAction::ShutDown, PowerAction::Restart]
+            .into_iter()
+            .filter(|a| answered_first(*a))
+            .collect();
+    assert_eq!(first, [PowerAction::LockScreen, PowerAction::Sleep]);
+}

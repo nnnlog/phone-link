@@ -42,7 +42,7 @@ async fn kvp_request_gets_the_four_standard_keys_written_over_the_features() {
     let req = &h.messenger.requests()[0];
     let vs = payload(req);
     assert_eq!(vs.str("displayName"), Some("test-mac"));
-    assert_eq!(vs.str("appVersion"), Some("1.26082.121.0"));
+    assert_eq!(vs.str("appVersion"), Some("1.26092.119.0"));
     assert_eq!(vs.str("installationId"), Some(h.app.installation_id()));
     assert_eq!(vs.get("contractVersion"), Some(&Value::Double(3.99)));
 
