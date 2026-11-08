@@ -7,5 +7,5 @@
 // CURRENT_PROJECT_VERSION (CFBundleVersion) is a whole number raised by one for every build that leaves
 // this Mac. macOS replaces an installed camera extension only with one of a different version, and the
 // updater installs a download only when its build number is higher than the running app's.
-MARKETING_VERSION = 0.3.0
-CURRENT_PROJECT_VERSION = 3
+MARKETING_VERSION = 0.4.0
+CURRENT_PROJECT_VERSION = 4
