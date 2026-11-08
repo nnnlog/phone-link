@@ -24,6 +24,7 @@ phonelink-transport.workspace = true
 async-trait.workspace = true
 phonenumber.workspace = true
 prost.workspace = true
+regex.workspace = true
 rusqlite.workspace = true
 thiserror.workspace = true
 tokio.workspace = true

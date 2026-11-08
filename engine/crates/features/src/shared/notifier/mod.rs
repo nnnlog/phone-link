@@ -8,11 +8,15 @@
 //! and the edge only presents. What the user does with a posted notification comes back through
 //! [`NotificationRouter::route`], which hands it to the feature that owns the notification id: every
 //! id starts with the owning feature's name and a `/` (`notifications/…`, `messaging/…`).
+//!
+//! A notification that holds an authentication code carries the [`copy`] action instead of its own
+//! actions; the router handles that action itself and writes the code to the Mac's pasteboard through
+//! the [`CodeCopier`], so pressing it never reaches the owning feature or the phone.
 
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, OnceLock, RwLock};
 
-use tracing::warn;
+use tracing::{error, warn};
 
 use phonelink_core::edge::EdgeError;
 use phonelink_core::sync::RwLockExt;
@@ -81,6 +85,33 @@ impl std::fmt::Debug for NotificationResponse {
     }
 }
 
+/// The Copy action of a notification that holds an authentication code.
+pub mod copy {
+    use super::{NotificationAction, SystemNotification};
+
+    pub const ACTION_ID: &str = "copyCode";
+    /// The user-info key that holds the code.
+    pub const CODE_KEY: &str = "copyCode";
+    pub const TITLE: &str = "Copy";
+
+    /// Makes Copy the only action of `notification`, for `code`.
+    pub fn offer(notification: &mut SystemNotification, code: &str) {
+        notification.actions =
+            vec![NotificationAction { id: ACTION_ID.to_string(), title: TITLE.to_string(), text_input: None }];
+        notification.user_info.insert(CODE_KEY.to_string(), code.to_string());
+    }
+
+    /// `notification` offers Copy.
+    pub fn offered(notification: &SystemNotification) -> bool {
+        notification.actions.iter().any(|a| a.id == ACTION_ID)
+    }
+}
+
+/// Writes an authentication code to the Mac's pasteboard, off the caller's thread.
+pub trait CodeCopier: Send + Sync {
+    fn copy_code(&self, code: String);
+}
+
 /// Posting and withdrawing system notifications.
 #[uniffi::export(with_foreign)]
 pub trait SystemNotifier: Send + Sync {
@@ -97,16 +128,23 @@ pub trait NotificationResponder: Send + Sync {
     fn on_response(&self, id: &str, user_info: &HashMap<String, String>, response: NotificationResponse);
 }
 
-/// Routes a response to the feature named by the id's first `/`-separated part.
+/// Routes a response to the feature named by the id's first `/`-separated part, except the Copy action,
+/// which it hands to the [`CodeCopier`].
 #[derive(Default)]
 pub struct NotificationRouter {
     responders: RwLock<HashMap<String, Arc<dyn NotificationResponder>>>,
+    copier: OnceLock<Arc<dyn CodeCopier>>,
 }
 
 /// A second notification responder for a feature that already has one.
 #[derive(Debug, thiserror::Error)]
 #[error("{0} already has a notification responder")]
 pub struct ResponderTaken(pub String);
+
+/// A second code copier.
+#[derive(Debug, thiserror::Error)]
+#[error("the notification router already has a code copier")]
+pub struct CopierTaken;
 
 impl NotificationRouter {
     pub fn new() -> Arc<Self> {
@@ -123,14 +161,39 @@ impl NotificationRouter {
         Ok(())
     }
 
-    /// Hands `response` to the owning feature; an id no feature owns is logged and dropped.
+    /// Sets where the Copy action writes; set once.
+    pub fn set_code_copier(&self, copier: Arc<dyn CodeCopier>) -> Result<(), CopierTaken> {
+        self.copier.set(copier).map_err(|_| CopierTaken)
+    }
+
+    /// Hands `response` to the owning feature; an id no feature owns is logged and dropped. The Copy
+    /// action goes to the code copier instead.
     pub fn route(&self, id: &str, user_info: &HashMap<String, String>, response: NotificationResponse) {
+        if matches!(&response, NotificationResponse::Action { action_id } if action_id == copy::ACTION_ID) {
+            self.copy(id, user_info);
+            return;
+        }
+
         let feature = id.split('/').next().unwrap_or_default();
         let responder = self.responders.read_or_panic().get(feature).cloned();
         match responder {
             Some(r) => r.on_response(id, user_info, response),
             None => warn!(id, "notification response dropped; no feature owns its id"),
         }
+    }
+
+    /// The Copy action: the code of `user_info` to the copier. The code itself is never logged.
+    fn copy(&self, id: &str, user_info: &HashMap<String, String>) {
+        let Some(code) = user_info.get(copy::CODE_KEY) else {
+            error!(id, "copy action without its code; dropped (broken invariant)");
+            return;
+        };
+        let Some(copier) = self.copier.get() else {
+            warn!(id, "copy action dropped; no code copier is set");
+            return;
+        };
+
+        copier.copy_code(code.clone());
     }
 }
 

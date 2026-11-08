@@ -93,7 +93,9 @@ impl Inner {
                 self.emit(NotificationsEvent::OpenRequested { phone: phone.clone(), key: key.to_string(), target });
             }
             NotificationResponse::Action { .. } => {
-                warn!("button response on a phone notification dropped; it offers no buttons");
+                warn!(
+                    "button response on a phone notification dropped; its only button, Copy, never reaches the feature"
+                );
             }
             NotificationResponse::Dismissed => debug!("phone notification dismissed on the Mac; nothing is sent"),
         }

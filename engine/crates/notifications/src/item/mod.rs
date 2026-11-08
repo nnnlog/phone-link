@@ -9,6 +9,8 @@
 
 use serde_json::{Map, Value as Json};
 
+use phonelink_features::shared::auth_code;
+
 /// 0001-01-01T00:00:00Z as Unix milliseconds.
 pub const MIN_UNIX_MS: i64 = -62_135_596_800_000;
 /// 9999-12-31T23:59:59.999Z as Unix milliseconds.
@@ -18,6 +20,8 @@ pub const MAX_UNIX_MS: i64 = 253_402_300_799_999;
 const MESSAGING_STYLE_MAX_LINES: usize = 7;
 /// The list offers up to this many non-reply actions.
 const LIST_MAX_ACTIONS: usize = 4;
+/// The package of Samsung Messages, whose notifications offer a copy action for a code.
+const SAMSUNG_MESSAGES: &str = "com.samsung.android.messaging";
 /// Banners offer only actions whose `actionIndex` is below this.
 const BANNER_MAX_ACTION_INDEX: i32 = 3;
 
@@ -228,6 +232,20 @@ impl NotificationItem {
 
     pub fn is_messaging(&self) -> bool {
         self.notification_class() == Some(1)
+    }
+
+    /// The code the phone's messages app offers in its own copy action: Samsung Messages' messaging-class
+    /// item with a non-reply action named `<label> (<digits>)` whose digits are a whole digit run of
+    /// `text`. The label follows the phone's language and is not compared.
+    pub fn offered_code(&self) -> Option<String> {
+        if self.package_name != SAMSUNG_MESSAGES || !self.is_messaging() {
+            return None;
+        }
+        let text = self.text()?;
+
+        self.actions().into_iter().filter(|a| !a.inline_reply).find_map(|a| {
+            auth_code::offered_code(&a.name).filter(|c| auth_code::has_digit_run(text, c)).map(str::to_string)
+        })
     }
 
     pub fn is_media_style(&self) -> bool {

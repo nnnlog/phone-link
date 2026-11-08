@@ -229,7 +229,7 @@ async fn app_flags_alert_silently_or_not_at_all_with_the_per_app_list() {
 
 #[tokio::test(start_paused = true)]
 async fn group_messages_need_the_messages_consent_and_ignore_the_banner_flag() {
-    let consent = Arc::new(Consent(Mutex::new(false)));
+    let consent = Arc::new(Consent(Mutex::new(false), Mutex::default()));
     let w = world_with(Setup { messaging: Some(consent.clone()), ..Setup::default() });
     post_new(&w, "a", json!({"isReadOnlyGroupMessage": true})).await;
     assert!(w.w.notifier.posted().is_empty());
@@ -293,7 +293,7 @@ async fn throttling_follows_the_config() {
 
 #[tokio::test(start_paused = true)]
 async fn throttling_counts_group_messages_without_silencing_them() {
-    let consent = Arc::new(Consent(Mutex::new(true)));
+    let consent = Arc::new(Consent(Mutex::new(true), Mutex::default()));
     let w = world_with(Setup { messaging: Some(consent), ..Setup::default() });
     for n in 0..6 {
         post_new(&w, &format!("g{n}"), json!({"isReadOnlyGroupMessage": true})).await;
@@ -517,4 +517,39 @@ async fn a_post_removed_by_its_own_batch_is_neither_deduplicated_nor_throttled()
     let posted = w.w.notifier.posted();
     assert_eq!(posted.len(), 2, "r0 was not remembered as a duplicate");
     assert!(posted.iter().all(|n| n.alert), "the removed posts were not counted by throttling");
+}
+
+/// Samsung Messages' item for an SMS with a code: messaging class, its copy action at index 2.
+fn samsung_sms(key: &str, package: &str, copy_action: &str) -> String {
+    item(
+        key,
+        NOW_MS,
+        json!({
+            "packageName": package,
+            "notificationClass": 1,
+            "importance": 4,
+            "appName": "메시지",
+            "title": "1234-5678",
+            "text": "[Web발신] [서비스] 인증번호 [123456]를 입력해주세요.",
+            "notificationActions": [
+                {"actionName": "통화", "isActionInlineReply": false, "actionIndex": 0},
+                {"actionName": "읽음으로 표시", "isActionInlineReply": false, "actionIndex": 1},
+                {"actionName": copy_action, "isActionInlineReply": false, "actionIndex": 2}
+            ]
+        }),
+    )
+}
+
+#[tokio::test(start_paused = true)]
+async fn a_samsung_messages_copy_action_offers_its_code_to_messaging() {
+    let consent = Arc::new(Consent(Mutex::new(true), Mutex::default()));
+    let w = world_with(Setup { messaging: Some(consent.clone()), ..Setup::default() });
+
+    let samsung = "com.samsung.android.messaging";
+    deliver(&w.h, batch(&["a"], &[1], &[samsung_sms("a", samsung, "복사 (123456)")])).await;
+    deliver(&w.h, batch(&["b"], &[1], &[samsung_sms("b", "com.example.sms", "복사 (123456)")])).await;
+    deliver(&w.h, batch(&["c"], &[1], &[samsung_sms("c", samsung, "복사 (111111)")])).await;
+
+    assert_eq!(*consent.1.lock().unwrap(), vec!["123456".to_string()], "only Samsung's, and only a code of the text");
+    assert!(w.w.notifier.posted().is_empty(), "a messaging-class item gets no banner of its own");
 }

@@ -133,9 +133,14 @@ pub trait PhoneAppDirectory: Send + Sync {
     fn app(&self, phone: &DcgClient, package: &str) -> Option<PhoneAppInfo>;
 }
 
-/// What notifications reads from messaging: whether a group-message notification
-/// (`isReadOnlyGroupMessage`) may alert — the Messages feature's PC permission and its
-/// message-notification setting.
+/// What notifications and messaging exchange about message alerts.
+///
+/// Whether a group-message notification (`isReadOnlyGroupMessage`) may alert — the Messages feature's
+/// PC permission and its message-notification setting — and the authentication codes the phone's
+/// messages app offers.
 pub trait MessagingAlerts: Send + Sync {
     fn group_message_alerts_allowed(&self, phone: &DcgClient) -> bool;
+    /// The phone's messages app offered `code` in its own copy action; the new-message notification of
+    /// the same message gets Copy for it.
+    fn copy_code_offered(&self, phone: &DcgClient, code: &str);
 }

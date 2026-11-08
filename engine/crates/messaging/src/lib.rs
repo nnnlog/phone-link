@@ -219,6 +219,8 @@ pub(crate) struct Inner {
     sync_state_failing: OngoingFailure,
     /// Message notifications cannot be posted (each incoming message tries).
     post_failing: OngoingFailure,
+    /// New-message notifications and offered codes waiting for each other.
+    code_pairing: Mutex<notify::CodePairing>,
 }
 
 impl Inner {
@@ -474,6 +476,7 @@ impl Messaging {
             settings_failing: OngoingFailure::default(),
             sync_state_failing: OngoingFailure::default(),
             post_failing: OngoingFailure::default(),
+            code_pairing: Mutex::new(notify::CodePairing::default()),
         });
 
         env.app.register_processor_factory(&[consts::CONTENT_TYPE], Arc::new(exchange::Factory::new(&inner)))?;
@@ -642,5 +645,9 @@ impl MessagingAlerts for Messaging {
                 false
             }
         }
+    }
+
+    fn copy_code_offered(&self, phone: &DcgClient, code: &str) {
+        notify::code_offered(&self.inner, phone, code);
     }
 }

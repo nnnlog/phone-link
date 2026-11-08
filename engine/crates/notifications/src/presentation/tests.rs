@@ -139,3 +139,35 @@ fn content() {
     assert_eq!(p.id, "notifications/p1.Prod:paused/com.a");
     assert!(p.body.contains("3 minutes"));
 }
+
+#[test]
+fn a_code_in_the_text_makes_copy_the_only_action() {
+    let phone = DcgClient::new("p1", Environment::Prod);
+    let i = NotificationItem::parse(
+        r#"{"key":"k","packageName":"com.a","postTime":1760781600123,"appName":"Bank","title":"Sign-in","text":"Your verification code is 123456","notificationActions":[{"actionName":"Reply","isActionInlineReply":true,"actionIndex":1}]}"#,
+    )
+    .unwrap();
+
+    let n = banner(&phone, &i, true);
+
+    assert_eq!(n.actions.len(), 1);
+    assert_eq!(n.actions[0].id, copy::ACTION_ID);
+    assert_eq!(n.actions[0].text_input, None);
+    assert_eq!(n.user_info.get(copy::CODE_KEY).map(String::as_str), Some("123456"));
+    assert_eq!(n.user_info.get(info::KEY).map(String::as_str), Some("k"));
+}
+
+#[test]
+fn text_without_a_code_keeps_the_reply() {
+    let phone = DcgClient::new("p1", Environment::Prod);
+    let i = NotificationItem::parse(
+        r#"{"key":"k","packageName":"com.a","postTime":1760781600123,"appName":"Chat","title":"Ann","text":"[네이버] 인증번호 [123456]","notificationActions":[{"actionName":"Reply","isActionInlineReply":true,"actionIndex":1}]}"#,
+    )
+    .unwrap();
+
+    let n = banner(&phone, &i, true);
+
+    assert_eq!(n.actions.len(), 1);
+    assert_eq!(n.actions[0].id, "reply/1/0");
+    assert!(!n.user_info.contains_key(copy::CODE_KEY));
+}

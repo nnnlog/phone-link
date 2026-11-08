@@ -15,7 +15,8 @@ use std::time::{Duration, SystemTime};
 use sha2::{Digest, Sha256};
 
 use phonelink_core::types::DcgClient;
-use phonelink_features::shared::notifier::{NotificationAction, SystemNotification, TextInput};
+use phonelink_features::shared::auth_code;
+use phonelink_features::shared::notifier::{NotificationAction, SystemNotification, TextInput, copy};
 
 use super::item::NotificationItem;
 use super::settings::AppFlags;
@@ -266,8 +267,11 @@ fn base_info(phone: &DcgClient, kind: &str) -> HashMap<String, String> {
     ])
 }
 
-/// A phone notification: title = `appName`, subtitle = `title`, body = `text`; one text-input
-/// reply action per reply entry with `actionIndex < 3`; `alert: false` delivers it silently.
+/// A phone notification: title = `appName`, subtitle = `title`, body = `text`.
+///
+/// One text-input reply action per reply entry with `actionIndex < 3`, or Copy alone when its text
+/// holds an authentication code (differs from Phone Link on Windows); `alert: false` delivers it
+/// silently.
 pub fn banner(phone: &DcgClient, item: &NotificationItem, alert: bool) -> SystemNotification {
     let replies = item.banner_reply_actions();
     let single = replies.len() == 1;
@@ -290,7 +294,7 @@ pub fn banner(phone: &DcgClient, item: &NotificationItem, alert: bool) -> System
         user_info.insert(info::IMPORTANCE.to_string(), i.to_string());
     }
 
-    SystemNotification {
+    let mut notification = SystemNotification {
         id: notification_id(phone, &item.key),
         thread_id: Some(item.package_name.clone()),
         title: item.app_name().unwrap_or_default().to_string(),
@@ -300,7 +304,13 @@ pub fn banner(phone: &DcgClient, item: &NotificationItem, alert: bool) -> System
         actions,
         user_info,
         image: None,
+    };
+
+    let lines = [item.app_name(), item.title(), item.text()].map(Option::unwrap_or_default);
+    if let Some(code) = auth_code::find_code(&lines) {
+        copy::offer(&mut notification, &code);
     }
+    notification
 }
 
 /// The "paused for N minutes" notice of a package entering its cooldown; N is the cooldown's

@@ -14,6 +14,7 @@
 //! | [`sync`] | feature-state sync, startup and shutdown (the managers) |
 //! | [`inbound`] | phone → PC: the change announcement (inbound tag 9), the content pull, response handling |
 //! | [`outbound`] | PC → phone: the change announcement (outbound tag 9): change detection, debounce, echo suppression, announcing |
+//! | [`code`] | the Copy action of notifications: the authentication code written as transient plain text (differs from Phone Link on Windows) |
 //! | [`receiver`] | PC → phone: serving `/clipboard` (answer rows 1–10, the content answer) |
 //!
 //! Gating: the global switch is a persisted app setting (default on); the per-phone "enabled" flag
@@ -31,6 +32,7 @@
 
 uniffi::setup_scaffolding!();
 
+pub mod code;
 pub mod html;
 pub mod image;
 pub mod inbound;

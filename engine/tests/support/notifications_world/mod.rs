@@ -32,13 +32,17 @@ pub struct World {
     pub n: Arc<Notifications>,
 }
 
-/// Group-message consent of the messaging feature, settable.
+/// Group-message consent of the messaging feature, settable; the codes offered to it are recorded.
 #[derive(Default)]
-pub struct Consent(pub Mutex<bool>);
+pub struct Consent(pub Mutex<bool>, pub Mutex<Vec<String>>);
 
 impl MessagingAlerts for Consent {
     fn group_message_alerts_allowed(&self, _phone: &DcgClient) -> bool {
         *self.0.lock().unwrap()
+    }
+
+    fn copy_code_offered(&self, _phone: &DcgClient, code: &str) {
+        self.1.lock().unwrap().push(code.to_string());
     }
 }
 

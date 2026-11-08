@@ -178,6 +178,8 @@ impl Features {
         let device_status = install_device_status(cdeh_env, cdeh_routes, config, edges)?;
         let wallpaper = install_wallpaper(cdeh_env, cdeh_routes, config, edges)?;
         let clipboard = install_clipboard(cdeh_env, cdeh_routes, config, edges)?;
+        // A notification's Copy action writes its code to the pasteboard.
+        env.responses.set_code_copier(clipboard.code_copier()).map_err(|e| FeatureError::Programming(e.to_string()))?;
         let remote_control = RemoteControl::install(
             env,
             cdeh_env,

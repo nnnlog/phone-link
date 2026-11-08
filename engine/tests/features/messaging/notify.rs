@@ -11,7 +11,7 @@ use app_world::*;
 use phonelink_engine::codec::valueset::ValueSet;
 use phonelink_engine::features::MessagingAlerts;
 use phonelink_engine::features::messaging::{MessageKind, MessagingEvent, PcSettings, ProximityState, SendStatus};
-use phonelink_engine::features::shared::notifier::NotificationResponse;
+use phonelink_engine::features::shared::notifier::{NotificationResponse, copy};
 use support::*;
 
 /// An item with subscription 1 (KR), conversation 5 and `sms`.
@@ -394,4 +394,86 @@ async fn an_rcs_notification_opens_the_listed_conversation_and_its_reply_shows_t
     assert!(!wd.m.phone_permission().unwrap(), "result 5 denies the messages permission");
     let failures = wd.w.notifier.posted().into_iter().filter(|p| p.id.contains("/failed/")).count();
     assert_eq!(failures, 1, "no notification for the retry");
+}
+
+/// The code of an English sign-in message, and a Korean one the detector leaves to the phone's offer.
+const ENGLISH_CODE_BODY: &str = "Your verification code is 123456";
+const KOREAN_CODE_BODY: &str = "[Web발신] [서비스] 인증번호 [123456]를 입력해주세요.";
+
+fn copy_code(n: &phonelink_engine::features::SystemNotification) -> Option<&str> {
+    n.user_info.get(copy::CODE_KEY).map(String::as_str)
+}
+
+#[tokio::test(start_paused = true)]
+async fn a_message_with_a_code_offers_copy_instead_of_the_reply() {
+    let wd = world();
+    push(&wd.h, item_msg(sms_item(vec![Sms::inbox(1, 5, "+1", ENGLISH_CODE_BODY)]))).await;
+
+    let posted = wd.w.notifier.posted();
+    assert_eq!(posted.len(), 1);
+    assert_eq!(posted[0].actions.len(), 1);
+    assert_eq!(posted[0].actions[0].id, copy::ACTION_ID);
+    assert_eq!(copy_code(&posted[0]), Some("123456"));
+    assert!(posted[0].alert);
+}
+
+#[tokio::test(start_paused = true)]
+async fn a_message_older_than_a_minute_is_not_read_for_a_code() {
+    let wd = world();
+    let sms = Sms { date: NOW_MS - 60_001, ..Sms::inbox(1, 5, "+1", ENGLISH_CODE_BODY) };
+    push(&wd.h, item_msg(sms_item(vec![sms]))).await;
+
+    let posted = wd.w.notifier.posted();
+    assert_eq!(posted.len(), 1);
+    assert!(posted[0].actions[0].text_input.is_some(), "the reply stays");
+    assert_eq!(copy_code(&posted[0]), None);
+}
+
+#[tokio::test(start_paused = true)]
+async fn an_offer_after_the_message_posts_it_again_with_copy_silently() {
+    let wd = world();
+    push(&wd.h, item_msg(sms_item(vec![Sms::inbox(1, 5, "+1", KOREAN_CODE_BODY)]))).await;
+    assert_eq!(copy_code(&wd.w.notifier.posted()[0]), None, "Korean text has no English keyword");
+
+    wd.m.copy_code_offered(&phone(), "123456");
+
+    let posted = wd.w.notifier.posted();
+    assert_eq!(posted.len(), 2);
+    let again = &posted[1];
+    assert_eq!(again.id, posted[0].id);
+    assert!(!again.alert);
+    assert_eq!(again.actions.len(), 1);
+    assert_eq!(again.actions[0].id, copy::ACTION_ID);
+    assert_eq!(copy_code(again), Some("123456"));
+    assert_eq!(again.user_info.get("thread").map(String::as_str), Some("5"));
+
+    wd.m.copy_code_offered(&phone(), "123456");
+    assert_eq!(wd.w.notifier.posted().len(), 2, "the notification is completed once");
+}
+
+#[tokio::test(start_paused = true)]
+async fn an_offer_before_the_message_gives_it_copy_from_the_start() {
+    let wd = world();
+    wd.m.copy_code_offered(&phone(), "123456");
+    assert!(wd.w.notifier.posted().is_empty());
+
+    push(&wd.h, item_msg(sms_item(vec![Sms::inbox(1, 5, "+1", KOREAN_CODE_BODY)]))).await;
+
+    let posted = wd.w.notifier.posted();
+    assert_eq!(posted.len(), 1);
+    assert!(posted[0].alert);
+    assert_eq!(copy_code(&posted[0]), Some("123456"));
+}
+
+#[tokio::test(start_paused = true)]
+async fn an_offer_for_another_code_or_after_a_dismissal_changes_nothing() {
+    let wd = world();
+    push(&wd.h, item_msg(sms_item(vec![Sms::inbox(1, 5, "+1", KOREAN_CODE_BODY)]))).await;
+    wd.m.copy_code_offered(&phone(), "111111");
+    assert_eq!(wd.w.notifier.posted().len(), 1);
+
+    let n = wd.w.notifier.posted().remove(0);
+    wd.w.responses.route(&n.id, &n.user_info, NotificationResponse::Dismissed);
+    wd.m.copy_code_offered(&phone(), "123456");
+    assert_eq!(wd.w.notifier.posted().len(), 1, "a dismissed notification is not posted again");
 }

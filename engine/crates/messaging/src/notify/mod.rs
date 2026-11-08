@@ -5,16 +5,27 @@
 //! minutes of now, in a known conversation that is neither muted nor hidden; an MMS also needs a part
 //! and a sender. Per message batch (after the commit): the PC message-notification setting and consent
 //! are on, the app window is not focused, and the proximity gate (`0x80`) is not blocking.
+//!
+//! A notification whose message holds an authentication code offers Copy instead of the reply (differs
+//! from Phone Link on Windows): the code is found in the title and body of a message at most a minute
+//! old, or offered by the phone's messages app in its own copy action ([`codes`]).
+
+mod codes;
+
+pub(crate) use codes::CodePairing;
 
 use std::collections::HashMap;
 use std::sync::Arc;
+
+use phonelink_core::sync::MutexExt;
 
 use rusqlite::Connection;
 use tracing::{debug, error, warn};
 
 use phonelink_core::types::DcgClient;
+use phonelink_features::shared::auth_code;
 use phonelink_features::shared::notifier::{
-    NotificationAction, NotificationResponder, NotificationResponse, SystemNotification, TextInput,
+    NotificationAction, NotificationResponder, NotificationResponse, SystemNotification, TextInput, copy,
 };
 
 use super::caps::Predicates;
@@ -57,6 +68,8 @@ pub(super) struct Candidate {
     pub shown_thread: i64,
     pub from: String,
     pub body: String,
+    /// The message's timestamp, Unix ms.
+    pub timestamp_ms: i64,
     /// The country of the message's subscription, for the contact lookup.
     pub region: Option<String>,
     pub image: Option<Vec<u8>>,
@@ -161,6 +174,7 @@ impl Scan<'_> {
                     shown_thread: r.thread_id,
                     from: r.from_address.clone(),
                     body: r.body.clone(),
+                    timestamp_ms: r.timestamp_ms,
                     region: region_of(&self.subscriptions, r.subscription_id),
                     image: None,
                     can_reply: true,
@@ -204,6 +218,7 @@ impl Scan<'_> {
                 shown_thread: r.thread_id,
                 from: stored.row.from_address.clone(),
                 body: text.join(" "),
+                timestamp_ms: r.timestamp_ms,
                 region: region_of(&self.subscriptions, r.subscription_id),
                 image,
                 can_reply: true,
@@ -227,6 +242,7 @@ impl Scan<'_> {
                     shown_thread,
                     from: m.from_address.clone(),
                     body: r.body.clone(),
+                    timestamp_ms: m.timestamp_ms,
                     region: region_of(&self.subscriptions, m.subscription_id),
                     image: None,
                     can_reply,
@@ -253,6 +269,7 @@ impl Scan<'_> {
                     shown_thread,
                     from: m.from_address.clone(),
                     body: r.file_name.clone(),
+                    timestamp_ms: m.timestamp_ms,
                     region: region_of(&self.subscriptions, m.subscription_id),
                     image,
                     can_reply,
@@ -315,8 +332,10 @@ pub(super) fn post(inner: &Arc<Inner>, phone: &DcgClient, candidates: Vec<Candid
     if !batch_allowed(inner, phone, focused) {
         return;
     }
+
+    let now_ms = inner.now_ms();
     for c in candidates {
-        post_candidate(inner, phone, c);
+        post_candidate(inner, phone, c, now_ms);
     }
 }
 
@@ -355,8 +374,9 @@ fn batch_allowed(inner: &Inner, phone: &DcgClient, focused: bool) -> bool {
     true
 }
 
-/// Posts the notification of one candidate.
-fn post_candidate(inner: &Inner, phone: &DcgClient, c: Candidate) {
+/// Posts the notification of one candidate: with Copy when its message holds a code, else kept a while
+/// for the phone's offer of one.
+fn post_candidate(inner: &Inner, phone: &DcgClient, c: Candidate, now_ms: i64) {
     let title = inner.display_name(phone, &c.from, c.region.as_deref());
     let actions = if c.can_reply {
         vec![NotificationAction {
@@ -369,7 +389,9 @@ fn post_candidate(inner: &Inner, phone: &DcgClient, c: Candidate) {
     };
 
     let rcs = matches!(c.kind, Kind::RcsChat | Kind::RcsFileTransfer);
-    let notification = SystemNotification {
+    let fresh = now_ms.saturating_sub(c.timestamp_ms) <= codes::KEEP_MS;
+    let detected = fresh.then(|| auth_code::find_code(&[title.as_str(), c.body.as_str()])).flatten();
+    let mut notification = SystemNotification {
         id: format!("{FEATURE}/{phone}/{}/{}", c.kind.name(), c.id),
         thread_id: Some(format!("{FEATURE}/{phone}/{}", c.shown_thread)),
         title,
@@ -381,13 +403,37 @@ fn post_candidate(inner: &Inner, phone: &DcgClient, c: Candidate) {
         image: c.image,
     };
 
+    let code = detected.or_else(|| inner.code_pairing.lock_or_panic().take_offer(phone, &notification.body, now_ms));
+    if let Some(code) = &code {
+        copy::offer(&mut notification, code);
+    }
+
+    let kept = codes::keepable(&notification).then(|| notification.clone());
     match inner.notifier.post(notification) {
-        Ok(()) => inner.post_failing.clear(),
+        Ok(()) => {
+            inner.post_failing.clear();
+            if let Some(kept) = kept {
+                inner.code_pairing.lock_or_panic().keep_posted(phone, kept, now_ms);
+            }
+        }
         Err(e) => {
             if inner.post_failing.starts() {
                 warn!(error = %e, "message notification not posted");
             }
         }
+    }
+}
+
+/// The phone's messages app offered `code`: a kept notification of `phone` whose body has it is posted
+/// again with Copy, silently; without one, the offer waits for the notification.
+pub(super) fn code_offered(inner: &Inner, phone: &DcgClient, code: &str) {
+    let found = inner.code_pairing.lock_or_panic().offer(phone, code, inner.now_ms());
+    let Some(mut notification) = found else { return };
+
+    copy::offer(&mut notification, code);
+    notification.alert = false;
+    if let Err(e) = inner.notifier.post(notification) {
+        warn!(error = %e, "message notification not posted again with Copy");
     }
 }
 
@@ -454,6 +500,10 @@ struct BadThreadId {
 impl NotificationResponder for Responder {
     fn on_response(&self, id: &str, user_info: &HashMap<String, String>, response: NotificationResponse) {
         let Some(inner) = self.inner.upgrade() else { return };
+        if !matches!(response, NotificationResponse::Action { .. }) {
+            inner.code_pairing.lock_or_panic().forget(id);
+        }
+
         let Some(app) = inner.app.upgrade() else { return };
         let Some(phone) = app.selected_phone().filter(|p| user_info.get(info_key::PHONE) == Some(&p.to_string()))
         else {

@@ -176,7 +176,8 @@ impl Inner {
     }
 
     /// Withdraws what the batch deleted and presents its new items: first the session changes'
-    /// rows, then the alerts for operation-1 items whose key is still stored, then the removed rows.
+    /// rows, then the alerts for operation-1 items whose key is still stored, then the codes the
+    /// upserted items offer, then the removed rows.
     fn after_batch(
         &self,
         app: &AppLayer,
@@ -197,6 +198,13 @@ impl Inner {
         if !candidates.is_empty() {
             if let Err(e) = self.present(app, phone, &candidates) {
                 error!(error = %e, "notifications store not read; the batch's banners are not shown");
+            }
+        }
+
+        // A messages app's copy action gives the new-message notification of its message a Copy button.
+        if let Some(messaging) = &self.messaging {
+            for code in items.iter().filter_map(|(item, _, _)| item.offered_code()) {
+                messaging.copy_code_offered(phone, &code);
             }
         }
 
