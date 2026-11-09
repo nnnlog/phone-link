@@ -405,6 +405,8 @@ pub struct AuthService {
     account_events: broadcast::Sender<AccountRemoved>,
     /// Forced (`ForceCloud`) refreshes triggered by untrusted sources, per source, in the last hour.
     forced_refreshes: Mutex<HashMap<String, VecDeque<tokio::time::Instant>>>,
+    /// Whether an unlinked device was auto re-linked once this run (bounded recovery).
+    recovery_attempted: std::sync::atomic::AtomicBool,
     weak: Weak<AuthService>,
 }
 
@@ -455,6 +457,7 @@ impl AuthService {
             device_list_events,
             account_events,
             forced_refreshes: Mutex::new(HashMap::new()),
+            recovery_attempted: std::sync::atomic::AtomicBool::new(false),
             weak: weak.clone(),
         });
 

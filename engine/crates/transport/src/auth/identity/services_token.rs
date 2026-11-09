@@ -3,6 +3,7 @@
 use super::{AuthCallFailure, RefreshError};
 use crate::auth::crypto::KeyPair;
 use crate::auth::dcg_rest::TokenResponse;
+use crate::auth::store::{AccountInfo, AccountState};
 use crate::auth::{AuthError, AuthService, State, crypto};
 use phonelink_core::sync::MutexExt;
 use phonelink_core::types::{Environment, TraceContext};
@@ -49,9 +50,53 @@ impl AuthService {
         let msa = self.msa_token(env).await?;
         match self.sign_in_identity(env, &msa).await {
             Ok(token) => Ok((token, false)),
+            Err(RefreshError::Failed(AuthError::UnlinkedDevice)) => {
+                // The service unlinked this device: auto re-link it once per run.
+                let token = self.recover_unlinked(env, &msa).await?;
+                Ok((token, false))
+            }
             Err(RefreshError::Failed(e)) => Err(e),
             Err(RefreshError::IdentityLost) => self.recreate_identity(env, &msa).await.map(|token| (token, true)),
         }
+    }
+
+    /// Auto re-links an unlinked device once per run: creates a new identity for the signed-in
+    /// account and enrolls the account under it, so a de-provisioned device heals on its own. The
+    /// recovery is bounded to one attempt per run; a server refusal (or no signed-in account) keeps
+    /// the unlinked state, which the caller reports.
+    async fn recover_unlinked(&self, env: Environment, msa: &str) -> Result<String, AuthError> {
+        if self
+            .recovery_attempted
+            .compare_exchange(false, true, std::sync::atomic::Ordering::SeqCst, std::sync::atomic::Ordering::SeqCst)
+            .is_err()
+        {
+            return Err(AuthError::UnlinkedDevice);
+        }
+
+        let account = self.state.lock_or_panic().account.clone().ok_or(AuthError::UnlinkedDevice)?;
+
+        let new = match self.request_new_identity(env, msa).await? {
+            Ok(new) => new,
+            Err(e) if e.is_unlinked() => return Err(self.unlinked(env)),
+            Err(e) => return Err(self.msa_call_failure(env, e)),
+        };
+
+        let token = new.token.access_token.clone();
+        self.store_new_identity(env, new)?;
+        {
+            let mut st = self.state.lock_or_panic();
+            let device_id = st.env(env).identity.as_ref().map(|i| i.device_id.clone());
+            st.env_mut(env).account_id = Some(account.account_id.clone());
+            let info = st.account_info.entry(account.account_id.clone()).or_insert_with(|| AccountInfo::new(&account));
+            info.state = AccountState::Enrolled;
+            info.environment = Some(env);
+            info.dcg_client_id = device_id;
+            info.last_update_time = Some(self.now());
+            self.persist_account_info(&st)?;
+        }
+
+        tracing::warn!(%env, "device was unlinked; a new identity was created and enrolled automatically");
+        Ok(token)
     }
 
     /// The identity a token request needs: a stored one with an account id, expired or not — its key

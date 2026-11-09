@@ -269,7 +269,7 @@ async fn an_expired_identity_keeps_signing_in() {
 /// An unlinked device clears the identity and deprovisions only the account enrolled with it, for
 /// both identities.
 #[tokio::test]
-async fn an_unlinked_device_deprovisions_the_account_enrolled_with_the_identity() {
+async fn an_unlinked_device_auto_relinks_the_signed_in_account_only() {
     for phone_link in [false, true] {
         let h = if phone_link { Harness::phone_link().await } else { Harness::new().await };
         let (service, _) = h.provisioned().await;
@@ -285,12 +285,14 @@ async fn an_unlinked_device_deprovisions_the_account_enrolled_with_the_identity(
 
         let restarted = h.service();
         h.dcg.script("SignIn", 403, &error_body(Some(13), "DeviceUnlinked"));
-        let err = restarted.services_token_for(Environment::Prod, true).await.unwrap_err();
-        assert_matches!(err, AuthError::UnlinkedDevice);
+        let token = restarted.services_token_for(Environment::Prod, true).await.expect("auto re-link");
+        assert!(!token.is_empty());
 
+        // The signed-in account is re-enrolled under a new identity; the other account is untouched.
         let left: Vec<String> = h.store_json("auth/account-info").as_object().unwrap().keys().cloned().collect();
-        assert_eq!(left, ["someone-else"], "phone_link={phone_link}");
-        assert!(restarted.account_info().is_none(), "phone_link={phone_link}: the signed-in account is gone");
-        assert!(restarted.own_client().is_none(), "phone_link={phone_link}");
+        assert_eq!(left.len(), 2, "phone_link={phone_link}: the signed-in account and the other one");
+        assert!(left.iter().any(|k| k == "someone-else"), "phone_link={phone_link}");
+        assert!(restarted.account_info().is_some(), "phone_link={phone_link}: the signed-in account is enrolled again");
+        assert!(restarted.own_client().is_some(), "phone_link={phone_link}: a new identity exists");
     }
 }

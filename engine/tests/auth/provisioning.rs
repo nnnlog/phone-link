@@ -446,21 +446,21 @@ async fn create_identity_gives_up_after_three_retries() {
 }
 
 #[tokio::test]
-async fn unlinked_device_on_auth_deprovisions_everything() {
+async fn unlinked_device_on_auth_deprovisions_then_auto_relinks() {
     let h = Harness::new().await;
-    let (service, _, _, peers) = h.with_phone().await;
-    assert_eq!(peers.len(), 1);
+    let (service, _, _, _) = h.with_phone().await;
 
+    // The server unlinks the device: the refresh auto re-links once (a new identity, enrolled again).
+    h.dcg.script("SignIn", 403, &error_body(Some(13), "DeviceUnlinked"));
+    let token = service.services_token_for(Environment::Prod, true).await.expect("auto re-link");
+    assert!(!token.is_empty());
+    assert!(service.account_info().is_some(), "the account is enrolled again under the new identity");
+    assert!(service.own_client().is_some(), "a new identity exists");
+
+    // The recovery is bounded: a second unlink falls back to the unlinked error.
     h.dcg.script("SignIn", 403, &error_body(Some(13), "DeviceUnlinked"));
     let err = service.services_token_for(Environment::Prod, true).await.unwrap_err();
     assert_matches!(err, AuthError::UnlinkedDevice);
-
-    assert!(service.account_info().is_none(), "every account deprovisioned");
-    assert!(service.trust_relationships().is_empty());
-    assert!(service.peers().is_empty());
-    assert!(service.own_client().is_none());
-    assert!(h.store_bytes("auth/prod/identity").is_none());
-    assert_eq!(h.store_json("auth/peer-cache"), serde_json::json!({}));
 }
 
 #[tokio::test]
