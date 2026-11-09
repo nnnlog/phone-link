@@ -39,6 +39,12 @@ struct PhoneArea: View {
         .padding(.bottom, 8)
         .padding(.horizontal, SidebarMetrics.edge)
         .background {
+            // The frosted-glass panel the phone area sits on: translucent, with the wallpaper's
+            // color behind it showing through.
+            RoundedRectangle(cornerRadius: SidebarMetrics.moduleRadius, style: .continuous)
+                .fill(.ultraThinMaterial)
+        }
+        .background {
             RoundedRectangle(cornerRadius: SidebarMetrics.moduleRadius, style: .continuous)
                 .strokeBorder(.tint, lineWidth: 2)
                 .opacity(dropTargeted ? 1 : 0)

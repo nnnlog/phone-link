@@ -5,10 +5,10 @@ import SwiftUI
 struct PhoneWallpaperThumbnail: View {
     let image: NSImage?
 
-    private static let size = CGSize(width: 28, height: 52)
+    private static let size = CGSize(width: 36, height: 66)
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 6, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: 8, style: .continuous)
         ZStack {
             if let image {
                 Image(nsImage: image)
@@ -16,7 +16,7 @@ struct PhoneWallpaperThumbnail: View {
                     .scaledToFill()
             } else {
                 Image(systemName: "iphone")
-                    .font(.system(size: 26, weight: .light))
+                    .font(.system(size: 32, weight: .light))
                     .foregroundStyle(.secondary)
             }
         }
@@ -24,7 +24,13 @@ struct PhoneWallpaperThumbnail: View {
         .clipShape(shape)
         .overlay {
             if image != nil {
-                shape.strokeBorder(.primary.opacity(0.25), lineWidth: 1)
+                shape.strokeBorder(
+                    LinearGradient(
+                        colors: [.white.opacity(0.6), .primary.opacity(0.25)],
+                        startPoint: .top, endPoint: .bottom
+                    ),
+                    lineWidth: 1
+                )
             }
         }
         .accessibilityLabel(image == nil ? "Phone" : "Phone wallpaper")
