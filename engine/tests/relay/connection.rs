@@ -219,28 +219,28 @@ async fn handshake_error_fails_every_attempt() {
 // ------------------------------------------------------------------------------------------------
 
 #[tokio::test]
-async fn http_401_on_negotiate_forces_one_token_refresh() {
+async fn http_401_on_negotiate_auto_refreshes_once() {
     let h = Harness::new(|_| {}).await;
     h.hub.push_negotiate(NegotiateReply::Status(401));
     h.hub.push_negotiate(NegotiateReply::Status(401));
     assert_eq!(h.open().await, OpenStatus::Success);
     assert_eq!(
         h.tokens.calls(),
-        vec![(Environment::Prod, false), (Environment::Prod, true), (Environment::Prod, false)],
-        "only the second attempt (after the first 401) forces a refresh"
+        vec![(Environment::Prod, false), (Environment::Prod, false), (Environment::Prod, false)],
+        "the first 401 invalidates the cached token; the next request auto-refreshes"
     );
 }
 
 #[tokio::test]
-async fn http_401_on_the_upgrade_also_forces_the_refresh() {
+async fn http_401_on_the_upgrade_also_auto_refreshes() {
     let h = Harness::new(|_| {}).await;
     h.hub.push_upgrade(UpgradeReply::Status(401));
     assert_eq!(h.open().await, OpenStatus::Success);
-    assert_eq!(h.tokens.calls(), vec![(Environment::Prod, false), (Environment::Prod, true)]);
+    assert_eq!(h.tokens.calls(), vec![(Environment::Prod, false), (Environment::Prod, false)]);
 }
 
 #[tokio::test]
-async fn http_401_after_the_first_retry_forces_nothing() {
+async fn http_401_after_a_prior_retry_invalidates_nothing() {
     let h = Harness::new(|_| {}).await;
     h.hub.push_negotiate(NegotiateReply::Status(500));
     h.hub.push_negotiate(NegotiateReply::Status(401));
@@ -549,6 +549,38 @@ async fn reconnect_succeeds_on_a_new_session() {
     assert_eq!(h.relay.send_connected_to(&phone()).await, HubSendResult::Success);
     let reply = second.wait_invocation(SECOND, |i| i.target == method::SEND_CONNECTED).await;
     assert_eq!(reply.invocation_id.as_deref(), Some("1"), "invocation ids restart per session");
+}
+
+#[tokio::test]
+async fn reconnect_a_401_auto_refreshes_in_the_same_slot() {
+    // Schedule 0, 150, 300 ms. The first reconnect attempt fails with 401; the same slot retries at
+    // once after invalidating the cached token, so the retry auto-refreshes and succeeds before the
+    // schedule's next delay applies.
+    let mut h = Harness::new(|_| {}).await;
+    let session = h.open_session().await;
+    drain_events(&mut h.events);
+
+    h.hub.push_negotiate(NegotiateReply::Status(401));
+    session.drop_socket();
+
+    let outcome = next_event(&mut h.events, 4 * SECOND, |e| {
+        is_state(HubState::Connected)(e) || is_state(HubState::Disconnected)(e)
+    })
+    .await;
+    assert!(is_state(HubState::Connected)(&outcome), "a 401 heals by an immediate auto-refresh: {outcome:?}");
+
+    let attempts: Vec<Instant> = h.hub.negotiates().iter().skip(1).map(|r| r.at).collect();
+    assert_eq!(attempts.len(), 2, "the 401 attempt and its immediate auto-refreshed retry");
+    let gap = attempts[1] - attempts[0];
+    assert!(gap < Duration::from_millis(150), "the auto-refreshed retry came within the same slot, gap {gap:?}");
+
+    let calls = h.tokens.calls();
+    assert_eq!(calls.len(), 3, "open + the 401 attempt + its auto-refreshed retry");
+    assert_eq!(
+        calls.iter().filter(|(_, force)| *force).count(),
+        0,
+        "no forced refresh; the invalidation auto-refreshes"
+    );
 }
 
 #[tokio::test]

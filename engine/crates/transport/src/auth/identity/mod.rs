@@ -13,6 +13,7 @@ use async_trait::async_trait;
 use sha2::{Digest, Sha256};
 
 use phonelink_core::seams::{TokenError, TokenSource};
+use phonelink_core::sync::MutexExt;
 use phonelink_core::types::Environment;
 
 use super::crypto::{self};
@@ -102,6 +103,11 @@ impl From<AuthError> for RefreshError {
 impl TokenSource for AuthService {
     async fn services_token(&self, env: Environment, force_refresh: bool) -> Result<String, TokenError> {
         self.services_token_for(env, force_refresh).await.map_err(|e| e.to_token_error())
+    }
+
+    async fn invalidate_services_token(&self, env: Environment) {
+        let _guard = self.token_lock.lock().await;
+        self.state.lock_or_panic().env_mut(env).services_token = None;
     }
 }
 

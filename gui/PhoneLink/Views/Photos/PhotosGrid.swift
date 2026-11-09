@@ -14,52 +14,65 @@ struct PhotosGrid: View {
     @State private var keyboard = PhotosGridKeyboard()
 
     var body: some View {
-        GeometryReader { geometry in
-            let columns = Self.columnCount(width: geometry.size.width)
-            ScrollViewReader { scroller in
-                ScrollView {
-                    VStack(spacing: 0) {
-                        if model.state?.fullAccessReminder == true {
-                            PhotosFullAccessNotice()
+        VStack(spacing: 0) {
+            if !model.selection.isEmpty {
+                HStack(spacing: 12) {
+                    Text("\(model.selection.count) selected")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    saveMenu
+                    Button {
+                        PhotosFilePanels.share(model.selectedIDs, model: model, anchor: .pointer(in: keyboard.window))
+                    } label: {
+                        Label("Share", systemImage: "square.and.arrow.up")
+                    }
+                    .buttonStyle(.bordered)
+                    .help("Share")
+                    .disabled(model.selection.isEmpty)
+                    if model.state?.deleteAvailable == true {
+                        Button {
+                            model.delete(model.deletable(model.selectedIDs))
+                        } label: {
+                            Label("Delete", systemImage: "trash")
                         }
-                        LazyVGrid(
-                            columns: Array(repeating: GridItem(.flexible(), spacing: Self.spacing), count: columns),
-                            spacing: Self.spacing
-                        ) {
-                            ForEach(model.items) { item in
-                                cell(item)
+                        .buttonStyle(.bordered)
+                        .help("Delete from Phone")
+                        .disabled(model.deletable(model.selectedIDs).isEmpty)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(.thinMaterial)
+                Divider()
+            }
+
+            GeometryReader { geometry in
+                let columns = Self.columnCount(width: geometry.size.width)
+                ScrollViewReader { scroller in
+                    ScrollView {
+                        VStack(spacing: 0) {
+                            if model.state?.fullAccessReminder == true {
+                                PhotosFullAccessNotice()
+                            }
+                            LazyVGrid(
+                                columns: Array(repeating: GridItem(.flexible(), spacing: Self.spacing), count: columns),
+                                spacing: Self.spacing
+                            ) {
+                                ForEach(model.items) { item in
+                                    cell(item)
+                                }
                             }
                         }
                     }
-                }
-                .background {
-                    PhotosKeyResponder(model: model, keyboard: keyboard, columns: columns, preview: model.preview)
-                }
-                .onChange(of: model.focus) { _, focus in
-                    if let focus {
-                        scroller.scrollTo(focus)
+                    .background {
+                        PhotosKeyResponder(model: model, keyboard: keyboard, columns: columns, preview: model.preview)
                     }
-                }
-            }
-        }
-        .toolbar {
-            ToolbarItemGroup(placement: .primaryAction) {
-                saveMenu
-                Button {
-                    PhotosFilePanels.share(model.selectedIDs, model: model, anchor: .pointer(in: keyboard.window))
-                } label: {
-                    Label("Share", systemImage: "square.and.arrow.up")
-                }
-                .help("Share")
-                .disabled(model.selection.isEmpty)
-                if model.state?.deleteAvailable == true {
-                    Button {
-                        model.delete(model.deletable(model.selectedIDs))
-                    } label: {
-                        Label("Delete", systemImage: "trash")
+                    .onChange(of: model.focus) { _, focus in
+                        if let focus {
+                            scroller.scrollTo(focus)
+                        }
                     }
-                    .help("Delete from Phone")
-                    .disabled(model.deletable(model.selectedIDs).isEmpty)
                 }
             }
         }

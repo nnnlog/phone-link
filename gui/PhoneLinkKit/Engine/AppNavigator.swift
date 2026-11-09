@@ -56,6 +56,40 @@ public enum SettingsPane: String, CaseIterable, Sendable {
     case advanced
 }
 
+extension SettingsPane {
+    /// The pane's title, for the settings tab bar.
+    public var title: String {
+        switch self {
+        case .general: String(localized: "General")
+        case .notifications: String(localized: "Notifications")
+        case .messages: String(localized: "Messages")
+        case .calls: String(localized: "Calls")
+        case .photos: String(localized: "Photos")
+        case .files: String(localized: "Files")
+        case .camera: String(localized: "Camera")
+        case .mirroring: String(localized: "Phone Screen")
+        case .account: String(localized: "Account")
+        case .advanced: String(localized: "Advanced")
+        }
+    }
+
+    /// The pane's SF Symbol, for the settings tab bar.
+    public var symbol: String {
+        switch self {
+        case .general: "gearshape"
+        case .notifications: "bell.badge"
+        case .messages: "message"
+        case .calls: "phone"
+        case .photos: "photo.on.rectangle"
+        case .files: "doc.on.doc"
+        case .camera: "web.camera"
+        case .mirroring: "apps.iphone"
+        case .account: "person.crop.circle"
+        case .advanced: "gearshape.2"
+        }
+    }
+}
+
 /// Where the main window is and where something asked it to go: a notification click, a phone's
 /// request to bring the window forward. Models set a request; the main window shows it and the app
 /// brings the window to the front.

@@ -19,25 +19,6 @@ struct NotificationListColumn: View {
         @Bindable var model = model
         content
             .navigationSplitViewColumnWidth(min: 280, ideal: 300, max: 380)
-            .navigationTitle("Notifications")
-            .toolbar {
-                if showsList {
-                    ToolbarItem(placement: .primaryAction) {
-                        NotificationPauseToggle()
-                    }
-                    ToolbarItem(placement: .primaryAction) {
-                        // No ellipsis: the button only asks for confirmation (HIG › Buttons). The
-                        // smaller text, padded and at its own width, stays clear of the capsule's ends.
-                        Button { confirmingClearAll = true } label: {
-                            Text("Clear All")
-                                .font(.callout)
-                                .fixedSize()
-                                .padding(.horizontal, 4)
-                        }
-                        .disabled(!model.canClearAll)
-                    }
-                }
-            }
             .confirmationDialog("Clear All Notifications?", isPresented: $confirmingClearAll) {
                 Button("Clear All", role: .destructive) { model.clearAll() }
             } message: {

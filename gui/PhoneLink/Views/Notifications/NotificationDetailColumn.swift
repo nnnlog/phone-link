@@ -190,23 +190,7 @@ private struct NotificationCommands: ViewModifier {
     @Environment(NotificationsModel.self) private var model
 
     func body(content: Content) -> some View {
-        if #available(macOS 26, *) {
-            // Liquid Glass toolbars start a column's items at its leading edge, and hand the space of a
-            // detail column without items to the list column, whose Clear All would then move to the
-            // window's edge; the flexible spacer keeps both where they belong.
-            content.toolbar {
-                ToolbarSpacer(.flexible)
-                if let notification {
-                    ToolbarItemGroup { buttons(for: notification) }
-                }
-            }
-        } else if let notification {
-            content.toolbar {
-                ToolbarItemGroup { buttons(for: notification) }
-            }
-        } else {
-            content
-        }
+        content
     }
 
     @ViewBuilder

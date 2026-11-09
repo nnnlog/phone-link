@@ -14,3 +14,10 @@ xcuserdata/
 
 # macOS cruft.
 .DS_Store
+
+# Packaged app and disk images (built locally, not tracked).
+/dist/
+
+# Python bytecode from the helper scripts.
+__pycache__/
+*.pyc

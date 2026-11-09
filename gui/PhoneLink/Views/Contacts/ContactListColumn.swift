@@ -12,28 +12,49 @@ struct ContactListColumn: View {
 
     var body: some View {
         @Bindable var model = model
-        content
-            .navigationTitle("Contacts")
-            // The search matches names, the other fields and the numbers' digits.
-            .searchable(text: $model.searchText, prompt: "Search")
-            .toolbar {
+        VStack(spacing: 0) {
+            // Inline Search Bar
+            HStack(spacing: 6) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(.secondary)
+                    .font(.system(size: 13))
+                TextField("Search Contacts", text: $model.searchText)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 13))
                 if model.isSyncing && model.content == .list {
-                    ToolbarItem(placement: .status) {
-                        ProgressView()
-                            .controlSize(.small)
-                            .help("Syncing contacts…")
+                    ProgressView()
+                        .controlSize(.small)
+                }
+                if !model.searchText.isEmpty {
+                    Button {
+                        model.searchText = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                            .font(.system(size: 12))
                     }
+                    .buttonStyle(.plain)
                 }
             }
-            // A call's Contact button selects that contact, with the search cleared so the list shows it.
-            .onChange(of: navigator.contactRequest, initial: true) { _, id in
-                guard let id else { return }
-                model.searchText = ""
-                model.selection = id
-                navigator.contactRequest = nil
-            }
-            // Outermost: under `searchable` and `toolbar` the split view left the column at its minimum.
-            .navigationSplitViewColumnWidth(min: 260, ideal: 300, max: 420)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+
+            Divider()
+
+            content
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        // A call's Contact button selects that contact, with the search cleared so the list shows it.
+        .onChange(of: navigator.contactRequest, initial: true) { _, id in
+            guard let id else { return }
+            model.searchText = ""
+            model.selection = id
+            navigator.contactRequest = nil
+        }
+        .navigationSplitViewColumnWidth(min: 260, ideal: 300, max: 420)
     }
 
     @ViewBuilder
@@ -41,6 +62,7 @@ struct ContactListColumn: View {
         switch model.content {
         case .nothing:
             Color.clear
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .turnedOff:
             ContentUnavailableView {
                 Label("Contacts Are Off on This Mac", systemImage: "person.crop.circle")
@@ -50,6 +72,7 @@ struct ContactListColumn: View {
                 Button("Turn On") { model.turnOn() }
                     .buttonStyle(.borderedProminent)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         case let .needsPhoneAccess(denied):
             ContentUnavailableView {
                 Label("Allow Contacts on Your Phone", systemImage: "person.crop.circle")
@@ -72,11 +95,13 @@ struct ContactListColumn: View {
                     .buttonStyle(.borderedProminent)
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .syncing:
             ProgressView("Syncing contacts…")
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .empty:
             ContentUnavailableView("No Contacts", systemImage: "person.crop.circle", description: Text("Contacts from your phone appear here."))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .list:
             contactList
         }

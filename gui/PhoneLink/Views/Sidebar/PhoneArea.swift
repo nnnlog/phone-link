@@ -264,7 +264,8 @@ private struct PhoneControlTiles: View {
             let columns = [GridItem(.flexible(), spacing: 6), GridItem(.flexible(), spacing: 6)]
             LazyVGrid(columns: columns, spacing: 6) {
                 ForEach(tiles) { tile in
-                    PhoneControlTileView(tile: tile) { perform(tile.id) }
+                    PhoneControlTileView(tile: tile, centered: tile.id == .phoneScreen) { perform(tile.id) }
+                        .gridCellColumns(tile.id == .phoneScreen ? 2 : 1)
                 }
             }
         }
@@ -309,11 +310,16 @@ private struct PhoneControlTiles: View {
 /// wider than the rest, so it is drawn smaller to keep it inside the circle.
 private struct PhoneControlTileView: View {
     let tile: PhoneControlTile
+    /// The tile spans the whole row and its content is centered, for the mirroring tile.
+    let centered: Bool
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             HStack(spacing: 6) {
+                if centered {
+                    Spacer(minLength: 0)
+                }
                 Group {
                     if tile.isBusy {
                         ProgressView().controlSize(.mini)

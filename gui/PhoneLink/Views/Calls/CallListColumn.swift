@@ -16,26 +16,31 @@ struct CallListColumn: View {
     var body: some View {
         @Bindable var model = model
         VStack(spacing: 0) {
-            if let notice = control.dialNotice ?? control.connectionNotice {
-                CallControlNoticeView(notice: notice)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-            }
-            content
-        }
-        .navigationTitle("Calls")
-        // The search matches names and the numbers' digits.
-        .searchable(text: $model.searchText, prompt: "Search")
-        .toolbar {
-            if model.isUpdating && model.content == .list {
-                ToolbarItem(placement: .status) {
-                    ProgressView()
-                        .controlSize(.small)
-                        .help("Updating call history…")
+            // Inline Search & Keypad Bar
+            HStack(spacing: 8) {
+                HStack(spacing: 6) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(.secondary)
+                        .font(.system(size: 13))
+                    TextField("Search", text: $model.searchText)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 13))
+                    if !model.searchText.isEmpty {
+                        Button {
+                            model.searchText = ""
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(.secondary)
+                                .font(.system(size: 12))
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
-            }
-            if control.isOffered && control.hasCallHistory {
-                ToolbarItem {
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
+                .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+                if control.isOffered && control.hasCallHistory {
                     Button {
                         if control.isEnabled {
                             keypadShown = true
@@ -45,8 +50,13 @@ struct CallListColumn: View {
                             control.setEnabled(true)
                         }
                     } label: {
-                        Label("Keypad", systemImage: "circle.grid.3x3")
+                        Image(systemName: "circle.grid.3x3")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(Color.primary)
+                            .frame(width: 28, height: 28)
+                            .background(Color.primary.opacity(0.08), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
                     }
+                    .buttonStyle(.plain)
                     .help(control.isEnabled ? "Call a number using your phone" : "Turn on calls on this Mac")
                     .popover(isPresented: $keypadShown, arrowEdge: .bottom) {
                         DialPadView()
@@ -54,14 +64,25 @@ struct CallListColumn: View {
                     }
                 }
             }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+
+            Divider()
+
+            if let notice = control.dialNotice ?? control.connectionNotice {
+                CallControlNoticeView(notice: notice)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+            }
+            content
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .callControlIntro(isPresented: $introShown)
         .sheet(item: $model.postNotificationHelp) { help in
             PostNotificationSheet(help: help, phoneName: phoneName)
         }
         .onAppear { model.viewAppeared() }
         .onDisappear { model.viewDisappeared() }
-        // Outermost: under `searchable` and `toolbar` the split view left the column at its minimum.
         .navigationSplitViewColumnWidth(min: 260, ideal: 300, max: 420)
     }
 
@@ -70,6 +91,7 @@ struct CallListColumn: View {
         switch model.content {
         case .nothing:
             Color.clear
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .turnedOff:
             ContentUnavailableView {
                 Label("Call History Is Off on This Mac", systemImage: "phone")
@@ -79,12 +101,14 @@ struct CallListColumn: View {
                 Button("Turn On") { model.turnOn() }
                     .buttonStyle(.borderedProminent)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .updateRequired:
             ContentUnavailableView {
                 Label("Update Link to Windows", systemImage: "arrow.down.app")
             } description: {
                 Text("To see recent calls, update Link to Windows on \(phoneName), then reconnect.")
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .needsNotifications:
             ContentUnavailableView {
                 Label("Allow Notifications on Your Phone", systemImage: "phone")
@@ -94,6 +118,7 @@ struct CallListColumn: View {
                 Button("Show Me How") { model.showPostNotificationHelp() }
                     .buttonStyle(.borderedProminent)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .needsPhoneAccess:
             ContentUnavailableView {
                 Label("Allow Call History on Your Phone", systemImage: "phone")
@@ -114,11 +139,13 @@ struct CallListColumn: View {
                     .buttonStyle(.borderedProminent)
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .updating:
             ProgressView("Updating call history…")
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .empty:
             ContentUnavailableView("No Recent Calls", systemImage: "phone", description: Text("Calls from your phone appear here."))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .list:
             callList
         }

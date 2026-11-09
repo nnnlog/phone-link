@@ -309,6 +309,19 @@ public final class MessagesModel {
                     maxTextLength: nil
                 )
             }
+            // RCS bots do not accept replies.
+            let isBot = conversation.recipients.contains { recipient in
+                let addr = recipient.address.lowercased()
+                return addr.contains("bot-rcs.google.com") || addr.contains("bot.rcs.google.com") || addr.contains("@bot")
+            }
+            if isBot {
+                return MessagesComposerState(
+                    isEnabled: false,
+                    placeholder: String(localized: "Sender doesn't accept replies"),
+                    canAttach: false,
+                    maxTextLength: nil
+                )
+            }
             return MessagesComposerState(
                 isEnabled: true,
                 placeholder: String(localized: "Text Message"),

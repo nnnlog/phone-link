@@ -512,8 +512,16 @@ struct Permit<'a>(&'a AtomicUsize);
 
 impl<'a> Permit<'a> {
     fn acquire(count: &'a AtomicUsize, limit: usize) -> Option<Self> {
-        count.fetch_update(Ordering::SeqCst, Ordering::SeqCst, |n| (n < limit).then_some(n + 1)).ok()?;
-        Some(Permit(count))
+        let mut current = count.load(Ordering::SeqCst);
+        loop {
+            if current >= limit {
+                return None;
+            }
+            match count.compare_exchange(current, current + 1, Ordering::SeqCst, Ordering::SeqCst) {
+                Ok(_) => return Some(Permit(count)),
+                Err(actual) => current = actual,
+            }
+        }
     }
 }
 

@@ -12,25 +12,66 @@ struct AppsColumn: View {
     @Environment(EngineController.self) private var controller
     @Environment(ScreenMirroringModel.self) private var mirroring
     @Environment(NotificationsModel.self) private var notifications
+    @Environment(\.colorScheme) private var colorScheme
     /// The recent tiles' counts, taken when the recent apps were last built.
     @State private var recentCounts: [Int64: Int] = [:]
 
     var body: some View {
-        content
-            .onChange(of: model.recentGeneration, initial: true) {
-                recentCounts = PhoneAppsModel.recentCounts(model.recent, counts)
+        @Bindable var model = model
+        VStack(spacing: 0) {
+            if model.isSearchOffered {
+                HStack {
+                    Spacer()
+                    HStack(spacing: 6) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                        TextField("Search Apps", text: $model.searchText)
+                            .textFieldStyle(.plain)
+                            .font(.system(size: 11.5))
+                            .onSubmit { model.submitSearch() }
+                        if !model.searchText.isEmpty {
+                            Button {
+                                model.searchText = ""
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(.secondary)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background {
+                        Capsule(style: .continuous)
+                            .fill(colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06))
+                            .overlay {
+                                Capsule(style: .continuous)
+                                    .strokeBorder(colorScheme == .dark ? Color.white.opacity(0.12) : Color.black.opacity(0.08), lineWidth: 0.8)
+                            }
+                    }
+                    .frame(width: 220)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .padding(.bottom, 2)
             }
-            .navigationTitle("Apps")
-            .modifier(AppsSearch(model: model))
-            .alert(
-                model.failure?.title ?? "",
-                isPresented: Binding(get: { model.failure != nil }, set: { if !$0 { model.failure = nil } }),
-                presenting: model.failure
-            ) { _ in
-                Button("OK") {}
-            } message: { failure in
-                Text(failure.message)
-            }
+
+            content
+        }
+        .onChange(of: model.recentGeneration, initial: true) {
+            recentCounts = PhoneAppsModel.recentCounts(model.recent, counts)
+        }
+        .alert(
+            model.failure?.title ?? "",
+            isPresented: Binding(get: { model.failure != nil }, set: { if !$0 { model.failure = nil } }),
+            presenting: model.failure
+        ) { _ in
+            Button("OK") {}
+        } message: { failure in
+            Text(failure.message)
+        }
     }
 
     private var phoneName: String { controller.phone?.name ?? String(localized: "Your phone") }
@@ -120,20 +161,6 @@ struct AppsColumn: View {
     }
 }
 
-/// The search field, offered once the phone lists five apps; Return opens the first app found.
-private struct AppsSearch: ViewModifier {
-    @Bindable var model: PhoneAppsModel
-
-    func body(content: Content) -> some View {
-        if model.isSearchOffered {
-            content
-                .searchable(text: $model.searchText, placement: .toolbar, prompt: "Search Apps")
-                .onSubmit(of: .search) { model.submitSearch() }
-        } else {
-            content
-        }
-    }
-}
 
 /// The grids' columns.
 private let tileColumns = [GridItem(.adaptive(minimum: 88, maximum: 112), spacing: 12, alignment: .top)]

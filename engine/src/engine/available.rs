@@ -27,12 +27,12 @@ use std::sync::Arc;
 use tokio::sync::{broadcast, watch};
 use tracing::{debug, info, warn};
 
+use super::EngineCore;
 use crate::edge::{LockState, SessionLock};
 use crate::platform::PartnerSessions;
 use crate::relay::RelayManager;
 use crate::seams::{HubControl, RelayEvent};
 use crate::types::{ConnectReason, DcgClient, HubSendResult, HubState, OpenStatus, TraceContext};
-use super::EngineCore;
 
 /// The engine's availability target: when `Some(phone)`, the runner keeps `phone`'s hub connection
 /// open and announced; when `None`, it keeps nothing and waits.
@@ -124,9 +124,7 @@ impl Runner {
     /// `true` ends the runner (`Available`'s sender was dropped).
     async fn keep_available(&mut self, phone: DcgClient) -> bool {
         loop {
-            if self.lock.lock_state() == LockState::Unlocked
-                && self.sessions.is_idle(&phone)
-            {
+            if self.lock.lock_state() == LockState::Unlocked && self.sessions.is_idle(&phone) {
                 match self.relay.hub_state(phone.env) {
                     HubState::Disconnected | HubState::Connecting => self.ensure_open(&phone).await,
                     HubState::Connected => self.announce(&phone).await,
@@ -140,10 +138,7 @@ impl Runner {
                     match changed {
                         // The sender is gone: the runner ends, whatever the wait had.
                         Err(_) => return true,
-                        Ok(()) => match self.target.borrow_and_update().clone() {
-                            Some(next) if next.is_same_client(&phone) => false,
-                            _ => true,
-                        },
+                        Ok(()) => !matches!(self.target.borrow_and_update().clone(), Some(next) if next.is_same_client(&phone)),
                     }
                 }
                 event = self.events.recv() => match event {

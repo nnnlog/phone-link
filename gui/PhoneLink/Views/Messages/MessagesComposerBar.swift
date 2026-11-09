@@ -48,6 +48,14 @@ struct MessagesComposerBar: View {
                 )
                 .padding(.horizontal, 4)
                 .background(RoundedRectangle(cornerRadius: 15, style: .continuous).strokeBorder(.separator))
+                Button(action: submit) {
+                    Image(systemName: "arrow.up.circle.fill")
+                        .font(.system(size: 22))
+                        .foregroundStyle(model.canSubmit ? Color.accentColor : Color.secondary.opacity(0.4))
+                }
+                .buttonStyle(.plain)
+                .disabled(!model.canSubmit)
+                .help("Send Message")
                 if model.showsSimPicker {
                     simMenu
                 }

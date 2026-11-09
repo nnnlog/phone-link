@@ -24,32 +24,31 @@ impl HubConnection {
     }
 
     /// The start retry policy: up to `1 + start_retry_attempts` starts `start_retry_sleep` apart,
-    /// filtered by [`StartError::is_retryable`]; one forced token refresh before the second attempt
-    /// when the first failed with HTTP 401; every attempt passes the 429 breaker.
+    /// filtered by [`StartError::is_retryable`]; every attempt passes the 429 breaker. A start that
+    /// failed with HTTP 401 invalidates the cached services token once, so the next attempt's token
+    /// request auto-refreshes — no forced refresh flag leaves this path.
     pub(super) async fn start_with_retry(&self, stop: &CancellationToken) -> Result<Established, StartError> {
         let cfg = &self.shared.config.relay;
         let env = self.params.env;
-        let mut force_refresh = false;
         let mut retries_done: u32 = 0;
 
         loop {
-            let result = self.start_through_breaker(force_refresh, stop).await;
-            let error = match result {
+            match self.start_through_breaker(false, stop).await {
                 Ok(established) => return Ok(established),
-                Err(error) => error,
-            };
-
-            if !error.is_retryable() || retries_done >= cfg.start_retry_attempts {
-                return Err(error);
-            }
-
-            // HTTP 401: the next start forces a services-token refresh.
-            force_refresh = retries_done == 0 && error.is_401();
-            retries_done += 1;
-            tracing::warn!(env = %env, %error, retry = retries_done, is_refresh_forced = force_refresh, "hub start failed; retrying");
-            tokio::select! {
-                _ = stop.cancelled() => return Err(StartError::Cancelled),
-                _ = tokio::time::sleep(cfg.start_retry_sleep) => {}
+                Err(error) if error.is_retryable() && retries_done < cfg.start_retry_attempts => {
+                    // A 401 means the server rejected our cached token: drop it so the next start's
+                    // token request refreshes automatically.
+                    if retries_done == 0 && error.is_401() {
+                        self.shared.tokens.invalidate_services_token(env).await;
+                    }
+                    retries_done += 1;
+                    tracing::warn!(env = %env, %error, retry = retries_done, "hub start failed; retrying");
+                    tokio::select! {
+                        _ = stop.cancelled() => return Err(StartError::Cancelled),
+                        _ = tokio::time::sleep(cfg.start_retry_sleep) => {}
+                    }
+                }
+                Err(error) => return Err(error),
             }
         }
     }
@@ -126,6 +125,32 @@ impl HubConnection {
             .as_str()
             .into_client_request()
             .map_err(|e| StartError::Protocol(format!("transport URL: {e}")))?;
+
+        // Temporary diagnostic: the exact WebSocket target (query values redacted), so a 404 on
+        // upgrade can be traced to the host/path being requested.
+        {
+            let uri = request.uri().to_string();
+            {
+                use std::io::Write;
+                let _ = std::fs::OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open("/tmp/phone-link-relay.log")
+                    .and_then(|mut f| writeln!(f, "upgrade uri={uri}"));
+            }
+            let mut redacted_uri = uri;
+            if let Some(pos) = redacted_uri.find('?') {
+                let (head, query) = redacted_uri.split_at(pos);
+                let redacted = query
+                    .split('&')
+                    .filter(|p| !p.is_empty())
+                    .map(|p| p.split('=').next().unwrap_or(p).to_string() + "=<redacted>")
+                    .collect::<Vec<_>>()
+                    .join("&");
+                redacted_uri = format!("{head}?{redacted}");
+            }
+            tracing::warn!(env = %env, uri = %redacted_uri, "diagnostic: relay upgrade request");
+        }
 
         {
             let map = request.headers_mut();

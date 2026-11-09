@@ -12,11 +12,23 @@ struct SignInView: View {
     @AppStorage("didSeeDeviceRegistrationNotice") private var didSeeNotice = false
 
     var body: some View {
-        VStack(spacing: 14) {
-            content
+        ZStack {
+            // A solid glass background, so the page never shows as floating text over the desktop.
+            LinearGradient(
+                colors: [
+                    Color(red: 0.13, green: 0.12, blue: 0.11),
+                    Color(red: 0.07, green: 0.06, blue: 0.055)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
+
+            VStack(spacing: 14) {
+                content
+            }
+            .frame(width: 520, height: 600)
         }
-        .frame(width: 520, height: 600)
-        .ignoresSafeArea()
     }
 
     @ViewBuilder private var content: some View {

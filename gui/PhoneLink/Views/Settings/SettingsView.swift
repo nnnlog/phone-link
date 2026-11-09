@@ -3,43 +3,69 @@ import PhoneLinkKit
 import SwiftUI
 
 /// The Settings window (HIG › Settings): a fixed toolbar of panes, the window titled after the active
-/// one, reopening on the pane shown last.
+/// one, reopening on the pane shown last. The pane bar scrolls horizontally, so every pane stays
+/// reachable (a `TabView` collapses the last panes into an unusable dropdown).
 struct SettingsView: View {
     @Environment(SettingsModel.self) private var model
     @AppStorage(PreferenceKeys.settingsPane) private var pane = SettingsPane.general
 
     var body: some View {
-        TabView(selection: $pane) {
-            SettingsGeneralPane()
-                .tabItem { Label("General", systemImage: "gearshape") }
-                .tag(SettingsPane.general)
-            SettingsNotificationsPane()
-                .tabItem { Label("Notifications", systemImage: "bell.badge") }
-                .tag(SettingsPane.notifications)
-            SettingsMessagesPane()
-                .tabItem { Label("Messages", systemImage: "message") }
-                .tag(SettingsPane.messages)
-            SettingsCallsPane()
-                .tabItem { Label("Calls", systemImage: "phone") }
-                .tag(SettingsPane.calls)
-            SettingsPhotosPane()
-                .tabItem { Label("Photos", systemImage: "photo.on.rectangle") }
-                .tag(SettingsPane.photos)
-            SettingsFilesPane()
-                .tabItem { Label("Files", systemImage: "doc.on.doc") }
-                .tag(SettingsPane.files)
-            SettingsCameraPane()
-                .tabItem { Label("Camera", systemImage: "web.camera") }
-                .tag(SettingsPane.camera)
-            SettingsMirroringPane()
-                .tabItem { Label("Phone Screen", systemImage: "apps.iphone") }
-                .tag(SettingsPane.mirroring)
-            SettingsAccountPane()
-                .tabItem { Label("Account", systemImage: "person.crop.circle") }
-                .tag(SettingsPane.account)
-            SettingsAdvancedPane()
-                .tabItem { Label("Advanced", systemImage: "gearshape.2") }
-                .tag(SettingsPane.advanced)
+        VStack(spacing: 0) {
+            // Horizontal scrolling tab bar.
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(SettingsPane.allCases, id: \.self) { item in
+                        Button {
+                            pane = item
+                        } label: {
+                            HStack(spacing: 5) {
+                                Image(systemName: item.symbol)
+                                    .font(.system(size: 11, weight: .medium))
+                                Text(item.title)
+                                    .font(.system(size: 12, weight: .medium))
+                            }
+                            .foregroundStyle(pane == item ? Color.accentColor : Color.primary)
+                            .padding(.horizontal, 12)
+                            .frame(height: 30)
+                            .background {
+                                if pane == item {
+                                    Capsule(style: .continuous)
+                                        .fill(Color.accentColor.opacity(0.15))
+                                }
+                            }
+                            .overlay {
+                                if pane == item {
+                                    Capsule(style: .continuous)
+                                        .strokeBorder(Color.accentColor.opacity(0.5), lineWidth: 1)
+                                }
+                            }
+                            .contentShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+            }
+
+            Divider()
+
+            // The selected pane.
+            Group {
+                switch pane {
+                case .general: SettingsGeneralPane()
+                case .notifications: SettingsNotificationsPane()
+                case .messages: SettingsMessagesPane()
+                case .calls: SettingsCallsPane()
+                case .photos: SettingsPhotosPane()
+                case .files: SettingsFilesPane()
+                case .camera: SettingsCameraPane()
+                case .mirroring: SettingsMirroringPane()
+                case .account: SettingsAccountPane()
+                case .advanced: SettingsAdvancedPane()
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         // Without a window open the app has no Dock icon and is not active: the window would open
         // behind the active app's.
@@ -60,7 +86,7 @@ extension View {
     /// it scrolls (the Settings window sizes itself to the pane).
     func settingsPaneForm() -> some View {
         formStyle(.grouped)
-            .frame(width: 700)
+            .frame(width: 580)
             .frame(maxHeight: 640)
             .fixedSize(horizontal: false, vertical: true)
     }

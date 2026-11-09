@@ -266,9 +266,11 @@ impl HubConnection {
     }
 
     /// Automatic reconnect: delays by the number of attempts already made (`0, 2, 10, 30 s, 1, 3,
-    /// 5 min`, then `Closed`); an attempt that failed with HTTP 429 is followed by a freshly drawn
-    /// `15 s + rand[0, 30) s` whatever the index (and still counts toward it) — [`reconnect_delay`].
-    /// Each attempt is one start that asks the token provider and re-sends the connection headers.
+    /// 5 min`, then `Closed`) — [`reconnect_delay`]; an attempt that failed with HTTP 429 is followed
+    /// by a freshly drawn `15 s + rand[0, 30) s` whatever the index (and still counts toward it). Each
+    /// attempt is one start that asks the token provider and re-sends the connection headers; a start
+    /// that failed with HTTP 401 invalidates the cached services token and is retried at once, so the
+    /// retry's token request auto-refreshes and a revoked token heals in the same slot.
     pub(super) async fn reconnect_loop(self: Arc<Self>, epoch: u64, cancel: CancellationToken) {
         let env = self.params.env;
         let mut previous_attempts = 0usize;
@@ -295,6 +297,28 @@ impl HubConnection {
                     tracing::warn!(env = %env, %error, attempt = previous_attempts + 1, "hub reconnect attempt failed");
                     last_was_429 = error.is_429();
                     previous_attempts += 1;
+
+                    // A 401 usually means the cached services token is invalid: drop it so the retry's
+                    // token request auto-refreshes, instead of pacing the heal over the schedule.
+                    if error.is_401() {
+                        self.shared.tokens.invalidate_services_token(env).await;
+                        match self.start_once(false, &cancel).await {
+                            Ok(established) => {
+                                let _transition = self.transition.lock().await;
+                                if self.inner().epoch != epoch || cancel.is_cancelled() {
+                                    return;
+                                }
+                                self.install_session(established);
+                                return;
+                            }
+                            Err(StartError::Cancelled) => return,
+                            Err(refreshed_error) => {
+                                tracing::warn!(env = %env, %refreshed_error, attempt = previous_attempts + 1, "hub reconnect failed again after a forced token refresh");
+                                last_was_429 = refreshed_error.is_429();
+                                previous_attempts += 1;
+                            }
+                        }
+                    }
                 }
             }
         }

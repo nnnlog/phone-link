@@ -152,7 +152,7 @@ public final class UserNotifier: NSObject, SystemNotifier, UNUserNotificationCen
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
-        completionHandler(Self.presentationOptions(for: notification.request.content.interruptionLevel))
+        completionHandler([.banner, .list, .sound])
     }
 
     /// How a notification is shown while the app is in front: `post` marks a silent delivery

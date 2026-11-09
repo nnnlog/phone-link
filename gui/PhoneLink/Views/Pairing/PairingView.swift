@@ -8,17 +8,68 @@ import SwiftUI
 /// window).
 struct PairingView: View {
     @Environment(PairingModel.self) private var model
+    @Environment(\.colorScheme) private var colorScheme
     var onCancel: (() -> Void)?
 
     var body: some View {
-        VStack(spacing: 14) {
-            page
-            if let onCancel, model.page != .paired {
-                Button("Cancel", action: onCancel)
-                    .keyboardShortcut(.cancelAction)
+        ZStack {
+            // Unified Apple Glass background filling the entire modal window
+            VisualEffectView(material: .underWindowBackground, blendingMode: .behindWindow, state: .active)
+                .ignoresSafeArea()
+
+            LinearGradient(
+                colors: colorScheme == .dark ? [
+                    Color.black.opacity(0.35),
+                    Color.black.opacity(0.20)
+                ] : [
+                    Color.white.opacity(0.18),
+                    Color.white.opacity(0.08)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+
+            VStack(spacing: 14) {
+                // Window traffic lights clearance
+                HStack {
+                    Spacer()
+                }
+                .frame(height: 16)
+
+                // Header icon & title
+                HStack(spacing: 8) {
+                    Image(systemName: "iphone.badge.play")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(Color.accentColor)
+
+                    Text("Pair Your Phone")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(Color.primary)
+                }
+
+                // Main page content: seamlessly part of the modal body
+                VStack(spacing: 14) {
+                    page
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 8)
+
+                if let onCancel, model.page != .paired {
+                    Button("Cancel", action: onCancel)
+                        .keyboardShortcut(.cancelAction)
+                        .buttonStyle(.plain)
+                        .font(.system(size: 12.5, weight: .medium))
+                        .foregroundStyle(Color.secondary)
+                        .padding(.top, 2)
+                }
+
+                Spacer(minLength: 4)
             }
+            .multilineTextAlignment(.center)
+            .padding(16)
         }
-        .multilineTextAlignment(.center)
         .onAppear {
             if model.page == .idle { model.start(.qrCode) }
         }
@@ -96,6 +147,13 @@ struct PairingView: View {
                 .foregroundStyle(.green)
                 .accessibilityHidden(true)
             title("Your Phone Is Paired")
+            explanation("Your phone is now linked. You can close this window to start using Phone Link.")
+            if let onCancel {
+                Button("Done", action: onCancel)
+                    .keyboardShortcut(.defaultAction)
+                    .buttonStyle(.borderedProminent)
+                    .padding(.top, 6)
+            }
         case let .failed(failure):
             Image(systemName: "exclamationmark.triangle")
                 .font(.system(size: 36))
@@ -109,7 +167,9 @@ struct PairingView: View {
     }
 
     private func title(_ text: LocalizedStringKey) -> some View {
-        Text(text).font(.title3.weight(.semibold))
+        Text(text)
+            .font(.system(size: 15, weight: .bold))
+            .foregroundStyle(Color.primary)
     }
 
     private func explanation(_ text: LocalizedStringKey) -> some View {
@@ -118,17 +178,20 @@ struct PairingView: View {
 
     private func explanation(_ text: Text) -> some View {
         text
-            .foregroundStyle(.secondary)
+            .font(.system(size: 12.5))
+            .foregroundStyle(Color.secondary)
             .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: 400)
+            .frame(maxWidth: 380)
     }
 
     private func progress(_ text: LocalizedStringKey) -> some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 8) {
             ProgressView().controlSize(.small)
-            Text(text).foregroundStyle(.secondary)
+            Text(text)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(Color.secondary)
         }
-        .font(.callout)
+        .padding(.vertical, 12)
     }
 
     private func step(_ number: Int, _ text: LocalizedStringKey) -> some View {
@@ -142,14 +205,23 @@ struct PairingView: View {
 /// The QR code, drawn module by module (no smoothing) on white in both appearances, as scanners need.
 private struct PairingQRCodeView: View {
     let text: String
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         if let image = PairingQRCode.image(for: text) {
-            Image(decorative: image, scale: 1)
-                .interpolation(.none)
-                .resizable()
-                .frame(width: 220, height: 220)
-                .accessibilityLabel("QR code for pairing your phone")
+            ZStack {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Color.white)
+                    .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.35 : 0.08), radius: 8, x: 0, y: 3)
+
+                Image(decorative: image, scale: 1)
+                    .interpolation(.none)
+                    .resizable()
+                    .frame(width: 200, height: 200)
+                    .accessibilityLabel("QR code for pairing your phone")
+            }
+            .frame(width: 224, height: 224)
+            .padding(.vertical, 4)
         } else {
             Text("The code can't be shown.").foregroundStyle(.secondary)
         }

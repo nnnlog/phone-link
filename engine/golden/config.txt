@@ -251,7 +251,7 @@ EngineConfig {
             upload_retries: 10,
             upload_backoff: 1s,
             thumbnail_size: 256,
-            content_dir: "/var/folders/cm/37d62_914jgb3k90vv__l8j00000gn/T/PhoneLinkPhoneFiles",
+            content_dir: "/var/folders/ny/kgphpb2x06b87zfz_2vvsp480000gn/T/PhoneLinkPhoneFiles",
         },
         photos: PhotosConfig {
             auto_hydrated_thumbnails_count: 25,
@@ -590,7 +590,7 @@ EngineConfig {
             upload_retries: 10,
             upload_backoff: 1s,
             thumbnail_size: 256,
-            content_dir: "/var/folders/cm/37d62_914jgb3k90vv__l8j00000gn/T/PhoneLinkPhoneFiles",
+            content_dir: "/var/folders/ny/kgphpb2x06b87zfz_2vvsp480000gn/T/PhoneLinkPhoneFiles",
         },
         photos: PhotosConfig {
             auto_hydrated_thumbnails_count: 25,

@@ -14,7 +14,17 @@ struct SettingsAccountPane: View {
     /// after signing out.
     @State private var accountName: String?
     @State private var confirmingSignOut = false
+    @State private var confirmingResetRegistration = false
     @State private var signOutFailure: String?
+    @State private var resetFailure: String?
+
+    private var isSignedIn: Bool {
+        if controller.phase == .signedOut { return false }
+        guard let name = accountName, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return false
+        }
+        return true
+    }
 
     var body: some View {
         Form {
@@ -22,29 +32,48 @@ struct SettingsAccountPane: View {
                 SettingsUnavailableNote()
             }
             Section("Microsoft Account") {
-                LabeledContent {
-                    Button("Sign Out…") { confirmingSignOut = true }
-                        .disabled(!controller.canSignOut)
-                } label: {
-                    Text(accountName ?? String(localized: "Microsoft account"))
-                    Text(controller.phase == .signedOut ? "Signed out" : "Signed in")
-                }
-                .alert("Sign Out of Phone Link?", isPresented: $confirmingSignOut) {
-                    Button("Sign Out", role: .destructive) { signOut() }
-                    Button("Cancel", role: .cancel) {}
-                } message: {
-                    Text("This Mac will stop connecting to your phone, and its copies of your messages, photos, contacts and notifications will be deleted. Your phone stays linked to your Microsoft account.")
+                if isSignedIn {
+                    LabeledContent {
+                        Button("Sign Out…") { confirmingSignOut = true }
+                            .disabled(!controller.canSignOut)
+                    } label: {
+                        Text(accountName ?? String(localized: "Microsoft account"))
+                        Text("Signed in")
+                            .foregroundStyle(.secondary)
+                    }
+                    .alert("Sign Out of Phone Link?", isPresented: $confirmingSignOut) {
+                        Button("Sign Out", role: .destructive) { signOut() }
+                        Button("Cancel", role: .cancel) {}
+                    } message: {
+                        Text("This Mac will stop connecting to your phone, and its copies of your messages, photos, contacts and notifications will be deleted. Your phone stays linked to your Microsoft account.")
+                    }
+                } else {
+                    LabeledContent {
+                        Button("Sign In…") { navigator.showSignIn() }
+                            .buttonStyle(.borderedProminent)
+                    } label: {
+                        Text("Not signed in")
+                            .font(.headline)
+                        Text("Sign in with your Microsoft account to connect and link your phone.")
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
             Section("Phones") {
+                if controller.phones.isEmpty {
+                    Text("No phones linked to this account.")
+                        .foregroundStyle(.secondary)
+                }
                 ForEach(controller.phones, id: \.id) { phone in
                     LabeledContent {
-                        if phone.id == selectedPhoneId {
-                            Text("In Use")
-                                .foregroundStyle(.secondary)
-                        } else {
-                            // Switches to this phone; the previous phone is disconnected.
-                            Button("Use This Phone") { controller.selectPhone(phone.id) }
+                        HStack(spacing: 8) {
+                            if phone.id == selectedPhoneId {
+                                Text("In Use")
+                                    .foregroundStyle(.secondary)
+                            } else {
+                                // Switches to this phone; the previous phone is disconnected.
+                                Button("Use This Phone") { controller.selectPhone(phone.id) }
+                            }
                         }
                     } label: {
                         Text(phone.name)
@@ -58,6 +87,22 @@ struct SettingsAccountPane: View {
                 } label: {
                     EmptyView()
                 }
+
+                // Option to reset pairing / device registration when device is out of sync
+                LabeledContent {
+                    Button("Reset Device Registration…") { confirmingResetRegistration = true }
+                        .disabled(!controller.canSignOut)
+                } label: {
+                    Text("Having connection or pairing issues?")
+                    Text("Forgets this Mac's device registration so you can link your phone afresh.")
+                        .foregroundStyle(.secondary)
+                }
+                .alert("Reset Connection & Device Registration?", isPresented: $confirmingResetRegistration) {
+                    Button("Reset Registration", role: .destructive) { resetRegistration() }
+                    Button("Cancel", role: .cancel) {}
+                } message: {
+                    Text("This clears this Mac's registration and pairing credentials. You will need to pair your phone again using a fresh QR code.")
+                }
             }
             SettingsAccountPcsSection()
         }
@@ -70,6 +115,10 @@ struct SettingsAccountPane: View {
         .alert("Phone Link Couldn't Sign Out", isPresented: signOutFailurePresented) {
         } message: {
             Text(signOutFailure ?? "")
+        }
+        .alert("Phone Link Couldn't Reset Registration", isPresented: resetFailurePresented) {
+        } message: {
+            Text(resetFailure ?? "")
         }
     }
 
@@ -102,7 +151,24 @@ struct SettingsAccountPane: View {
         }
     }
 
+    private func resetRegistration() {
+        Task {
+            do {
+                try await controller.resetDeviceRegistration()
+                accountName = controller.pairing.accountName()
+                navigator.showPairing()
+            } catch {
+                log.error("reset registration failed: \(error: error)")
+                resetFailure = UserText.describe(error)
+            }
+        }
+    }
+
     private var signOutFailurePresented: Binding<Bool> {
         Binding(get: { signOutFailure != nil }, set: { if !$0 { signOutFailure = nil } })
+    }
+
+    private var resetFailurePresented: Binding<Bool> {
+        Binding(get: { resetFailure != nil }, set: { if !$0 { resetFailure = nil } })
     }
 }

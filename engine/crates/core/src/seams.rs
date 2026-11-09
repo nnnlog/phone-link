@@ -65,9 +65,13 @@ impl TokenError {
 /// The DCG services token and its refresh policy.
 #[async_trait]
 pub trait TokenSource: Send + Sync {
-    /// The services token of `env`: cached unless missing, expired (`exp − 10 min < now`) or
-    /// `force_refresh` (the relay's one forced refresh after an HTTP 401 during its start retries).
+    /// The services token of `env`: cached unless missing or expired (`exp − 10 min < now`); the
+    /// refresh is automatic, so the cache need never be forced.
     async fn services_token(&self, env: Environment, force_refresh: bool) -> Result<String, TokenError>;
+
+    /// Invalidates the cached services token of `env`, so the next request refreshes it automatically.
+    /// A server-side 401 is the signal to drop the cache. The default does nothing.
+    async fn invalidate_services_token(&self, _env: Environment) {}
 }
 
 // ------------------------------------------------------------------------------------------------

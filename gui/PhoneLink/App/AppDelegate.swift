@@ -176,8 +176,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         edges.mirrorPresenter.onAudioOutputChanged = { [weak self] in self?.mirroring.audioOutputChanged() }
 
         pairing.onPaired = { [weak self] phoneId in
-            self?.controller.selectPhone(phoneId)
-            self?.pairingWindow?.close()
+            guard let self else { return }
+            controller.reloadPhones()
+            controller.selectPhone(phoneId)
+            pairingWindow?.close()
         }
 
         connectedCamera.presentControlWindow = { [weak self] shown in self?.showCameraWindow(shown) }
@@ -282,6 +284,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         edges.notifier.responseHandler = { [weak self] id, userInfo, response in
             DispatchQueue.main.async {
                 MainActor.assumeIsolated {
+                    if let key = userInfo["key"] {
+                        self?.showMainWindow()
+                        self?.navigator.notificationRequest = key
+                        self?.notifications.select(key)
+                        if case .dismissed = response {
+                            if let n = self?.notifications.notifications.first(where: { $0.key == key }) {
+                                self?.notifications.dismiss(n)
+                            }
+                        } else if case let .reply(_, text) = response {
+                            if let n = self?.notifications.notifications.first(where: { $0.key == key }) {
+                                _ = self?.notifications.sendReply(text, to: n)
+                            }
+                        }
+                    }
                     self?.controller.notificationResponse(id: id, userInfo: userInfo, response: response)
                 }
             }
@@ -401,12 +417,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func makeMainWindow() -> NSWindow {
-        let window = NSWindow(contentViewController: NSHostingController(rootView: environments(MainWindow())))
+        let window = MainWindowCustomWindow(contentViewController: NSHostingController(rootView: environments(MainWindow())))
         window.title = String(localized: "Phone Link")
         window.styleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]
-        window.toolbarStyle = .unified
-        window.setContentSize(NSSize(width: 1180, height: 740))
-        window.contentMinSize = NSSize(width: 1000, height: 640)
+        window.titlebarAppearsTransparent = true
+        window.titleVisibility = .hidden
+        window.toolbar = nil
+        window.isMovableByWindowBackground = true
+        window.backgroundColor = NSColor(calibratedRed: 0.10, green: 0.09, blue: 0.08, alpha: 1)
+        window.isOpaque = true
+        window.hasShadow = true
+        window.setContentSize(NSSize(width: 1140, height: 740))
+        window.contentMinSize = NSSize(width: 900, height: 620)
         window.isReleasedWhenClosed = false
         window.setFrameAutosaveName("PhoneLinkMainWindow")
         window.center()
@@ -425,6 +447,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.styleMask = [.titled, .closable, .fullSizeContentView]
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
+        window.backgroundColor = NSColor(calibratedRed: 0.13, green: 0.12, blue: 0.11, alpha: 1)
+        window.isOpaque = true
         window.isReleasedWhenClosed = false
         window.center()
         return window
@@ -442,12 +466,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func makePairingWindow() -> NSWindow {
         let view = PairingView(onCancel: { [weak self] in self?.pairingWindow?.close() })
-            .padding(28)
-            .frame(width: 480, height: 520)
+            .frame(width: 480, height: 560)
             .onDisappear { [weak self] in self?.pairing.cancel() }
         let window = NSWindow(contentViewController: NSHostingController(rootView: environments(view)))
         window.title = String(localized: "Pair a New Phone")
-        window.styleMask = [.titled, .closable]
+        window.styleMask = [.titled, .closable, .fullSizeContentView]
+        window.titlebarAppearsTransparent = true
+        window.titleVisibility = .hidden
+        window.isOpaque = true
+        window.backgroundColor = NSColor(calibratedRed: 0.10, green: 0.09, blue: 0.08, alpha: 1)
         window.isReleasedWhenClosed = false
         window.center()
         return window
@@ -650,4 +677,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 /// key on its own), without activating the app.
 private final class KeyablePanel: NSPanel {
     override var canBecomeKey: Bool { true }
+}
+
+/// The main app window: rejects any NSToolbar attached by child views so the window remains a pure unified
+/// glass surface without transparent header artifacts.
+private final class MainWindowCustomWindow: NSWindow {
+    override var toolbar: NSToolbar? {
+        get { nil }
+        set { super.toolbar = nil }
+    }
 }

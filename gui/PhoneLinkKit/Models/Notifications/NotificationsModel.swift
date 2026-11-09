@@ -2,6 +2,7 @@ import Foundation
 import Observation
 import os
 import PhoneLinkEngine
+import UserNotifications
 
 private let logger = AppLog(category: "notifications")
 
@@ -89,6 +90,8 @@ public final class NotificationsModel {
     /// they are dropped when another phone may be selected (a new start, the phone unlinked, the
     /// account removed).
     @ObservationIgnored private let undoManagers = NSHashTable<UndoManager>.weakObjects()
+    /// Tracks which notifications have been posted as native macOS notifications to prevent duplicate alerts.
+    @ObservationIgnored private var syncedNativeNotificationKeys: Set<String> = []
 
     private let api: any NotificationsApiProtocol
     private let navigator: AppNavigator
@@ -316,11 +319,112 @@ public final class NotificationsModel {
         let listed = Set(list.map(\.key))
         pendingActions = pendingActions.filter { listed.contains($0.key.key) }
 
+        syncNativeMacOSNotifications(with: list)
+
         guard let key = selection, !list.contains(where: { $0.key == key }) else { return }
         if let oldIndex, !list.isEmpty {
             selection = list[min(oldIndex, list.count - 1)].key
         } else {
             selection = nil
+        }
+    }
+
+    /// Safe accessor to UNUserNotificationCenter only when running inside an app bundle
+    private var nativeNotificationCenter: UNUserNotificationCenter? {
+        guard Bundle.main.bundleIdentifier != nil,
+              Bundle.main.bundleURL.pathExtension == "app",
+              ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil,
+              NSClassFromString("XCTestCase") == nil else {
+            return nil
+        }
+        return UNUserNotificationCenter.current()
+    }
+
+    /// Syncs phone notifications to macOS native Notification Center so incoming and active
+    /// notifications pop up as native banners and stay in sync.
+    private func syncNativeMacOSNotifications(with list: [PhoneNotification]) {
+        guard let center = nativeNotificationCenter else { return }
+
+        let currentKeys = Set(list.map(\.key))
+
+        let removedKeys = syncedNativeNotificationKeys.subtracting(currentKeys)
+        if !removedKeys.isEmpty {
+            let idsToRemove = removedKeys.map { "phonelink-\($0)" }
+            center.removeDeliveredNotifications(withIdentifiers: idsToRemove)
+            center.removePendingNotificationRequests(withIdentifiers: idsToRemove)
+            syncedNativeNotificationKeys.subtract(removedKeys)
+        }
+
+        for notification in list {
+            if !syncedNativeNotificationKeys.contains(notification.key) {
+                syncedNativeNotificationKeys.insert(notification.key)
+                postNativeMacOSNotification(for: notification)
+            }
+        }
+    }
+
+    public func postNativeMacOSNotification(for notification: PhoneNotification) {
+        guard let center = nativeNotificationCenter else { return }
+
+        let content = UNMutableNotificationContent()
+
+        let app = Self.appName(of: notification)
+        let title = notification.title ?? ""
+        if !title.isEmpty && title != app {
+            content.title = "\(app) - \(title)"
+        } else {
+            content.title = app
+        }
+        if let subtitle = notification.subtitle, !subtitle.isEmpty {
+            content.subtitle = subtitle
+        }
+        let preview = Self.preview(of: notification)
+        content.body = preview.isEmpty ? notification.body : preview
+        content.sound = .default
+        content.interruptionLevel = .active
+        content.userInfo = [
+            "key": notification.key,
+            "package": notification.packageName
+        ]
+
+        var actions: [UNNotificationAction] = []
+        if notification.reply != nil {
+            let replyAction = UNTextInputNotificationAction(
+                identifier: "REPLY_ACTION",
+                title: String(localized: "Reply"),
+                options: [],
+                textInputButtonTitle: String(localized: "Send"),
+                textInputPlaceholder: String(localized: "Type a reply…")
+            )
+            actions.append(replyAction)
+        }
+        let dismissAction = UNNotificationAction(
+            identifier: "DISMISS_ACTION",
+            title: String(localized: "Dismiss"),
+            options: [.destructive]
+        )
+        actions.append(dismissAction)
+
+        let categoryId = "PHONE_NOTIFICATION_\(notification.packageName)"
+        let category = UNNotificationCategory(
+            identifier: categoryId,
+            actions: actions,
+            intentIdentifiers: [],
+            options: [.customDismissAction]
+        )
+        center.setNotificationCategories([category])
+        content.categoryIdentifier = categoryId
+
+        let request = UNNotificationRequest(
+            identifier: "phonelink-\(notification.key)",
+            content: content,
+            trigger: nil
+        )
+
+        center.add(request) { error in
+            if let error {
+                logger.error("Failed to post native notification: \(error.localizedDescription)")
+            }
         }
     }
 
@@ -389,6 +493,10 @@ public final class NotificationsModel {
     @discardableResult
     public func dismiss(_ notification: PhoneNotification) -> Task<Void, Never> {
         let key = notification.key
+        syncedNativeNotificationKeys.remove(key)
+        nativeNotificationCenter?.removeDeliveredNotifications(withIdentifiers: ["phonelink-\(key)"])
+        nativeNotificationCenter?.removePendingNotificationRequests(withIdentifiers: ["phonelink-\(key)"])
+        notifications.removeAll { $0.key == key }
         return Task {
             do {
                 let outcome = try await api.dismiss(key: key)
@@ -404,6 +512,12 @@ public final class NotificationsModel {
     @discardableResult
     public func clearAll() -> Task<Void, Never> {
         isClearing = true
+        let unpinned = notifications.filter { !$0.pinned }
+        let idsToRemove = unpinned.map { "phonelink-\($0.key)" }
+        syncedNativeNotificationKeys.subtract(unpinned.map(\.key))
+        nativeNotificationCenter?.removeDeliveredNotifications(withIdentifiers: idsToRemove)
+        nativeNotificationCenter?.removePendingNotificationRequests(withIdentifiers: idsToRemove)
+        notifications.removeAll { !$0.pinned }
         return Task {
             defer { isClearing = false }
             do {

@@ -15,29 +15,59 @@ struct ConversationListColumn: View {
 
     var body: some View {
         @Bindable var model = model
-        content
-            .navigationTitle("Messages")
-            // The search matches names, addresses and the latest message's preview, not every message.
-            .searchable(text: $model.searchText, prompt: "Search")
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        model.startNewMessage()
-                    } label: {
-                        Label("New Message", systemImage: "square.and.pencil")
+        VStack(spacing: 0) {
+            // Inline Search & New Message Bar (replaces window NSToolbar)
+            HStack(spacing: 8) {
+                HStack(spacing: 6) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(.secondary)
+                        .font(.system(size: 13))
+                    TextField("Search", text: $model.searchText)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 13))
+                    if !model.searchText.isEmpty {
+                        Button {
+                            model.searchText = ""
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(.secondary)
+                                .font(.system(size: 12))
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .help("New Message")
-                    .keyboardShortcut("n")
-                    .disabled(model.isGated)
                 }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
+                .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+                Button {
+                    model.startNewMessage()
+                } label: {
+                    Image(systemName: "square.and.pencil")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(Color.primary)
+                        .frame(width: 28, height: 28)
+                        .background(Color.primary.opacity(0.08), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .help("New Message")
+                .keyboardShortcut("n")
+                .disabled(model.isGated)
             }
-            .confirmationDialog("Delete This Message?", isPresented: $confirmsDiscard) {
-                Button("Delete", role: .destructive) { model.discardNewMessage() }
-            } message: {
-                Text("The message you're writing and its recipients will be deleted.")
-            }
-            // Outermost: under `searchable` and `toolbar` the split view left the column at its minimum.
-            .navigationSplitViewColumnWidth(min: 260, ideal: 300, max: 420)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+
+            Divider()
+
+            content
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .confirmationDialog("Delete This Message?", isPresented: $confirmsDiscard) {
+            Button("Delete", role: .destructive) { model.discardNewMessage() }
+        } message: {
+            Text("The message you're writing and its recipients will be deleted.")
+        }
+        .navigationSplitViewColumnWidth(min: 260, ideal: 300, max: 420)
     }
 
     @ViewBuilder
@@ -52,6 +82,7 @@ struct ConversationListColumn: View {
                 Button("Turn On") { model.turnOnMessages() }
                     .buttonStyle(.borderedProminent)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .permissionNeeded:
             ContentUnavailableView {
                 Label("Allow Messages on Your Phone", systemImage: "message")
@@ -64,11 +95,13 @@ struct ConversationListColumn: View {
                 .buttonStyle(.borderedProminent)
                 .disabled(model.isRequestingPermission)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .syncing:
             ProgressView("Syncing messages…")
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .empty:
             ContentUnavailableView("No Messages", systemImage: "message", description: Text("Text messages from your phone appear here."))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .conversations:
             conversationList
         }

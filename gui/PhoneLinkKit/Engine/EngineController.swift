@@ -173,7 +173,8 @@ public final class EngineController {
     /// The user selected the phone `id`: the first selection starts the phone session; a later one
     /// switches to it (the previous phone is disconnected) and every model reloads for it.
     public func selectPhone(_ id: String) {
-        guard startTask == nil else { return }
+        startTask?.cancel()
+        startTask = nil
         if phase == .selectingPhone { phase = .starting }
         startTask = Task { [weak self, phoneApi] in
             do {
@@ -248,13 +249,17 @@ public final class EngineController {
         }
     }
 
-    /// Ends the phone session (the app quits).
+    /// Ends the phone session (the app quits or user disconnects).
     public func stop() async {
         do {
             try await engine.stop()
         } catch {
             logger.notice("engine stop failed: \(error: error)")
         }
+        connected = false
+        // Reset phase so that a subsequent refresh() calls start() instead of engine.refresh()
+        // on the stopped engine.
+        phase = .idle
     }
 
     /// Whether the user can sign out now: not while a start or a phone selection is under way (it

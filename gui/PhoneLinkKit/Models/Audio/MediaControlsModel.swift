@@ -38,6 +38,24 @@ public final class MediaControlsModel {
             playing = view.playing
         }
 
+        public init(
+            id: Int64,
+            appName: String,
+            title: String,
+            artist: String?,
+            albumArt: NSImage?,
+            appIcon: NSImage?,
+            playing: Bool
+        ) {
+            self.id = id
+            self.appName = appName
+            self.title = title
+            self.artist = artist
+            self.albumArt = albumArt
+            self.appIcon = appIcon
+            self.playing = playing
+        }
+
         private static func nonEmpty(_ s: String) -> String? {
             s.isEmpty ? nil : s
         }
@@ -139,8 +157,10 @@ public final class MediaControlsModel {
 
     /// The session the buttons act on.
     public var selected: Session? {
-        guard let id = state?.selectedId else { return nil }
-        return sessions.first { $0.id == id }
+        if let id = state?.selectedId, let s = sessions.first(where: { $0.id == id }) {
+            return s
+        }
+        return sessions.first
     }
 
     /// Two or more sessions: the user picks which one the buttons act on.

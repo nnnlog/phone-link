@@ -208,6 +208,37 @@ pub(crate) async fn negotiate(
         }
 
         let transports = response.available_transports.unwrap_or_default();
+        // Temporary diagnostic: what the server answered, so a failed hub start shows whether the
+        // relay redirected, which negotiate version it speaks, and what it offered.
+        tracing::warn!(
+            env = %env,
+            redirected = response.url.is_some(),
+            negotiate_version = response.negotiate_version.unwrap_or(0),
+            has_connection_token = response.connection_token.is_some(),
+            has_url = response.url.is_some(),
+            transports = ?transports.iter().map(|t| t.transport.as_str()).collect::<Vec<_>>(),
+            "diagnostic: negotiate answered"
+        );
+        // Raw values to a plain file (the log's redaction hides them).
+        {
+            use std::io::Write;
+            let _ = std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open("/tmp/phone-link-relay.log")
+                .and_then(|mut f| {
+                    writeln!(
+                        f,
+                        "negotiate env={env} redirected={} version={} has_url={} has_token={} has_id={} transports={:?}",
+                        response.url.is_some(),
+                        response.negotiate_version.unwrap_or(0),
+                        response.url.is_some(),
+                        response.connection_token.is_some(),
+                        response.connection_id.is_some(),
+                        transports.iter().map(|t| t.transport.as_str()).collect::<Vec<_>>()
+                    )
+                });
+        }
         let websockets =
             transports.iter().any(|t| t.transport == "WebSockets" && t.transfer_formats.iter().any(|f| f == "Binary"));
         if !websockets {
@@ -230,11 +261,17 @@ pub(crate) async fn negotiate(
                 .ok_or_else(|| StartError::Protocol("version-0 negotiate response has no connectionId".into()))?
         };
 
-        return Ok(Negotiated {
-            transport_url: transport_url(&hub, &token)?,
-            bearer,
-            connection_id: response.connection_id,
-        });
+        let negotiated =
+            Negotiated { transport_url: transport_url(&hub, &token)?, bearer, connection_id: response.connection_id };
+        {
+            use std::io::Write;
+            let _ = std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open("/tmp/phone-link-relay.log")
+                .and_then(|mut f| writeln!(f, "transport_url={}", negotiated.transport_url));
+        }
+        return Ok(negotiated);
     }
 }
 
