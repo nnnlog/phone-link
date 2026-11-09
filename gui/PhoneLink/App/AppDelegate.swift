@@ -432,6 +432,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// The window that pairs a new phone (from Settings); closing it ends the session.
     func showPairingWindow() {
+        // A finished pairing leaves the shared model on its "paired" page; opening the window for
+        // another phone must start a fresh session, not show the previous one as already paired.
+        pairing.cancel()
         let window = pairingWindow ?? makePairingWindow()
         pairingWindow = window
         present(window)

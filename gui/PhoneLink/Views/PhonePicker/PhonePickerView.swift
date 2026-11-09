@@ -37,7 +37,10 @@ struct PhonePickerView: View {
                 }
                 .frame(minHeight: 80, maxHeight: 160)
                 HStack {
-                    Button("Pair a New Phone…") { pairingShown = true }
+                    Button("Pair a New Phone…") {
+                        pairing.cancel()
+                        pairingShown = true
+                    }
                     Button("Connect") {
                         if let choice { controller.selectPhone(choice) }
                     }
