@@ -48,6 +48,7 @@ impl EngineCore {
         self.select(&phone.client, &phone.info)?;
         self.app.trigger(ConnectTrigger::SelectedPhoneChanged);
         self.connect_cdeh(CdehTrigger::ProcessSessionChanges);
+        self.refresh_availability();
 
         if let Some(previous) = previous.filter(|p| !p.is_same_client(&phone.client)) {
             let sessions = self.sessions.clone();
@@ -92,6 +93,7 @@ impl EngineCore {
             return;
         }
         info!(phone = %phone, "the selected phone left the account's linked devices; App requests stop");
+        self.pause_availability();
         self.events.core_event(CoreEvent::PhoneUnlinked);
     }
 

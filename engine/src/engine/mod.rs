@@ -11,8 +11,12 @@
 //! layer starts, so the engine-start connect carries their providers.
 //!
 //! While it runs, the engine keeps the phone record current (every device-list refresh rewrites it),
-//! bridges the clipboard's global switch to the advertised capabilities, and reacts to the removal
-//! of the account: the features stop and the core must be rebuilt ([`EngineCore::needs_rebuild`]).
+//! bridges the clipboard's global switch to the advertised capabilities, reacts to the removal
+//! of the account: the features stop and the core must be rebuilt ([`EngineCore::needs_rebuild`]), and
+//! keeps the Mac available on the relay hub (`available`): with a phone selected and the Mac
+//! unlocked, the connection's hub connection stays open and announced, so the phone can start a
+//! connection to the Mac too — the Mac cannot be woken through the push channel a phone-initiated
+//! wake goes through, and while the app runs it does not need to be.
 
 use crate::app::ConnectTrigger;
 use crate::features::clipboard::{global_switch_persisted, with_clipboard_capability};
@@ -40,6 +44,7 @@ use crate::platform::{ClientVersion, PartnerSessions, PlatformRoutes, Router};
 use crate::relay::RelayManager;
 use crate::seams::Waker;
 
+mod available;
 mod bridges;
 mod cdeh;
 mod devices;
@@ -180,6 +185,9 @@ pub struct EngineCore {
     /// The wake sequence the per-partner connection uses; the engine resets its breakers on unlock
     /// and wake.
     waker: Arc<dyn Waker>,
+    /// The Mac's availability on the relay hub (`available`): the selected phone, while the core
+    /// runs and the engine sees the Mac unlocked.
+    available: OnceLock<available::Available>,
     /// The per-phone "enabled" switch of the CDEH features.
     pub switches: Arc<PhoneSwitches>,
     /// Where the responses to the features' system notifications go.
@@ -298,6 +306,7 @@ impl EngineCore {
             app,
             cdeh,
             waker,
+            available: OnceLock::new(),
             switches,
             responses: NotificationRouter::new(),
             feature_edges,
@@ -394,11 +403,14 @@ impl EngineCore {
             self.sessions.start();
             self.spawn_event_bridge();
             self.app.start().map_err(setup_err)?;
+            self.spawn_available_runner();
         } else {
             // A start after `stop` is an app start with a linked phone, a connect trigger: the
             // background connect brings the session back.
             self.app.trigger(ConnectTrigger::EngineStart);
         }
+
+        self.refresh_availability();
 
         self.connect_cdeh(CdehTrigger::ProcessSessionChanges);
 
@@ -469,10 +481,12 @@ impl EngineCore {
         self.phone().is_some_and(|p| self.sessions.is_connected(&p))
     }
 
-    /// Ends the phone session: cancels in-flight connects, as the disconnect trigger does, then
-    /// `/PlatformDisconnectRequest` and the hub connection.
+    /// Ends the phone session: availability paused (nothing answers the phone), in-flight connects
+    /// canceled, as the disconnect trigger does, then `/PlatformDisconnectRequest` and the hub
+    /// connection.
     pub async fn stop(&self) {
         info!("engine stopping; in-flight connects are canceled and the phone disconnected");
+        self.pause_availability();
         self.app.cancel_connects();
         if let Some(phone) = self.phone() {
             self.sessions.disconnect(&phone, CdehStop::SessionLoopEnded.trace()).await;

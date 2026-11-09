@@ -485,6 +485,29 @@ impl PartnerSessions {
         map.get(partner).map_or(SessionPhase::Idle, |s| s.phase)
     }
 
+    /// Whether no session of `partner` is running: it is not connected, attempting, paused, stopped
+    /// or ended — the connection is free for the availability to keep open. A partner with no state
+    /// is idle.
+    pub fn is_idle(&self, partner: &DcgClient) -> bool {
+        let map = self.partners.lock_or_panic();
+        map.get(partner).is_none_or(|s| s.phase == SessionPhase::Idle)
+    }
+
+    /// Waits until `partner`'s state changes (every transition bumps the partner's change counter),
+    /// or returns at once when there is no state yet. The caller re-reads the phase after it fires.
+    pub async fn phase_changed(&self, partner: &DcgClient) {
+        let mut changed = {
+            let map = self.partners.lock_or_panic();
+            match map.get(partner) {
+                Some(s) => s.changed.subscribe(),
+                None => return,
+            }
+        };
+        // The current counter value; the next bump fires `changed()`.
+        let _ = changed.borrow_and_update();
+        let _ = changed.changed().await;
+    }
+
     pub fn last_failure(&self, partner: &DcgClient) -> Option<ConnectionFailure> {
         let map = self.partners.lock_or_panic();
         map.get(partner).and_then(|s| s.last_failure.clone())

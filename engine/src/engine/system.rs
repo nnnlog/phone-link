@@ -26,6 +26,8 @@ impl EngineCore {
         match event {
             SystemEvent::ScreenLocked | SystemEvent::WillSleep => {
                 self.app.trigger(ConnectTrigger::LockOrSleep);
+                // Locked and asleep answer nothing: the availability keeps nothing open.
+                self.pause_availability();
 
                 if event == SystemEvent::ScreenLocked {
                     if let Some(features) = self.features() {
@@ -48,6 +50,9 @@ impl EngineCore {
                 self.waker.reset_breakers();
                 self.relay.system_reset();
                 self.app.trigger(ConnectTrigger::UnlockOrWake);
+                // Unlocked (the wake event may come to a Mac that would lock again; the lock event
+                // pauses then) the phone hears the Mac again.
+                self.refresh_availability();
 
                 match (event, started) {
                     // The unlock event is the unlock: the session dictionary may not show it yet.

@@ -350,7 +350,8 @@ pub struct RelayConfig {
     pub rekey_close_wait: Duration,
     pub partner_retry_base: Duration,
     pub partner_retry_fatal: Duration,
-    /// Reconnects to a partner on its own after the hub announces the partner's disconnect.
+    /// Reconnects to a partner on its own after the hub announced the partner's disconnect
+    /// (Phone Link on Windows does; the wake circuit breaker bounds the repeats).
     pub automatic_reconnects_enabled: bool,
     /// Suppresses the session end on an inbound disconnect and forces `DCG-RequestNewSession: "True"`
     /// on every wake.
