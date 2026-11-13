@@ -43,6 +43,9 @@ public final class ScreenMirroringModel {
     /// The user asks window `id` for screen layout `layout`, before the phone is asked (set by the app:
     /// the window keeps its frame for its layout and takes the one it last had in the other).
     @ObservationIgnored public var willSwitchLayout: (String, Int32) -> Void = { _, _ in }
+    /// The kind of the Mac's current keyboard input source, read when the keyboard-settings button is
+    /// pressed.
+    @ObservationIgnored public var keyboardInputSource: @MainActor () -> MirrorInputSource = KeyboardInputSource.current
 
     /// Sessions with an open window.
     @ObservationIgnored private var windows: Set<String> = []
@@ -345,11 +348,14 @@ public final class ScreenMirroringModel {
         }
     }
 
-    /// The phone's keyboard settings, where its input language is chosen.
-    public func requestKeyboardSettings() {
-        Task { [api] in
+    /// The phone's keyboard settings, where its input language is chosen: those of the Mac's input
+    /// source when the button is pressed, read here on the main actor.
+    @discardableResult
+    public func requestKeyboardSettings() -> Task<Void, Never> {
+        let inputSource = keyboardInputSource()
+        return Task { [api] in
             do {
-                try await api.requestKeyboardSettings()
+                try await api.requestKeyboardSettings(inputSource: inputSource)
             } catch {
                 self.fail("Couldn't Open Keyboard Settings", "phone keyboard settings not opened", error)
             }

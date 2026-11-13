@@ -107,6 +107,26 @@ pub fn launch_notification_v2(transaction_id: &str, key: &str, action_index: i32
 
 pub const KEYBOARD_SETTINGS_INTENT: &str = "hardware_keyboard_settings";
 
+/// The kind of the Mac's current keyboard input source, which picks the keyboard settings the phone
+/// opens in the phone screen.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum InputSourceKind {
+    /// A keyboard layout (ABC, U.S.): the phone's physical-keyboard settings.
+    Layout,
+    /// An input method (Korean, Japanese, Chinese): the phone's on-screen keyboard settings.
+    InputMethod,
+}
+
+impl InputSourceKind {
+    /// The `launchType` of the keyboard-settings `launchPhoneScreenApp`.
+    pub fn launch_type(self) -> i64 {
+        match self {
+            Self::Layout => 2,
+            Self::InputMethod => 3,
+        }
+    }
+}
+
 pub fn launch_custom_intent(intent_key: &str) -> Vec<u8> {
     obj().str("intentKey", intent_key).bytes()
 }

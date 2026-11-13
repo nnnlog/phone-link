@@ -362,13 +362,18 @@ impl Inner {
 
     /// `launchCustomIntent` on the permission-independent route; without `MultipleApps` the
     /// `launchPhoneScreenApp` form, which only the orchestrator handles (the phone's `earlyLaunch`
-    /// channel drops it).
-    pub(in super::super) async fn request_keyboard_settings(self: Arc<Self>) -> Result<(), MirroringError> {
+    /// channel drops it), with the launch type of `input_source`.
+    pub(in super::super) async fn request_keyboard_settings(
+        self: Arc<Self>,
+        input_source: wire::InputSourceKind,
+    ) -> Result<(), MirroringError> {
         let v = self.check_launchable()?;
         if v.apps_feature_type() == AppsFeatureType::MultipleApps {
             let channel = self.permission_independent_channel().await?;
             let body = wire::launch_custom_intent(wire::KEYBOARD_SETTINGS_INTENT);
-            return Ok(channel.send(scope::LAUNCH_CUSTOM_INTENT, &body)?);
+            channel.send(scope::LAUNCH_CUSTOM_INTENT, &body)?;
+            info!("keyboard settings asked of the phone with launchCustomIntent");
+            return Ok(());
         }
 
         let running = self.state.lock_or_panic().setup.clone();
@@ -383,9 +388,11 @@ impl Inner {
             .clone()
             .ok_or(MirroringError::NotNow("the phone screen is not connected"))?;
 
-        let launch_type = if self.presenter.input_source_is_input_method() { 3 } else { 2 };
+        let launch_type = input_source.launch_type();
         let body = wire::launch_phone_screen_app(PHONE_SCREEN_PACKAGE, &new_guid_lower(), launch_type);
-        Ok(channel.send(scope::LAUNCH_PHONE_SCREEN_APP, &body)?)
+        channel.send(scope::LAUNCH_PHONE_SCREEN_APP, &body)?;
+        info!(launch_type, "keyboard settings asked of the phone with launchPhoneScreenApp");
+        Ok(())
     }
 }
 

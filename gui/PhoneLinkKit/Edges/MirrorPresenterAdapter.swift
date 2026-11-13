@@ -1,5 +1,4 @@
 import AppKit
-import Carbon
 import CoreAudio
 import CoreVideo
 import Foundation
@@ -9,8 +8,7 @@ import PhoneLinkEngine
 private let log = AppLog(category: "mirroring")
 
 /// Screen mirroring's edge on this Mac: the primary display's values, whether an audio output device
-/// exists, whether the keyboard input source is an input method, each session's video and each app's
-/// audio.
+/// exists, each session's video and each app's audio.
 ///
 /// The engine calls it on its own threads, several sessions at once. Each session has its own H.264
 /// decoder, made on its first frame and reset when its stream ends; a decoded picture goes to the
@@ -95,14 +93,6 @@ public final class MirrorPresenterAdapter: MirrorPresenter, @unchecked Sendable 
         var address = Self.defaultOutputAddress
         let status = AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &address, 0, nil, &size, &device)
         return status == noErr && device != kAudioObjectUnknown
-    }
-
-    public func inputSourceIsInputMethod() -> Bool {
-        guard let source = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue(),
-              let raw = TISGetInputSourceProperty(source, kTISPropertyInputSourceType)
-        else { return false }
-        let type = Unmanaged<CFString>.fromOpaque(raw).takeUnretainedValue()
-        return CFEqual(type, kTISTypeKeyboardInputMode) || CFEqual(type, kTISTypeKeyboardInputMethodModeEnabled)
     }
 
     public func videoFrame(sessionId: String, data: Data, keyframe: Bool) -> Bool {

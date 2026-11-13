@@ -13,8 +13,8 @@ use phonelink_engine::features::screen_mirroring::link::LinkEvent;
 use phonelink_engine::features::screen_mirroring::link::testing::{PhoneSide, TestConnector};
 use phonelink_engine::features::screen_mirroring::wire::{self, scope};
 use phonelink_engine::features::screen_mirroring::{
-    AudioButton, Details, FocusableState, PHONE_SCREEN_PACKAGE, PhoneState, ScreenMirroring, ScreenMirroringEvent,
-    WindowState,
+    AudioButton, Details, FocusableState, InputSourceKind, PHONE_SCREEN_PACKAGE, PhoneState, ScreenMirroring,
+    ScreenMirroringEvent, WindowState,
 };
 use phonelink_engine::nano::channel::blob::BlobChannel;
 use phonelink_engine::nano::channel::message::{InboundMessage, MessageChannel};
@@ -623,7 +623,6 @@ async fn phone_initiated_sessions_and_notification_launch() {
 #[tokio::test(start_paused = true)]
 async fn notification_v1_and_keyboard_settings() {
     let w = world(SAMSUNG_NO_NEARBY & !0x2000 & !0x100);
-    w.presenter.input_method.store(true, Ordering::SeqCst);
 
     let feature = w.feature.clone();
     let launch = tokio::spawn(async move { feature.launch_notification("k", 2).await });
@@ -637,7 +636,7 @@ async fn notification_v1_and_keyboard_settings() {
     launch.await.unwrap().unwrap();
     assert_eq!(early.next(scope::LAUNCH_NOTIFICATION).await.body, br#"{"key":"k","actionIndex":2}"#);
 
-    w.feature.request_keyboard_settings().await.unwrap();
+    w.feature.request_keyboard_settings(InputSourceKind::InputMethod).await.unwrap();
     assert_eq!(early.next(scope::LAUNCH_CUSTOM_INTENT).await.body, br#"{"intentKey":"hardware_keyboard_settings"}"#);
 }
 
@@ -646,7 +645,7 @@ async fn phone_screen_only_opens_apps_and_notifications_inside_it() {
     // Android 10: no app windows, the phone screen only.
     let mut w = world_with(SAMSUNG_NO_NEARBY & !0x2000, "10", ScreenMirroringConfig::default());
     assert!(
-        w.feature.request_keyboard_settings().await.is_err(),
+        w.feature.request_keyboard_settings(InputSourceKind::Layout).await.is_err(),
         "the phone-screen form needs the orchestrator; earlyLaunch would drop it"
     );
 
@@ -685,9 +684,17 @@ async fn phone_screen_only_opens_apps_and_notifications_inside_it() {
     let launch = json(&up.2.next(scope::LAUNCH_APP).await);
     assert_eq!((launch["sessionId"].as_str(), launch["flags"].as_i64()), (Some(task.as_str()), Some(4)));
 
-    w.feature.request_keyboard_settings().await.unwrap();
-    let k = json(&up.2.next(scope::LAUNCH_PHONE_SCREEN_APP).await);
-    assert_eq!((k["packageName"].as_str(), k["launchType"].as_i64()), (Some(PHONE_SCREEN_PACKAGE), Some(2)));
+    // The keyboard settings the phone opens follow the Mac's input source: a layout's physical-keyboard
+    // settings (2), an input method's on-screen keyboard settings (3).
+    for (input_source, launch_type) in [(InputSourceKind::Layout, 2), (InputSourceKind::InputMethod, 3)] {
+        w.feature.request_keyboard_settings(input_source).await.unwrap();
+        let k = json(&up.2.next(scope::LAUNCH_PHONE_SCREEN_APP).await);
+        assert_eq!(
+            (k["packageName"].as_str(), k["launchType"].as_i64()),
+            (Some(PHONE_SCREEN_PACKAGE), Some(launch_type)),
+            "{input_source:?}"
+        );
+    }
 
     // The app launch into the phone screen replaced the first notification; a new one waits for the
     // window to become active.

@@ -1,5 +1,5 @@
-//! Mirroring's OS edge: the Mac's display values the phone is told, its audio output and input
-//! source, and the presentation of each window's video and each app's audio.
+//! Mirroring's OS edge: the Mac's display values the phone is told, its audio output, and the
+//! presentation of each window's video and each app's audio.
 //!
 //! The CLI uses [`NoPresenter`]; the tests use [`testing`].
 
@@ -38,8 +38,6 @@ pub trait MirrorPresenter: Send + Sync {
     fn display_geometry(&self) -> DisplayGeometry;
     /// An audio output device exists.
     fn has_audio_output(&self) -> bool;
-    /// The current keyboard input source is an input method (not a plain layout).
-    fn input_source_is_input_method(&self) -> bool;
     /// Decodes one H.264 access unit (Annex-B) of session `session_id`'s video and presents it in the
     /// session's window, scaled and rotated as the session's display state says. `true` when it
     /// decoded to a presented picture. Called in stream order, on a thread that may block.
@@ -63,9 +61,6 @@ impl MirrorPresenter for NoPresenter {
         DisplayGeometry { usable_width: 1920, usable_height: 1020, dpi: 96, width: 1920, height: 1080 }
     }
     fn has_audio_output(&self) -> bool {
-        false
-    }
-    fn input_source_is_input_method(&self) -> bool {
         false
     }
     fn video_frame(&self, _session_id: String, _data: Vec<u8>, _keyframe: bool) -> bool {
@@ -99,7 +94,6 @@ pub mod testing {
     pub struct RecordingPresenter {
         pub geometry: Mutex<DisplayGeometry>,
         pub audio_output: AtomicBool,
-        pub input_method: AtomicBool,
         pub calls: Mutex<Vec<PresenterCall>>,
     }
 
@@ -114,7 +108,6 @@ pub mod testing {
                     height: 1800,
                 }),
                 audio_output: AtomicBool::new(true),
-                input_method: AtomicBool::new(false),
                 calls: Mutex::new(Vec::new()),
             })
         }
@@ -134,9 +127,6 @@ pub mod testing {
         }
         fn has_audio_output(&self) -> bool {
             self.audio_output.load(Ordering::SeqCst)
-        }
-        fn input_source_is_input_method(&self) -> bool {
-            self.input_method.load(Ordering::SeqCst)
         }
         fn video_frame(&self, session_id: String, data: Vec<u8>, _keyframe: bool) -> bool {
             let decoded = !data.is_empty();

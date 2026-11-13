@@ -220,9 +220,10 @@ impl ScreenMirroring {
         self.inner.clone().launch_notification(key, action_index).await
     }
 
-    /// The window's keyboard-settings button.
-    pub async fn request_keyboard_settings(&self) -> Result<(), MirroringError> {
-        self.inner.clone().request_keyboard_settings().await
+    /// The window's keyboard-settings button, with the kind of the Mac's input source when it was
+    /// pressed.
+    pub async fn request_keyboard_settings(&self, input_source: InputSourceKind) -> Result<(), MirroringError> {
+        self.inner.clone().request_keyboard_settings(input_source).await
     }
 
     /// The user closed session `id`'s window.
@@ -519,6 +520,7 @@ pub use machine::{Details, PhoneState, WindowState};
 pub use store::FEATURE;
 pub use store::Settings;
 pub use wire::FocusableState;
+pub use wire::InputSourceKind;
 #[cfg(feature = "test-support")]
 pub use wire::PHONE_SCREEN_PACKAGE;
 

@@ -184,6 +184,23 @@ struct ScreenMirroringModelTests {
         #expect(windows.calls == ["failure Couldn't Open the App"])
     }
 
+    @Test func keyboardSettingsCarryTheInputSourceReadWhenPressed() async {
+        let api = FakeScreenMirroring()
+        let windows = MirrorWindowLog()
+        let model = model(api, windows: windows)
+        model.reload()
+
+        model.keyboardInputSource = { .inputMethod }
+        await model.requestKeyboardSettings().value
+        model.keyboardInputSource = { .layout }
+        await model.requestKeyboardSettings().value
+        #expect(api.calls == ["keyboard settings inputMethod", "keyboard settings layout"])
+
+        api.fail = true
+        await model.requestKeyboardSettings().value
+        #expect(windows.calls == ["failure Couldn't Open Keyboard Settings"])
+    }
+
     @Test func allowAndRetryTurnsAppsOnFirst() {
         let api = FakeScreenMirroring()
         api.settings.allowApps = false
@@ -626,7 +643,9 @@ private final class FakeScreenMirroring: ScreenMirroringApiProtocol, @unchecked 
     func pen(sessionId: String, x: Double, y: Double, pressure: Double, rotation: Double, inRange: Bool, inContact: Bool) throws {}
     func reopen(sessionId: String) throws {}
     func requestAudioPermission(openSettings: Bool) async throws {}
-    func requestKeyboardSettings() async throws {}
+    func requestKeyboardSettings(inputSource: MirrorInputSource) async throws {
+        try record("keyboard settings \(inputSource)")
+    }
     func resendPermission() throws {}
     func resume(sessionId: String) async throws -> Bool {
         try record("resume \(sessionId)")

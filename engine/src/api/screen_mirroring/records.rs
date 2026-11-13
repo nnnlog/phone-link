@@ -321,6 +321,15 @@ pub enum MirrorFocus {
     Suspended,
 }
 
+/// The kind of the Mac's current keyboard input source.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Enum)]
+pub enum MirrorInputSource {
+    /// A keyboard layout (ABC, U.S.).
+    Layout,
+    /// An input method (Korean, Japanese, Chinese).
+    InputMethod,
+}
+
 /// A Mac mouse button.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Enum)]
 pub enum MirrorMouseButton {

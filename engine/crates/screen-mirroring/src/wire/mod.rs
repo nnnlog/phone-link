@@ -19,10 +19,10 @@ pub use object_writer::{Escaping, Obj};
 #[cfg(feature = "test-support")]
 pub use to_phone::LayoutDisplay;
 pub use to_phone::{
-    ClipItem, ConfigValues, FocusableState, KEYBOARD_SETTINGS_INTENT, always_expanded, app_focusable_state,
-    app_resumable, audio_pc_streaming_allowed, audio_set_volume, black_screen, config, disconnecting_result,
-    drag_cancel, drag_drop_pc, drag_request_item, drag_request_ownership, drag_start_pc, empty_nearby,
-    empty_orchestrator, launch_app, launch_custom_intent, launch_notification_v1, launch_notification_v2,
+    ClipItem, ConfigValues, FocusableState, InputSourceKind, KEYBOARD_SETTINGS_INTENT, always_expanded,
+    app_focusable_state, app_resumable, audio_pc_streaming_allowed, audio_set_volume, black_screen, config,
+    disconnecting_result, drag_cancel, drag_drop_pc, drag_request_item, drag_request_ownership, drag_start_pc,
+    empty_nearby, empty_orchestrator, launch_app, launch_custom_intent, launch_notification_v1, launch_notification_v2,
     launch_phone_screen_app, nearby_request_setting, nearby_send_pin_code, permission_transaction,
     request_move_to_vd_result, request_permission, request_screen_layout, request_session_result, workflow_body,
 };

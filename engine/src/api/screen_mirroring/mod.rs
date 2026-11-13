@@ -14,14 +14,15 @@ use crate::api::engine::Engine;
 
 mod records;
 use crate::features::screen_mirroring::{
-    self as sm, Details, ErrorAction, ErrorKind, FocusableState, KeyAction, KeyMapping, MirroringError, MouseButton,
-    NavButton, PhoneState, ScreenMirroring, Settings, TouchPhase, WindowState, errors::error_kind,
+    self as sm, Details, ErrorAction, ErrorKind, FocusableState, InputSourceKind, KeyAction, KeyMapping,
+    MirroringError, MouseButton, NavButton, PhoneState, ScreenMirroring, Settings, TouchPhase, WindowState,
+    errors::error_kind,
 };
 pub use records::{
     MirrorAppsFeatureType, MirrorAudioButton, MirrorDragEnter, MirrorDragFile, MirrorError, MirrorErrorAction,
-    MirrorErrorKind, MirrorFocus, MirrorKeyAction, MirrorKeyMapping, MirrorMouseButton, MirrorNavButton,
-    MirrorNearbyPrompt, MirrorPhoneDragItem, MirrorPhoneState, MirrorRect, MirrorSessionView, MirrorSettings,
-    MirrorSize, MirrorTouchPhase, MirrorWindowState, MirroringStatusView, ScreenMirroringChange,
+    MirrorErrorKind, MirrorFocus, MirrorInputSource, MirrorKeyAction, MirrorKeyMapping, MirrorMouseButton,
+    MirrorNavButton, MirrorNearbyPrompt, MirrorPhoneDragItem, MirrorPhoneState, MirrorRect, MirrorSessionView,
+    MirrorSettings, MirrorSize, MirrorTouchPhase, MirrorWindowState, MirroringStatusView, ScreenMirroringChange,
 };
 
 use super::{FeatureApiError, core_of, features_of};
@@ -137,6 +138,15 @@ impl From<MirrorFocus> for FocusableState {
             MirrorFocus::InFocus => Self::InFocus,
             MirrorFocus::NotInFocus => Self::NotInFocus,
             MirrorFocus::Suspended => Self::Suspended,
+        }
+    }
+}
+
+impl From<MirrorInputSource> for InputSourceKind {
+    fn from(s: MirrorInputSource) -> Self {
+        match s {
+            MirrorInputSource::Layout => Self::Layout,
+            MirrorInputSource::InputMethod => Self::InputMethod,
         }
     }
 }
@@ -266,9 +276,10 @@ impl ScreenMirroringApi {
         Ok(self.feature()?.launch_notification(&key, action_index).await?)
     }
 
-    /// The window's keyboard-settings (language) button.
-    pub async fn request_keyboard_settings(&self) -> Result<(), FeatureApiError> {
-        Ok(self.feature()?.request_keyboard_settings().await?)
+    /// The window's keyboard-settings (language) button; `input_source` is the kind of the Mac's
+    /// current keyboard input source, read on the main thread when the button is pressed.
+    pub async fn request_keyboard_settings(&self, input_source: MirrorInputSource) -> Result<(), FeatureApiError> {
+        Ok(self.feature()?.request_keyboard_settings(input_source.into()).await?)
     }
 
     /// The user closed window `session_id`; after the last window, mirroring stops.
