@@ -1,0 +1,49 @@
+# Maintainer: alvin0319
+# Maintainer: Chansol Park (nlog)
+
+pkgname=phonelink-git
+pkgver=r0
+pkgrel=1
+pkgdesc="Use an Android phone from this computer: messages, calls, notifications, photos, screen mirroring, camera and files"
+arch=('x86_64')
+url="https://github.com/nnnlog/phone-link"
+license=('MIT')
+depends=('qt6-base' 'qt6-declarative' 'qt6-webengine' 'fuse3' 'libpulse' 'opus')
+makedepends=('git' 'cargo' 'cmake')
+optdepends=(
+    'bluez: calls and the instant hotspot'
+    'networkmanager: joining the instant hotspot'
+    'gnome-keyring: keeping the sign-in (or another Secret Service provider)'
+    'v4l2loopback-dkms: using the phone as a camera'
+)
+provides=('phonelink')
+conflicts=('phonelink')
+source=("$pkgname::git+$url.git")
+sha256sums=('SKIP')
+
+pkgver() {
+    cd "$pkgname"
+    printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+prepare() {
+    cd "$pkgname/linux"
+    export RUSTUP_TOOLCHAIN=stable
+    cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
+}
+
+build() {
+    cd "$pkgname/linux"
+    export RUSTUP_TOOLCHAIN=stable
+    export CARGO_TARGET_DIR=target
+    QMAKE=qmake6 cargo build --frozen --release
+}
+
+package() {
+    cd "$pkgname/linux"
+    install -Dm755 target/release/phonelink-linux "$pkgdir/usr/bin/phonelink-linux"
+    install -Dm644 data/phonelink-linux.desktop "$pkgdir/usr/share/applications/phonelink-linux.desktop"
+    install -Dm644 data/phonelink-linux-autostart.desktop "$pkgdir/etc/xdg/autostart/phonelink-linux.desktop"
+    install -Dm644 data/phonelink.png "$pkgdir/usr/share/icons/hicolor/512x512/apps/phonelink.png"
+    install -Dm644 ../LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

@@ -57,6 +57,31 @@ engine-bindings:
     cd engine && cargo rustc -p phonelink-engine --lib --crate-type staticlib --target-dir target/app
     cd engine && cargo run -p phonelink-engine --target-dir target/bindgen --features bindgen-cli --bin uniffi-bindgen -- generate --library target/app/debug/libphonelink_engine.a --language swift --out-dir target/uniffi
 
+# Build the Linux app (linux/); cxx-qt finds Qt 6 through QMAKE
+linux-build:
+    cd linux && QMAKE="${QMAKE:-qmake6}" cargo build
+
+# Run the Linux app
+linux-run:
+    cd linux && QMAKE="${QMAKE:-qmake6}" cargo run
+
+# Install the Linux app for this user (~/.local), starting in the tray at login
+linux-install:
+    cd linux && QMAKE="${QMAKE:-qmake6}" cargo install --path . --root ~/.local
+    desktop-file-install --dir="$HOME/.local/share/applications" --set-key=Exec --set-value="$HOME/.local/bin/phonelink-linux" linux/data/phonelink-linux.desktop
+    desktop-file-install --dir="$HOME/.config/autostart" --set-key=Exec --set-value="$HOME/.local/bin/phonelink-linux --background" linux/data/phonelink-linux-autostart.desktop
+    install -Dm644 linux/data/phonelink.png ~/.local/share/icons/hicolor/512x512/apps/phonelink.png
+
+# Build the Debian package (needs cargo-deb) into linux/target/debian/
+linux-deb:
+    cd linux && QMAKE="${QMAKE:-qmake6}" cargo deb
+
+# Build the RPM package (needs cargo-generate-rpm) into linux/target/generate-rpm/
+linux-rpm:
+    cd linux && QMAKE="${QMAKE:-qmake6}" cargo build --release
+    strip -s linux/target/release/phonelink-linux
+    cd linux && cargo generate-rpm
+
 # Run the engine CLI, e.g. `just cli decode envelope @file`
 cli *args:
     cd engine && cargo run --bin phonelink -- {{args}}

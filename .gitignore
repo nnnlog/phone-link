@@ -1,6 +1,8 @@
 # Build output. gui/Generated/ holds the uniffi Swift bindings gui/scripts/build-engine.sh writes on
 # every build.
 /engine/target/
+/linux/target/
+/linux/.qmlls.ini
 /gui/build/
 /gui/DerivedData/
 /gui/Generated/

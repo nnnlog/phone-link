@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Phone Link
+Comment=Use your Android phone from this computer
+Exec=phonelink-linux --background
+Icon=phonelink
+Terminal=false
+NoDisplay=true
