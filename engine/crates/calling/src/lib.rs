@@ -1,10 +1,10 @@
-//! Calling, the Android path: the phone's call history mirrored onto the Mac, and call control over
+//! Calling, the Android path: the phone's call history mirrored onto the computer, and call control over
 //! Bluetooth.
 //!
 //! The phone pushes `callLogs` content on `/legacy/phonecontent`; the PC answers a metadata message
 //! with the ids it wants, stores the item messages that follow, asks for a sync with `/calling` and
 //! for the call-log permission with `/permission` 256, and contributes to the connect message. Sync
-//! is one-way, phone → PC: the Mac never changes or deletes the phone's calls. Placing, answering and
+//! is one-way, phone → PC: the computer never changes or deletes the phone's calls. Placing, answering and
 //! ending calls runs over Bluetooth Hands-Free, with every call's audio on the phone ([`control`]).
 //!
 //! | Module | Implements |
@@ -18,7 +18,7 @@
 //! | this module | the requests and their triggers, and what the calls view reads |
 //!
 //! The PC asks for the call log on three occasions only: once ever, when the history is empty
-//! ([`Calling::refresh_if_empty`], which the calls view runs); when "use calls on this Mac" is
+//! ([`Calling::refresh_if_empty`], which the calls view runs); when "use calls on this computer" is
 //! switched on and the history is empty ([`Calling::set_pc_consent`]); and after the phone allowed
 //! its call log ([`Calling::request_device_permission`]). Each answered request is followed by a
 //! contacts sync while contacts may be synced, so the history's numbers resolve to names.
@@ -81,7 +81,7 @@ pub enum CallsAccess {
     /// No calls view for this phone: not the selected phone, not Android, or without the `Calls`
     /// capability.
     Unsupported,
-    /// "Use calls on this Mac" is off.
+    /// "Use calls on this computer" is off.
     PcConsentRequired,
     /// The phone has `Calls` but not `CallLogs`; the view asks to update Link to Windows.
     CallLogsUnsupported,
@@ -348,13 +348,13 @@ impl Calling {
         Ok(())
     }
 
-    /// "Use calls on this Mac". Switched on, the empty-history refresh runs (not waited for).
+    /// "Use calls on this computer". Switched on, the empty-history refresh runs (not waited for).
     pub fn set_pc_consent(&self, phone: &DcgClient, consent: bool) -> Result<(), FeatureError> {
         if !store::set_pc_consent(&*self.shared.db(phone)?, consent)? {
             return Ok(());
         }
 
-        info!(enabled = consent, "call history on this Mac switched");
+        info!(enabled = consent, "call history on this computer switched");
         self.shared.emit(CallingEvent::StateChanged { phone: phone.clone() });
         self.shared.emit(CallingEvent::ControlChanged { phone: phone.clone() });
         self.control.gates_changed();
@@ -382,7 +382,7 @@ impl Calling {
         let app = self.shared.app()?;
         let (phone, record) = self.shared.selected(&app)?;
         if !gates::history_supported(&record) {
-            return Err(FeatureError::Programming("the selected phone has no call history for this Mac".into()));
+            return Err(FeatureError::Programming("the selected phone has no call history for this computer".into()));
         }
 
         let options = RequestOptions::user_initiated().named(TRIGGER_PROMPT, SCENARIO_PERMISSION);

@@ -221,7 +221,7 @@ impl EngineCore {
     }
 
     /// The CDEH session's other triggers: the selected phone's per-phone switch turning off stops the
-    /// session and turning on starts it (unless the Mac is locked); the CDEH identity's device list
+    /// session and turning on starts it (unless the computer is locked); the CDEH identity's device list
     /// gaining the selected phone starts it, as a new session loop does, and losing it stops it.
     pub(super) fn spawn_cdeh_session_bridge(self: &Arc<Self>, cdeh: &IdentityStack) {
         let selected = |core: &EngineCore, phone: &DcgClient| core.phone().is_some_and(|p| p.is_same_client(phone));

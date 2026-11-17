@@ -1,5 +1,5 @@
 //! The phone's Bluetooth Classic OS edge: the radio, the phone among the devices paired with this
-//! Mac, discovery and pairing, and RFCOMM channels to a service on the phone.
+//! computer, discovery and pairing, and RFCOMM channels to a service on the phone.
 //!
 //! The engine decides what to do and frames every byte; the edge only reaches the radio. It is
 //! synchronous and may block, so the engine calls it on the blocking pool. The CLI uses
@@ -52,24 +52,24 @@ impl From<uniffi::UnexpectedUniFFICallbackError> for RfcommError {
     }
 }
 
-/// Bluetooth Classic on this Mac. `names` are the phone's names; a device is the phone when its name
+/// Bluetooth Classic on this computer. `names` are the phone's names; a device is the phone when its name
 /// equals one of them ignoring case and surrounding white space (an empty name matches nothing).
 #[uniffi::export(with_foreign)]
 pub trait PhoneBluetooth: Send + Sync {
     /// The Bluetooth radio is on.
     fn radio_on(&self) -> bool;
-    /// The address (`xx-xx-xx-xx-xx-xx`) of the first device paired with this Mac that is the phone.
+    /// The address (`xx-xx-xx-xx-xx-xx`) of the first device paired with this computer that is the phone.
     fn paired_phone(&self, names: Vec<String>) -> Option<String>;
     /// Runs an inquiry for at most `timeout_ms` and pairs with the first device found that is the
     /// phone (the user confirms the pairing code); returns its address.
     fn discover_and_pair(&self, names: Vec<String>, timeout_ms: u64) -> Result<String, PairingError>;
-    /// Looks up the device's RFCOMM service `service_uuid` in the service records the Mac holds for the
+    /// Looks up the device's RFCOMM service `service_uuid` in the service records the computer holds for the
     /// paired device and opens an encrypted, authenticated channel to it (at most `timeout_ms`);
     /// returns the channel's handle.
     fn rfcomm_open(&self, address: String, service_uuid: String, timeout_ms: u64) -> Result<u64, RfcommError>;
-    /// Makes the Mac read the paired device's service records again — by connecting to the device
+    /// Makes the computer read the paired device's service records again — by connecting to the device
     /// when it is not connected, and closing that connection afterwards — and waits at most
-    /// `timeout_ms` for the records the Mac holds to include `service_uuid`; returns whether they do.
+    /// `timeout_ms` for the records the computer holds to include `service_uuid`; returns whether they do.
     fn refresh_services(&self, address: String, service_uuid: String, timeout_ms: u64) -> Result<bool, RfcommError>;
     /// Writes `bytes` on the channel.
     fn rfcomm_write(&self, channel: u64, bytes: Vec<u8>) -> Result<(), RfcommError>;

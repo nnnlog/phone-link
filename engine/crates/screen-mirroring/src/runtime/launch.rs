@@ -344,7 +344,7 @@ impl Inner {
         Some((s.pc_initiated, if s.pc_initiated { s.pending_app.take() } else { None }))
     }
 
-    /// The phone state closes and every window shows `code` (a set-up the Mac stopped).
+    /// The phone state closes and every window shows `code` (a set-up the computer stopped).
     pub(super) fn report_closed(&self, code: i32) {
         let mut out = Out::default();
         {

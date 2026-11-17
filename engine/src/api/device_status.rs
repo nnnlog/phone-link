@@ -355,7 +355,7 @@ impl DeviceStatusApi {
         self.run(|f, phone| f.accept_prompt(phone, prompt.into()))
     }
 
-    /// Whether this Mac notifies the user when the selected phone's battery runs low (default on).
+    /// Whether this computer notifies the user when the selected phone's battery runs low (default on).
     pub fn low_battery_notifications_enabled(&self) -> Result<bool, FeatureApiError> {
         Ok(self.run(|f, phone| f.low_battery_notifications_enabled(phone))??)
     }

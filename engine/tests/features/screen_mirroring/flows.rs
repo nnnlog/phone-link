@@ -684,7 +684,7 @@ async fn phone_screen_only_opens_apps_and_notifications_inside_it() {
     let launch = json(&up.2.next(scope::LAUNCH_APP).await);
     assert_eq!((launch["sessionId"].as_str(), launch["flags"].as_i64()), (Some(task.as_str()), Some(4)));
 
-    // The keyboard settings the phone opens follow the Mac's input source: a layout's physical-keyboard
+    // The keyboard settings the phone opens follow the computer's input source: a layout's physical-keyboard
     // settings (2), an input method's on-screen keyboard settings (3).
     for (input_source, launch_type) in [(InputSourceKind::Layout, 2), (InputSourceKind::InputMethod, 3)] {
         w.feature.request_keyboard_settings(input_source).await.unwrap();
@@ -890,7 +890,7 @@ async fn app_audio_volume_and_frames() {
     audio.send(scope::AUDIO_CAPTURE_ALLOWED, r#"{"packageName":"com.example.app","isAudioCaptureAllowed":true}"#);
     wait_until(&w.feature, "allowed", |f| f.session(&id).unwrap().audio_capture_allowed).await;
 
-    // The phone is told again only when the Mac's last output goes or the first comes back.
+    // The phone is told again only when the computer's last output goes or the first comes back.
     w.feature.audio_output_changed();
     w.presenter.audio_output.store(false, Ordering::SeqCst);
     w.feature.audio_output_changed();
@@ -1381,9 +1381,9 @@ async fn pointer_leaves_the_video(w: &World, id: &str, up: &mut Up) {
     .expect("requestOwnership once the pointer leaves the video");
 }
 
-/// Drag and drop both ways on a connected window: a Mac file pulled by the phone as a blob, and a phone
-/// file handed over when the pointer leaves the video, received as a blob and written where the Mac
-/// destination asks. The phone → Mac half continues from the pointer state the Mac → phone half leaves.
+/// Drag and drop both ways on a connected window: a computer file pulled by the phone as a blob, and a phone
+/// file handed over when the pointer leaves the video, received as a blob and written where the computer
+/// destination asks. The phone → computer half continues from the pointer state the computer → phone half leaves.
 #[tokio::test(start_paused = true)]
 #[expect(clippy::too_many_lines, reason = "one drag scenario whose second half depends on the first")]
 async fn drag_and_drop_both_ways() {
@@ -1392,7 +1392,7 @@ async fn drag_and_drop_both_ways() {
 
     let (mut w, id, mut up, dir) = drag_world().await;
 
-    // Mac → phone: folders are skipped; the file goes as one clip item with a fresh id.
+    // Computer → phone: folders are skipped; the file goes as one clip item with a fresh id.
     let file = dir.path().join("note.txt");
     std::fs::write(&file, b"from the mac").unwrap();
     let files = vec![
@@ -1442,7 +1442,7 @@ async fn drag_and_drop_both_ways() {
     // clipData with no drag handed over is an invalid pair: the PC cancels with reason 5.
     let clip = r#"{"correlationId":"c","clipDataItems":{"dataIds":["d1"],"mimeTypes":["text/plain"],"fileSizes":[5],"filenames":["x/y.txt"]}}"#;
     up.window.send(scope::DRAG_CLIP_DATA, clip);
-    assert_eq!(json(&up.window.next(scope::DRAG_CANCEL).await)["reason"], 5); // Phone → Mac: leaving the video asks for the drag; the next move starts it and requests the file.
+    assert_eq!(json(&up.window.next(scope::DRAG_CANCEL).await)["reason"], 5); // Phone → computer: leaving the video asks for the drag; the next move starts it and requests the file.
     up.window.send(scope::DRAG_START_PHONE, r#"{"correlationId":"c","mimeTypes":["text/plain"],"sessionId":""}"#);
     pointer_leaves_the_video(&w, &id, &mut up).await;
     up.window.send(scope::DRAG_CLIP_DATA, clip);

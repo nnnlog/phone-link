@@ -1,6 +1,6 @@
 //! Wallpaper — the Cross Device contract over the platform layer: the phone wallpaper pull (its
 //! triggers, its request, the reply rules and the ids of the next pull), the `/wallpaper` receiver
-//! answering the Mac's desktop picture, and the tag-5 subscription.
+//! answering the computer's desktop picture, and the tag-5 subscription.
 
 use crate::support::device_status_world;
 use crate::support::platform_world;
@@ -177,7 +177,7 @@ async fn only_android_phones_of_the_account_are_pulled_and_the_start_pulls_avail
 }
 
 // ------------------------------------------------------------------------------------------------
-// The Mac's wallpaper for the phone
+// The computer's wallpaper for the phone
 // ------------------------------------------------------------------------------------------------
 
 #[tokio::test(start_paused = true)]

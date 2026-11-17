@@ -1,5 +1,5 @@
-//! The new-photo notification: a `UserNotifications` notification whose activation opens the full
-//! image in the default macOS viewer (Phone Link on Windows opens it in Snipping Tool).
+//! The new-photo notification: a system notification whose activation opens the full image in the
+//! system's default viewer (Phone Link on Windows opens it in Snipping Tool).
 //!
 //! For each processed item batch, while the PC-side setting and the photos consent are on, the 3 most
 //! recent items by taken time are considered; one whose taken and last-modified times are within

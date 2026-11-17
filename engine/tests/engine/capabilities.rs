@@ -2,7 +2,7 @@
 //! reports it: `EnrollDevice` carries it as the persisted global switch says, and a change of the
 //! switch reaches `SetDeviceInfo` — also when the clipboard's event stream lagged and lost the
 //! change event. `REMOTE_CONTROL` and `REMOTE_CONTROL_V2` follow `UNLINKABLE_V1` (remote control's
-//! options are on by default), then `FILE_TRANSFER` (the Mac receives files by default).
+//! options are on by default), then `FILE_TRANSFER` (the computer receives files by default).
 
 use crate::support::auth_world;
 use crate::support::fake_hub;

@@ -558,7 +558,7 @@ async fn install_preconditions_fail_loudly() {
     phone_announces(&w.w, "m-1", CID).await;
     let content = cb::ClipboardRequestType::Content as i32;
     assert_eq!(w.request_types(), vec![OFF, ON, content], "one pull: the refused install's subscriber is gone");
-    w.pasteboard.copy_text("copied on the Mac");
+    w.pasteboard.copy_text("copied on the computer");
     after_copy().await;
     assert_eq!(w.announcements().len(), 1, "one announcement: its watcher is gone");
 }

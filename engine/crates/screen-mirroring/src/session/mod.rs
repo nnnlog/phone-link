@@ -162,7 +162,7 @@ pub struct Session {
     pub epoch: u64,
     pub bound: Option<Bound>,
     pub input: Arc<Mutex<InputPipe>>,
-    /// Drag and drop with the Mac; set when the runtime creates the window.
+    /// Drag and drop with the computer; set when the runtime creates the window.
     pub drag: Option<Arc<WindowDrag>>,
     pub display: Display,
     pub recent_task_id: i64,
@@ -170,7 +170,7 @@ pub struct Session {
     /// The window can present video.
     pub window_ready: bool,
     pub window_ready_notify: Arc<Notify>,
-    /// The phone asked to move the app to the Mac: its transaction and whether it is a task transfer.
+    /// The phone asked to move the app to the computer: its transaction and whether it is a task transfer.
     pub move_to_virtual_display: Option<(String, bool)>,
     pub current_layout: Option<i32>,
     /// The layout a switch waits to be confirmed with.

@@ -587,7 +587,7 @@ impl Drm {
         }
     }
 
-    /// The macOS lock test, off the async runtime (`phonelink_core::edge` traits block).
+    /// The session lock test, off the async runtime (`phonelink_core::edge` traits block).
     async fn lock_state(&self) -> LockState {
         let lock = self.lock.clone();
         match tokio::task::spawn_blocking(move || lock.lock_state()).await {

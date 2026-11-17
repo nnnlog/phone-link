@@ -1,7 +1,7 @@
 //! Remote control through `EngineCore` over the fakes (`support/engine_world`): both receivers are
 //! installed, a `/remotecontrol` request from a phone whose device-list entry lacks `REMOTE_CONTROL`
 //! makes the engine fetch the device list from the cloud before it answers, and `remoteControl`
-//! content acts. The Mac's actions only reach a recording edge.
+//! content acts. The computer's actions only reach a recording edge.
 
 use crate::support::auth_world;
 use crate::support::engine_world as world;
@@ -74,7 +74,7 @@ async fn both_contracts_act_through_the_engine() {
     w.send(&drm_request("rc-2", RemoteControlType::Sleep));
     assert!(eventually(Duration::from_secs(20), || w.response_to("rc-2").is_some()).await, "answered");
     assert_eq!(drm_answer(&w.response_to("rc-2").unwrap()).control_result, RemoteControlResult::Success as i32);
-    // The sleep is answered first; the Mac acts once the answer's send has finished.
+    // The sleep is answered first; the computer acts once the answer's send has finished.
     assert!(eventually(Duration::from_secs(20), || power.actions() == [PowerAction::Sleep]).await, "slept");
 
     // Phone Link's `remoteControl` content.

@@ -23,7 +23,7 @@ use super::{FeatureApiError, RequestOutcome, core_of, features_of, selected_phon
 pub enum ContactsAccess {
     /// Contacts are available.
     Granted,
-    /// "Use my phone's contacts" is off on this Mac.
+    /// "Use my phone's contacts" is off on this computer.
     PcConsentRequired,
     /// The phone has not allowed contacts yet.
     DeviceConsentRequired,

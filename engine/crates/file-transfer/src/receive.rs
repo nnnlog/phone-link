@@ -36,13 +36,13 @@ pub(super) enum ReceiveError {
     /// A control message whose scenario (as it arrived) the receive does not expect.
     #[error("a control message of a scenario the receive does not expect")]
     UnexpectedScenario(String),
-    #[error("the phone listed a file name the Mac does not accept")]
+    #[error("the phone listed a file name the computer does not accept")]
     BadFileName,
     #[error("the transfer channel was lost")]
     ChannelLost,
     #[error("the files could not be requested: {0}")]
     RequestFailed(#[source] ChannelError),
-    /// A file's stream did not succeed; `cause` is why the Mac refused its destination, when it did.
+    /// A file's stream did not succeed; `cause` is why the computer refused its destination, when it did.
     #[error(
         "a file did not arrive: {status:?}{}",
         .cause.as_ref().map(|c| format!("; {c}")).unwrap_or_default()
@@ -54,7 +54,7 @@ pub(super) enum ReceiveError {
     ChannelClosed,
 }
 
-/// Why the Mac refused the destination of a pulled file.
+/// Why the computer refused the destination of a pulled file.
 #[derive(Debug, thiserror::Error)]
 pub(super) enum DestinationError {
     #[error("the phone did not list the file")]

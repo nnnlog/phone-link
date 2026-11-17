@@ -1,4 +1,4 @@
-//! The number the Mac dials: what the user typed, normalized before dialing.
+//! The number the computer dials: what the user typed, normalized before dialing.
 
 /// The first code point of each run of ten Unicode decimal digits (`Nd`) in the Basic Multilingual
 /// Plane, plus the full-width digits.

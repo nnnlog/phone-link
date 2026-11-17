@@ -9,7 +9,7 @@
 //! | [`post_notification_needed`] | an Android 13+ phone holds neither its post-notification nor its auto-launch permission |
 //!
 //! Phone Link on Windows also needs its OS to offer Bluetooth calling before it shows or stores call
-//! history; this Mac has no such requirement.
+//! history; this computer has no such requirement.
 
 use phonelink_app::PhoneRecord;
 use phonelink_app::consts::{capability, permission, platform};

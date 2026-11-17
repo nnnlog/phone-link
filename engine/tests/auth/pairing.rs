@@ -294,7 +294,7 @@ async fn the_manual_flow_shows_the_pairing_pin() {
 async fn expiries_move_onto_the_macs_clock_by_the_measured_skew() {
     let r = Run::new(vec![("create", qr_created()), ("get", Reply::Hang)]);
 
-    // The Mac's clock runs 90 s ahead of the service's.
+    // The computer's clock runs 90 s ahead of the service's.
     r.clock.advance(Duration::from_secs(90));
     let (_refresh, handle) = run_session(r.session(PairingFlow::QrCode));
     tokio::time::sleep(Duration::from_millis(10)).await;

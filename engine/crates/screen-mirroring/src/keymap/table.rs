@@ -1,9 +1,9 @@
-//! The table of Mac virtual key codes and the HID usages they send.
+//! The table of macOS virtual key codes and the HID usages they send.
 
 use super::KeyMapping::{self, NotSent, Tap, Usage};
 use super::usage;
 
-/// The Mac virtual key codes (`kVK_*`) with a mapping of their own; every other key is not sent.
+/// The macOS virtual key codes (`kVK_*`) with a mapping of their own; every other key is not sent.
 pub(super) static MAC_KEYS: [(u16, KeyMapping); 116] = [
     // Letters (ANSI positions).
     (0x00, Usage(0x04)), // A

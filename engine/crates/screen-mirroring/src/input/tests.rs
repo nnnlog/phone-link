@@ -251,7 +251,7 @@ async fn a_key_after_option_was_released_releases_the_held_keys() {
 #[tokio::test(start_paused = true)]
 async fn caps_lock_is_brought_to_the_macs_on_the_first_key_after_a_focus_change() {
     let (mut p, sink) = pipe();
-    // The phone starts with Caps Lock off; the Mac has it on.
+    // The phone starts with Caps Lock off; the computer has it on.
     p.focus(true, true);
     assert_eq!(key_counter(&sink, 0x39), 0, "nothing until a key is pressed");
 

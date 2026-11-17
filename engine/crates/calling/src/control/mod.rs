@@ -1,9 +1,9 @@
-//! Call control: placing, answering, declining and ending the phone's calls from the Mac over
+//! Call control: placing, answering, declining and ending the phone's calls from the computer over
 //! Bluetooth Hands-Free (HFP), with every call's audio on the phone.
 //!
-//! The Mac takes the HF role itself over an RFCOMM channel to the phone's HFP Audio Gateway service;
+//! The computer takes the HF role itself over an RFCOMM channel to the phone's HFP Audio Gateway service;
 //! the phone's side is Android's own Bluetooth stack. No voice link is opened: the user talks on the
-//! phone, so the controls that act on the Mac's audio (mute, hold, the in-call keypad, moving the
+//! phone, so the controls that act on the computer's audio (mute, hold, the in-call keypad, moving the
 //! audio) do not exist here.
 //!
 //! | Module | Implements |
@@ -16,7 +16,7 @@
 //! | this module | the gates, the connection state and its triggers, the operations |
 //!
 //! The connection is set up when the feature starts for the selected phone, when "Show call history
-//! on this Mac" or "Make and answer calls on this Mac" is switched on, and when the user asks; after a
+//! on this computer" or "Make and answer calls on this computer" is switched on, and when the user asks; after a
 //! failure or a lost connection, also when the app comes to the foreground and when a connect to the
 //! phone completes. Nothing retries on a timer.
 
@@ -63,7 +63,7 @@ pub enum ControlStatus {
     /// The setup runs before the channel opens.
     Starting,
     BluetoothOff,
-    /// No device paired with the Mac is the phone.
+    /// No device paired with the computer is the phone.
     NotPaired,
     /// The channel opens and the service-level connection runs.
     Connecting,
@@ -86,9 +86,9 @@ impl ControlStatus {
 pub struct ControlState {
     /// The phone can have call control: Android, the `Calls` capability, features not disabled.
     pub offered: bool,
-    /// "Show call history on this Mac".
+    /// "Show call history on this computer".
     pub pc_consent: bool,
-    /// "Make and answer calls on this Mac".
+    /// "Make and answer calls on this computer".
     pub enabled: bool,
     pub status: ControlStatus,
 }
@@ -227,14 +227,14 @@ impl CallControl {
         calls.into_iter().map(|call| CallView { contact: lookup(&call.number), call }).collect()
     }
 
-    /// "Make and answer calls on this Mac" for `phone`. Switched on, the connection is set up (not
+    /// "Make and answer calls on this computer" for `phone`. Switched on, the connection is set up (not
     /// waited for); switched off, it is closed.
     pub fn set_enabled(self: &Arc<Self>, phone: &DcgClient, enabled: bool) -> Result<(), FeatureError> {
         if !store::set_call_control(&*self.shared.db(phone)?, enabled)? {
             return Ok(());
         }
 
-        info!(is_enabled = enabled, "call control on this Mac switched");
+        info!(is_enabled = enabled, "call control on this computer switched");
         self.shared.emit(CallingEvent::ControlChanged { phone: phone.clone() });
         self.spawn_setup(Trigger::Always);
         Ok(())
@@ -255,7 +255,7 @@ impl CallControl {
         self.run_setup(Trigger::Always).await
     }
 
-    /// The user's *Begin Pairing*: pairs the Mac with the phone over Bluetooth (the shared pairing),
+    /// The user's *Begin Pairing*: pairs the computer with the phone over Bluetooth (the shared pairing),
     /// then runs the setup.
     pub async fn pair(self: &Arc<Self>) -> Result<ControlStatus, ControlError> {
         let (phone, _) = self.selected()?;
@@ -445,7 +445,7 @@ impl CallControl {
         ControlStatus::Ready
     }
 
-    /// Opens the channel; when the Mac's records lack the service, has them read again and tries once
+    /// Opens the channel; when the computer's records lack the service, has them read again and tries once
     /// more.
     async fn open(&self, address: &str) -> Result<(Arc<Link>, mpsc::UnboundedReceiver<LinkEvent>), RfcommError> {
         match self.open_once(address).await {

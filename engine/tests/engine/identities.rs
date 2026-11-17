@@ -2,7 +2,7 @@
 //! Link's `PL` identity and the Cross Device Experience Host's `WEA` identity enroll into one
 //! account, each with its own keys, capabilities and device, while the machine's logical device id is
 //! shared; only the CDEH identity opens a hub connection, which carries the App layer too, and its
-//! session follows the Mac's lock, the per-phone switch and the phone's Link to Windows version.
+//! session follows the computer's lock, the per-phone switch and the phone's Link to Windows version.
 //!
 //! A CDEH session change or an App-layer connect that starts nothing sends nothing either: the tests
 //! wait for its line in the engine's log (`support/session_log`), written once it has run, before
@@ -114,9 +114,9 @@ async fn pl_and_wea_enroll_with_their_own_keys_and_capabilities_over_one_connect
     assert!(Arc::ptr_eq(&engine.sessions, &cdeh.sessions), "the App layer's connection is the CDEH one");
 }
 
-/// The CDEH identity's session follows the Mac's lock, as CDEH's session service does: the start and
+/// The CDEH identity's session follows the computer's lock, as CDEH's session service does: the start and
 /// the unlock start it with a wake that asks for a new session and ignores the device-disabled status;
-/// a lock stops it; a wake while the Mac is still locked starts nothing.
+/// a lock stops it; a wake while the computer is still locked starts nothing.
 ///
 /// The App layer's own connect at the start and at the unlock runs on the same connection and may
 /// wake the phone first, as a `Default` start: the session start's new-session request is then kept
@@ -180,7 +180,7 @@ async fn the_cdeh_session_stops_on_lock_and_starts_again_on_unlock() {
     // lock gate.
     assert!(
         eventually(Duration::from_secs(20), || {
-            session_log::changes(&phone)[changes..] == ["not started: the Mac is locked"]
+            session_log::changes(&phone)[changes..] == ["not started: the computer is locked"]
                 && unlock_or_wake_connect_ended(&phone)
         })
         .await,

@@ -1,6 +1,6 @@
 //! Instant hotspot for the UI ([`crate::features::hotspot`]).
 //!
-//! It covers whether the selected phone offers it and whether this Mac is on it, the connect that
+//! It covers whether the selected phone offers it and whether this computer is on it, the connect that
 //! joins the phone's hotspot, pairing with the phone and asking for its consent first when either is
 //! missing, and the disconnect that leaves it.
 
@@ -15,11 +15,11 @@ use super::{FeatureApiError, core_of, features_of, selected_phone};
 /// What the hotspot item shows for the selected phone.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Record)]
 pub struct HotspotPhoneState {
-    /// The phone can share its connection with this Mac: offer connect.
+    /// The phone can share its connection with this computer: offer connect.
     pub supported: bool,
     /// A connect or disconnect is running.
     pub busy: bool,
-    /// This Mac's Wi-Fi is on the network the last connect joined: offer disconnect.
+    /// This computer's Wi-Fi is on the network the last connect joined: offer disconnect.
     pub joined: bool,
 }
 
@@ -79,7 +79,7 @@ pub enum HotspotError {
     Bluetooth { error: BluetoothError },
     #[error("the phone did not answer the request")]
     ConsentTimedOut,
-    #[error("the phone does not trust this Mac: {reason}")]
+    #[error("the phone does not trust this computer: {reason}")]
     NotTrusted { reason: String },
     #[error("the phone could not be reached: {reason}")]
     Unreachable { reason: String },
@@ -189,7 +189,7 @@ impl HotspotApi {
         self.spawn(|f, phone| async move { f.connect(&phone).await }).await
     }
 
-    /// Leaves the phone's hotspot while this Mac's Wi-Fi is on it; does nothing otherwise.
+    /// Leaves the phone's hotspot while this computer's Wi-Fi is on it; does nothing otherwise.
     pub async fn disconnect(&self) -> Result<(), HotspotError> {
         self.spawn(|f, phone| async move { f.disconnect(&phone).await }).await
     }

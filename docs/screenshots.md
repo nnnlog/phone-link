@@ -1,6 +1,6 @@
 # Screenshots
 
-![Phone Link for macOS](images/cover.png)
+![Phone Link for PC](images/cover.png)
 
 ![The Phone Link window with the notification list, and its Settings window](images/hero.png)
 

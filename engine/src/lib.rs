@@ -1,11 +1,11 @@
-//! Protocol and feature core of the macOS Phone Link app: the engine, its `uniffi` surface, and
-//! the installed set of features, on top of the crates under `crates/`. The crate builds the
-//! library that `gui/mac/` links through `uniffi` (with every crate beneath it) and the headless
-//! `phonelink` CLI.
+//! Protocol and feature core of the Phone Link apps for macOS and Linux: the engine, its `uniffi`
+//! surface, and the installed set of features, on top of the crates under `crates/`. The crate builds
+//! the library the apps use — `gui/mac/` links it through `uniffi` (with every crate beneath it),
+//! `gui/linux/` depends on it as a Rust crate — and the headless `phonelink` CLI.
 //!
-//! The public modules are what those two use: [`api`] (the `uniffi` surface), [`engine`] (the core
-//! an embedder builds and runs), [`edge`] (the OS edges), [`config`], [`constants`], [`codec`] (the
-//! CLI's decoder) and [`tap`]. The other layers are re-exported at the paths this crate's code uses;
+//! The public modules are what the apps and the CLI use: [`api`] (the `uniffi` surface), [`engine`]
+//! (the core an embedder builds and runs), [`edge`] (the OS edges), [`config`], [`constants`], [`codec`]
+//! (the CLI's decoder) and [`tap`]. The other layers are re-exported at the paths this crate's code uses;
 //! the `test-support` feature makes them public so the tests in `tests/` drive each layer through its
 //! own interface by one path.
 

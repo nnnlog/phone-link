@@ -21,7 +21,7 @@ use tokio::sync::{broadcast, watch};
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, warn};
 
-/// The Mac → phone drag the window shows now (from its enter to the next enter).
+/// The computer → phone drag the window shows now (from its enter to the next enter).
 pub(super) struct ToPhone {
     pub(super) correlation_id: String,
     /// Bumped per enter: a delayed start belongs to one drag only.
@@ -36,7 +36,7 @@ pub(super) struct ToPhone {
     pub(super) effect_none: bool,
 }
 
-/// One received file of a phone → Mac drag.
+/// One received file of a phone → computer drag.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) enum ItemStatus {
     Receiving,
@@ -50,7 +50,7 @@ pub(super) struct FromPhoneItem {
     pub(super) written: bool,
 }
 
-/// A started phone → Mac drag: its files on their way into `dir`.
+/// A started phone → computer drag: its files on their way into `dir`.
 pub(super) struct FromPhone {
     pub(super) dir: PathBuf,
     pub(super) items: Vec<FromPhoneItem>,
@@ -60,7 +60,7 @@ pub(super) struct FromPhone {
     pub(super) received_files: usize,
     pub(super) bytes: u64,
     pub(super) total: u64,
-    /// The Mac drag was released (dropped, or asked for a file): its notifications show from now on.
+    /// The computer's drag was released (dropped, or asked for a file): its notifications show from now on.
     pub(super) released: bool,
     /// When the progress notification was last posted.
     pub(super) posted: Option<Instant>,
@@ -75,18 +75,18 @@ pub(super) struct State {
     pub(super) activity: bool,
     pub(super) to_phone: Option<ToPhone>,
     pub(super) generation: u64,
-    /// The Mac → phone files the phone may still request, by blob name.
+    /// The computer → phone files the phone may still request, by blob name.
     pub(super) outgoing: HashMap<String, PathBuf>,
     /// Blob names being sent now.
     pub(super) sending: HashSet<String>,
     pub(super) cool_off_until: Option<Instant>,
     pub(super) phase: Phase,
-    /// `clipData` kept until the next pointer move starts the Mac drag.
+    /// `clipData` kept until the next pointer move starts the computer's drag.
     pub(super) pending: Option<Option<ClipData>>,
     pub(super) from_phone: Option<FromPhone>,
     /// Bumped per reset: a timer belongs to one phone drag only.
     pub(super) phone_epoch: u64,
-    /// The Mac → phone drag (by `generation`) whose first file not sent was logged.
+    /// The computer → phone drag (by `generation`) whose first file not sent was logged.
     pub(super) send_failure_logged: Option<u64>,
 }
 
@@ -169,7 +169,7 @@ impl WindowDrag {
         st.channels = channels;
     }
 
-    /// Forgets the Mac → phone files not yet requested and cancels the blobs being sent.
+    /// Forgets the computer → phone files not yet requested and cancels the blobs being sent.
     pub(super) fn clear_outgoing(&self, st: &mut State) {
         st.outgoing.clear();
         let sending: Vec<String> = st.sending.drain().collect();

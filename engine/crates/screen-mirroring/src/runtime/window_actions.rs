@@ -488,7 +488,7 @@ impl Inner {
         self.session_command(id, SessionCommand::AppLaunchSuccess, None);
     }
 
-    /// The Mac's output devices changed: the phone is told again only when an output appeared where
+    /// The computer's output devices changed: the phone is told again only when an output appeared where
     /// there was none, or the last one went (and only while the `audio` workflow is open).
     pub(in super::super) fn audio_output_changed(&self) {
         let now = self.presenter.has_audio_output();

@@ -7,7 +7,7 @@
 /// Why a Wi-Fi scan or join failed.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error, uniffi::Error)]
 pub enum WifiError {
-    /// This Mac has no Wi-Fi interface, or it is off.
+    /// This computer has no Wi-Fi interface, or it is off.
     #[error("Wi-Fi is unavailable")]
     Unavailable,
     /// The scan or association failed.
@@ -23,10 +23,10 @@ impl From<uniffi::UnexpectedUniFFICallbackError> for WifiError {
     }
 }
 
-/// Wi-Fi on this Mac.
+/// Wi-Fi on this computer.
 #[uniffi::export(with_foreign)]
 pub trait HotspotWifi: Send + Sync {
-    /// This Mac has a Wi-Fi interface.
+    /// This computer has a Wi-Fi interface.
     fn has_interface(&self) -> bool;
     /// A scan finds a network named `ssid`.
     fn is_visible(&self, ssid: String) -> Result<bool, WifiError>;

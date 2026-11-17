@@ -37,10 +37,10 @@ impl EngineCore {
     }
 
     /// Starts the CDEH identity's session to the selected phone in the background for `trigger`,
-    /// unless the Mac is locked — its unlock starts it. Nothing without a CDEH identity.
+    /// unless the computer is locked — its unlock starts it. Nothing without a CDEH identity.
     pub(super) fn connect_cdeh(&self, trigger: CdehTrigger) {
         if !matches!(self.edges.lock.lock_state(), LockState::Unlocked) {
-            self.submit_cdeh_change(SessionChange::Skip(Refusal::expected("the Mac is locked")));
+            self.submit_cdeh_change(SessionChange::Skip(Refusal::expected("the computer is locked")));
             return;
         }
         self.start_cdeh_session(trigger);

@@ -89,7 +89,7 @@ pub struct Conversation {
     /// Unix ms of the latest message.
     pub latest_ms: i64,
     pub preview: Option<ConversationPreviewLine>,
-    /// Unread on this Mac.
+    /// Unread on this computer.
     pub unread: i64,
     pub muted: bool,
     pub hidden: bool,
@@ -130,7 +130,7 @@ pub enum MessageType {
     Mms,
     RcsChat,
     RcsFileTransfer,
-    /// Sent from this Mac; the phone has not confirmed it yet.
+    /// Sent from this computer; the phone has not confirmed it yet.
     PendingSend,
 }
 
@@ -143,7 +143,7 @@ pub enum MessagePartRef {
     RcsFile {
         id: i64,
     },
-    /// An attachment of a message sent from this Mac (never downloaded).
+    /// An attachment of a message sent from this computer (never downloaded).
     SentPart {
         send_id: i64,
         index: u32,
@@ -193,7 +193,7 @@ pub struct MessagePart {
     pub name: String,
     pub size: i64,
     pub state: MessagePartState,
-    /// This Mac holds the part's bytes.
+    /// This computer holds the part's bytes.
     pub has_bytes: bool,
 }
 
@@ -253,7 +253,7 @@ impl From<i32> for SendFailure {
     }
 }
 
-/// The state of a message sent from this Mac.
+/// The state of a message sent from this computer.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Enum)]
 pub enum MessageSendState {
     Sending,
@@ -276,7 +276,7 @@ impl From<SendStatus> for MessageSendState {
 pub enum MessageMailbox {
     /// Received.
     Inbox,
-    /// Sent (also a message sent from this Mac).
+    /// Sent (also a message sent from this computer).
     Sent,
     /// A draft on the phone.
     Draft,
@@ -348,9 +348,9 @@ pub struct Message {
     pub kind: MessageType,
     pub id: i64,
     pub timestamp_ms: i64,
-    /// Received (inbox) rather than sent from the phone or this Mac.
+    /// Received (inbox) rather than sent from the phone or this computer.
     pub incoming: bool,
-    /// The phone mailbox it is in (`Sent` for a message sent from this Mac).
+    /// The phone mailbox it is in (`Sent` for a message sent from this computer).
     pub mailbox: MessageMailbox,
     /// The sender of a received message, the recipient of a sent one.
     pub contact: MessageContact,
@@ -362,7 +362,7 @@ pub struct Message {
     /// the event's sender, its `body` what the phone wrote about it (may be empty).
     pub group_event: Option<MessageGroupEvent>,
     pub parts: Vec<MessagePart>,
-    /// For a message sent from this Mac: its state.
+    /// For a message sent from this computer: its state.
     pub send_state: Option<MessageSendState>,
 }
 
@@ -414,7 +414,7 @@ impl From<&MessageView> for Message {
     }
 }
 
-/// A message sent from this Mac to a new conversation that the phone has not confirmed yet.
+/// A message sent from this computer to a new conversation that the phone has not confirmed yet.
 #[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
 pub struct NewConversationMessage {
     /// The addresses it was sent to, as the user entered or picked them, with their contacts.
@@ -514,7 +514,7 @@ pub struct MessagingSettings {
     pub receive_mms: bool,
     pub auto_download_mms: bool,
     pub send_mms: bool,
-    /// "Show messages on this Mac".
+    /// "Show messages on this computer".
     pub pc_consent: bool,
     pub message_notifications: bool,
 }
@@ -546,7 +546,7 @@ impl From<MessagingSettings> for PcSettings {
 /// Messaging's state for the selected phone.
 #[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
 pub struct MessagingState {
-    /// The phone allows messages on this Mac.
+    /// The phone allows messages on this computer.
     pub phone_permission: bool,
     pub settings: MessagingSettings,
     pub up_to_date: bool,
@@ -567,7 +567,7 @@ pub enum MessagingChange {
     ContentChanged {
         threads: Vec<i64>,
     },
-    /// A message sent from this Mac changed state (or was confirmed and is gone).
+    /// A message sent from this computer changed state (or was confirmed and is gone).
     SendChanged {
         send_id: i64,
     },
@@ -628,7 +628,7 @@ impl MessagingApi {
 
 #[uniffi::export(async_runtime = "tokio")]
 impl MessagingApi {
-    /// The selected phone's messages permission, this Mac's messaging settings, and the sync state.
+    /// The selected phone's messages permission, this computer's messaging settings, and the sync state.
     ///
     /// Fails with `NoPhone` when no phone is selected.
     pub fn state(&self) -> Result<MessagingState, FeatureApiError> {
@@ -651,13 +651,13 @@ impl MessagingApi {
         self.run(|f| f.conversations()).map(|v| v.iter().map(Into::into).collect())
     }
 
-    /// The messages of a conversation, oldest first, then those sent from this Mac and not yet
+    /// The messages of a conversation, oldest first, then those sent from this computer and not yet
     /// confirmed. Parts come without their bytes (`part_bytes`).
     pub fn messages(&self, thread_id: i64) -> Result<Vec<Message>, FeatureApiError> {
         self.run(|f| f.messages(thread_id)).map(|v| v.iter().map(Into::into).collect())
     }
 
-    /// The messages sent from this Mac to a new conversation ([`MessageTarget::NewConversation`])
+    /// The messages sent from this computer to a new conversation ([`MessageTarget::NewConversation`])
     /// that the phone has not confirmed yet, oldest first, each with the addresses it went to: no
     /// conversation holds them until then, and a confirmed one is gone from here and in its
     /// conversation's `messages`.
@@ -670,7 +670,7 @@ impl MessagingApi {
         self.run(|f| f.new_message_limits()).map(Into::into)
     }
 
-    /// A part's bytes; `None` when this Mac holds none for it (a part offered for download).
+    /// A part's bytes; `None` when this computer holds none for it (a part offered for download).
     pub fn part_bytes(&self, part: MessagePartRef) -> Result<Option<Vec<u8>>, FeatureApiError> {
         self.run(|f| f.part_bytes(part.into()))
     }
@@ -680,7 +680,7 @@ impl MessagingApi {
         self.run(|f| f.subscriptions()).map(|v| v.iter().map(Into::into).collect())
     }
 
-    /// Saves this Mac's messaging settings for the selected phone.
+    /// Saves this computer's messaging settings for the selected phone.
     ///
     /// The phone hears of them with the next sync, not at once.
     pub fn set_settings(&self, settings: MessagingSettings) -> Result<(), FeatureApiError> {
@@ -727,7 +727,7 @@ impl MessagingApi {
         Ok(self.feature()?.download_part(part.into()).await?.into())
     }
 
-    /// Asks the phone to allow messages on this Mac.
+    /// Asks the phone to allow messages on this computer.
     pub async fn request_permission(&self) -> Result<RequestOutcome, FeatureApiError> {
         Ok(self.feature()?.request_messages_permission().await?.into())
     }

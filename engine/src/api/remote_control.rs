@@ -14,11 +14,11 @@ use super::{FeatureApiError, core_of, features_of, selected_phone};
 pub struct RemoteControlPhoneState {
     /// The per-phone toggle (default on).
     pub toggle: bool,
-    /// The toggle applies: the phone supports remote control and remote control is on on this Mac.
+    /// The toggle applies: the phone supports remote control and remote control is on on this computer.
     pub applicable: bool,
     /// The phone supports remote control (lock at least).
     pub capable: bool,
-    /// The phone can also sleep, shut down and restart this Mac.
+    /// The phone can also sleep, shut down and restart this computer.
     pub v2_capable: bool,
 }
 
@@ -73,7 +73,7 @@ impl RemoteControlApi {
         self.run(|f, phone| Ok(f.phone(phone)?)).map(|p| p.as_ref().map(Into::into))
     }
 
-    /// The selected phone's toggle: whether it may lock, sleep, shut down or restart this Mac.
+    /// The selected phone's toggle: whether it may lock, sleep, shut down or restart this computer.
     pub fn set_phone_toggle(&self, enabled: bool) -> Result<(), FeatureApiError> {
         self.run(|f, phone| f.set_phone_toggle(phone, enabled))
     }

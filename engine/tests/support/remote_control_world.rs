@@ -1,6 +1,6 @@
 //! Remote control installed over the platform `World` with an App layer on top
 //! (`support/device_status_world`): the phone's DRM requests reach the `/remotecontrol`
-//! receiver and its App content the `remoteControl` processor over one loopback. The Mac's actions
+//! receiver and its App content the `remoteControl` processor over one loopback. The computer's actions
 //! go to a recording edge — nothing here can lock, sleep, shut down or restart the machine.
 //! `tests/main.rs` declares it as `crate::support::remote_control_world`, next to the `crate::support::platform_world` and
 //! `crate::support::device_status_world` it uses.

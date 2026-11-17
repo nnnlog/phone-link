@@ -26,12 +26,12 @@ impl From<PhoneAppsError> for FeatureApiError {
 /// What the Apps view reads.
 #[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
 pub struct PhoneAppsState {
-    /// The Apps view shows: the phone shows its screen on the Mac and runs apps for it.
+    /// The Apps view shows: the phone shows its screen on the computer and runs apps for it.
     pub apps_view_visible: bool,
     /// The phone sends its recent apps: the Recent section shows, empty or not.
     pub recent_apps_supported: bool,
     /// The phone hands documents over: clicking a recent task that has a document opens the document
-    /// on this Mac (or in the browser) instead of the app on the phone.
+    /// on this computer (or in the browser) instead of the app on the phone.
     pub app_handoff_enabled: bool,
     /// A launch opens each app in a window of its own (else in the one phone-screen window).
     pub hosted_apps: bool,
@@ -87,7 +87,7 @@ pub struct RecentAppItem {
     pub package_name: String,
     pub name: String,
     /// Launching it opens the app; otherwise it is a task, launched with `task_id`, and it may offer
-    /// its document on this Mac (`desktop_uri`) or in the browser (`web_uri`).
+    /// its document on this computer (`desktop_uri`) or in the browser (`web_uri`).
     pub main_activity: bool,
     /// A main-activity entry whose app is a favorite; it can be added to or removed from the
     /// favorites. A task entry is never a favorite and offers neither.
@@ -195,14 +195,14 @@ impl PhoneAppsApi {
         self.run(|f| f.stored_name(&package_name))
     }
 
-    /// Adds the app `package_name` to the end of the favorites (this Mac only).
+    /// Adds the app `package_name` to the end of the favorites (this computer only).
     ///
     /// Fails with `UnknownItem` when the phone did not list that app.
     pub fn add_favorite(&self, package_name: String) -> Result<(), FeatureApiError> {
         self.run(|f| f.add_favorite(&package_name))
     }
 
-    /// Removes the app `package_name` from the favorites (this Mac only).
+    /// Removes the app `package_name` from the favorites (this computer only).
     ///
     /// Fails with `UnknownItem` when the phone did not list that app.
     pub fn remove_favorite(&self, package_name: String) -> Result<(), FeatureApiError> {

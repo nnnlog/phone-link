@@ -1,7 +1,7 @@
 //! Phone files, a Cross Device Experience Host feature on the CDEH identity's connection: the phone's
-//! shared storage as a folder tree in the Mac's file manager.
+//! shared storage as a folder tree in the computer's file manager.
 //!
-//! The Mac keeps the phone's file metadata (the golden state, kept current by sequence-numbered
+//! The computer keeps the phone's file metadata (the golden state, kept current by sequence-numbered
 //! syncs) and fetches content and thumbnails only when the file manager needs them; new files and
 //! folders, renames, moves and deletes go back to the phone.
 //!

@@ -89,7 +89,7 @@ impl ConnectContributor for PhotosContributor {
         }
 
         if response.object(key::MEDIA_SETTINGS).is_some_and(|m| m.str(key::DCIM_DIRECTORY).is_some()) {
-            debug!(phone = %ctx.phone, "mediaSettings.dcim_directory ignored; macOS has no phone-files sync root");
+            debug!(phone = %ctx.phone, "mediaSettings.dcim_directory ignored; no phone-files sync root here");
         }
 
         inner.refresh_sync_state(&ps);

@@ -63,7 +63,7 @@ pub fn parse_stop_workflow(bytes: &[u8]) -> Result<(String, Option<String>), Par
     Ok((b.str("workflow")?, b.opt_str("workflowId")))
 }
 
-/// The files of a phone → Mac drag (`/drag/clipData`'s `clipDataItems`): four parallel arrays, all
+/// The files of a phone → computer drag (`/drag/clipData`'s `clipDataItems`): four parallel arrays, all
 /// required when the object is present; their lengths are not checked here.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ClipData {

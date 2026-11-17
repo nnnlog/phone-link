@@ -1,10 +1,10 @@
-//! Where a phone item sits in the Mac's tree.
+//! Where a phone item sits in the computer's tree.
 //!
 //! It covers the phone's absolute path mapped to a location relative to the tree's root
 //! (`storage\DCIM\Camera\a.jpg`), its cleaned-up name, and the remote path the PC sends back for an
 //! upload or a rename (`\storage\Download\report.pdf`).
 //!
-//! Locations use `\` as their separator, as Phone Link on Windows keeps them; the Mac's file manager
+//! Locations use `\` as their separator, as Phone Link on Windows keeps them; the computer's file manager
 //! reads `\` as a folder boundary.
 
 /// A location in the tree: `\`-separated components, no leading or trailing `\`; `""` is the root.
@@ -117,7 +117,7 @@ pub fn recycle_bin(configured: &str) -> Option<Location> {
     if trimmed.is_empty() { None } else { Some(join("storage", trimmed)) }
 }
 
-/// A new local item with this name stays on the Mac and is not sent to the phone: dot files and the
+/// A new local item with this name stays on the computer and is not sent to the phone: dot files and the
 /// Windows shortcut, temporary, download-in-progress and settings files.
 pub fn ignored(name: &str) -> bool {
     const SUFFIXES: [&str; 7] = [".lnk", ".tmp", ".~tmp", ".temp", ".crcdownload", ".ini", ".search-ms"];

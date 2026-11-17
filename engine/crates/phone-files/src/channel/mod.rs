@@ -83,7 +83,7 @@ pub enum TransferError {
     InvalidContextHandle,
     #[error("the channel was not created in time")]
     ChannelCreationTimedOut,
-    #[error("the Mac is locked")]
+    #[error("the computer is locked")]
     UserSessionLocked,
     #[error("the phone does not transfer on a metered connection")]
     MeteredSyncDisabled,

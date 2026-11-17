@@ -356,7 +356,7 @@ fn batch_allowed(inner: &Inner, phone: &DcgClient, focused: bool) -> bool {
     };
 
     if !state.settings.message_notifications || !state.settings.pc_consent {
-        debug!("message notifications not posted; they are off on this Mac");
+        debug!("message notifications not posted; they are off on this computer");
         return false;
     }
 

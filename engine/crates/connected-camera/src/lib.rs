@@ -1,5 +1,5 @@
 //! The connected camera, a Cross Device Experience Host feature on the CDEH identity's connection: the
-//! phone's camera as a camera on the Mac.
+//! phone's camera as a camera on the computer.
 //!
 //! The relay carries the set-up — the `CAMERA_METADATA` sync
 //! that makes the phone publish its context handle on tag 2, and the permission exchanges — and the
@@ -10,7 +10,7 @@
 //! | [`wire`] | the requests and their replies, the tag-2 and tag-3 publications, the JSON control messages |
 //! | [`store`] | the per-phone state (capability, permissions, the "use as a camera" switch, battery) |
 //! | [`channel`] | creating and opening a stream's channel |
-//! | [`edge`] | the Mac's camera: publishing it, still images, decoding frames onto it |
+//! | [`edge`] | the computer's camera: publishing it, still images, decoding frames onto it |
 //! | this module | gating, listening, the context handle, permissions, the camera's lifecycle, the stream and its state |
 
 #![cfg_attr(feature = "test-support", warn(unreachable_pub))]
@@ -181,7 +181,7 @@ impl ErrorAction {
 /// The feature's view of one phone.
 #[derive(Debug, Clone, PartialEq)]
 pub struct CameraStatus {
-    /// The Mac can publish cameras.
+    /// The computer can publish cameras.
     pub mac_available: bool,
     /// The phone can stream its camera.
     pub capable: bool,
@@ -370,7 +370,7 @@ fn key(phone: &DcgClient) -> DcgClient {
     DcgClient::new(phone.id.to_ascii_lowercase(), phone.env)
 }
 
-/// The camera's id on the Mac: the phone's id.
+/// The camera's id on the computer: the phone's id.
 fn device_id(phone: &DcgClient) -> String {
     key(phone).id
 }
@@ -582,10 +582,10 @@ impl ConnectedCamera {
         }
     }
 
-    /// The Mac's camera became available or unavailable.
+    /// The computer's camera became available or unavailable.
     pub fn availability_changed(&self) {
         let available = self.inner.camera.is_available();
-        info!(available, "Mac camera availability changed");
+        info!(available, "computer camera availability changed");
         for peer in self.inner.env.peers.peers() {
             if available {
                 self.inner.start_listening(&peer, false);
@@ -595,7 +595,7 @@ impl ConnectedCamera {
         }
     }
 
-    /// The Mac's session locked (`true`) or unlocked.
+    /// The computer's session locked (`true`) or unlocked.
     pub fn screen_lock_changed(&self, locked: bool) {
         for peer in self.inner.env.peers.peers() {
             let registered = self.inner.with_phone(&peer.client, |p| p.registered);

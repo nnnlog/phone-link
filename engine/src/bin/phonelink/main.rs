@@ -21,7 +21,7 @@ use phonelink_engine::engine::{EngineCore, FeatureEdges, FetchMode, StoreLocatio
 use phonelink_engine::tap::{JsonlTap, Tap, null_tap};
 
 #[derive(Parser)]
-#[command(name = "phonelink", version, about = "Headless driver of the Phone Link macOS port engine")]
+#[command(name = "phonelink", version, about = "Headless driver of the Phone Link port's engine")]
 struct Cli {
     /// State directory for the file-backed store (default: <repository root>/.local/port, gitignored).
     #[arg(long, global = true, env = "PHONELINK_STATE_DIR")]

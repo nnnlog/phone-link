@@ -35,7 +35,7 @@ pub enum TapLayer {
     Undecodable,
 }
 
-/// Which way a message went: into the Mac or out of it.
+/// Which way a message went: into the computer or out of it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Direction {

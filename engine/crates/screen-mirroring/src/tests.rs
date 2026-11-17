@@ -51,7 +51,7 @@ fn lock_states_and_their_rewrites() {
     assert_eq!(m.state, W::Locked);
 
     m.apply(C::PhoneStateUnlocked, None);
-    assert_eq!(m.state, W::Restart, "the pending move to the Mac shows once unlocked");
+    assert_eq!(m.state, W::Restart, "the pending move to the computer shows once unlocked");
     assert_eq!(m.details, Details::Restart { task_transfer: true }, "the last restart details");
 
     m.apply(C::AppLaunchSuccess, None);
@@ -124,7 +124,7 @@ fn layout_switch_confirms_then_returns_to_connected() {
     m.apply(C::SwitchScreenLayout, Some(Details::LayoutSwitch));
     assert_eq!((m.state, &m.details), (W::Restart, &Details::LayoutSwitch));
     m.apply(C::AppLaunchSuccess, None);
-    assert_eq!(m.state, W::Connected, "no move to the Mac is pending");
+    assert_eq!(m.state, W::Connected, "no move to the computer is pending");
 }
 
 #[test]

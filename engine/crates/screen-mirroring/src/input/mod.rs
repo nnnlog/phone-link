@@ -37,7 +37,7 @@ impl InputSink for InputSource {
     }
 }
 
-/// A mouse button of the Mac. The phone has counters for the first three; any other button only
+/// A mouse button of the computer. The phone has counters for the first three; any other button only
 /// moves the pointer.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum MouseButton {
@@ -111,7 +111,7 @@ pub struct InputPipe {
     last_move: HashMap<Pointer, Instant>,
     /// A position went to the phone since the last focus loss.
     mouse_moved: bool,
-    /// The Mac's mouse buttons held since a press inside the video: the pointer is captured.
+    /// The computer's mouse buttons held since a press inside the video: the pointer is captured.
     buttons_held: BTreeSet<MouseButton>,
     /// The button whose press went to the phone (the first of a chord); `Some(Other)` for a button the
     /// phone has no counter for.
@@ -120,14 +120,14 @@ pub struct InputPipe {
     /// Keys whose press was sent (by usage). Releasing everything on focus loss sends their releases
     /// but keeps them, as their key-up still comes.
     keys_held: BTreeSet<u8>,
-    /// The Caps Lock state the phone has: off when the channel opens, the Mac's at each focus loss.
+    /// The Caps Lock state the phone has: off when the channel opens, the computer's at each focus loss.
     phone_caps: bool,
     /// Focus was gained or lost and no key was pressed since: the next key press brings the phone's
-    /// Caps Lock to the Mac's.
+    /// Caps Lock to the computer's.
     lock_resync: bool,
     /// An Option key went down; the next key pressed without Option releases every held key.
     option_pressed: bool,
-    /// A phone → Mac drag is in progress: events outside the video are sent.
+    /// A phone → computer drag is in progress: events outside the video are sent.
     drag_from_phone: bool,
     /// The pen's last range and contact state.
     pen_in_range: bool,
@@ -234,7 +234,7 @@ impl InputPipe {
     }
 
     /// (`x`, `y`) normalized to the video, in the phone's pixels. A point outside the video goes only
-    /// for a `captured` pointer (pressed inside the video and still held) or during a phone → Mac drag;
+    /// for a `captured` pointer (pressed inside the video and still held) or during a phone → computer drag;
     /// nothing goes before a device resolution is known.
     fn scale(&self, x: f64, y: f64, captured: bool) -> Option<(i32, i32)> {
         let (w, h) = self.device?;
@@ -262,7 +262,7 @@ impl InputPipe {
         }
     }
 
-    /// The window gained or lost the keyboard focus; `caps_lock` is the Mac's Caps Lock state now.
+    /// The window gained or lost the keyboard focus; `caps_lock` is the computer's Caps Lock state now.
     pub fn focus(&mut self, focused: bool, caps_lock: bool) {
         if focused {
             self.gain_focus();
@@ -357,7 +357,7 @@ impl InputPipe {
         });
     }
 
-    /// A Mac mouse button went down or up at (`x`, `y`). The first button pressed inside the video
+    /// A computer mouse button went down or up at (`x`, `y`). The first button pressed inside the video
     /// is the one the phone gets; the others of a chord only move the pointer, and the press is
     /// released when the last held button goes up.
     pub fn mouse_button(&mut self, button: MouseButton, down: bool, x: f64, y: f64) {
@@ -581,7 +581,7 @@ impl InputPipe {
         });
     }
 
-    /// A key of the Mac keyboard (its virtual key code); `flags` are the event's modifier flags
+    /// A key of the computer's keyboard (its macOS virtual key code); `flags` are the event's modifier flags
     /// (`NSEvent.ModifierFlags.rawValue`, after the event).
     pub fn key(&mut self, key_code: u16, action: KeyAction, flags: u64) {
         if self.sink.is_none() {
@@ -613,7 +613,7 @@ impl InputPipe {
         match mapping {
             KeyMapping::Usage(u) if u == usage::CAPS_LOCK || u == usage::NUM_LOCK => {
                 // A lock key does not repeat; right after a focus gain or loss, a Caps Lock toggle that
-                // leaves the Mac's state as the phone has it is not sent.
+                // leaves the computer's state as the phone has it is not sent.
                 if repeat || (self.lock_resync && u == usage::CAPS_LOCK && caps_on == self.phone_caps) {
                     return;
                 }

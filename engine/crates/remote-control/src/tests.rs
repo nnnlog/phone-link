@@ -30,7 +30,7 @@ fn the_settings_line_names_the_v2_commands_only_while_the_phone_and_the_mac_adve
     let v1_only = RemoteControlConfig { enabled: true, v2_enabled: false };
     let off = RemoteControlConfig { enabled: false, v2_enabled: true };
 
-    // (the phone's capabilities, the Mac's options) → (applicable, capable, v2_capable)
+    // (the phone's capabilities, the computer's options) → (applicable, capable, v2_capable)
     let cases = [
         (V2, &both, (true, true, true)),
         (V2, &v1_only, (true, true, false)),

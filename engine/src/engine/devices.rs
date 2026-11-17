@@ -9,24 +9,24 @@ use std::sync::Arc;
 use tracing::warn;
 
 impl EngineCore {
-    /// This Mac's own identities: the primary's and, when there is one, the CDEH identity's.
+    /// This computer's own identities: the primary's and, when there is one, the CDEH identity's.
     pub fn own_clients(&self) -> Vec<DcgClient> {
         let cdeh = self.cdeh.as_ref().and_then(|s| s.auth.own_client());
         self.auth.own_client().into_iter().chain(cdeh).collect()
     }
 
     /// The account's PCs from the primary identity's device list (no network): every device that is
-    /// not a phone, this Mac's own CDEH identity included.
+    /// not a phone, this computer's own CDEH identity included.
     pub fn account_pcs(&self) -> Vec<PeerDevice> {
         self.auth.peers().into_iter().filter(|p| !is_phone(&p.info)).collect()
     }
 
-    /// Unlinks `id`, one of [`EngineCore::account_pcs`] that is not one of this Mac's identities, from
+    /// Unlinks `id`, one of [`EngineCore::account_pcs`] that is not one of this computer's identities, from
     /// the account (`UnlinkDevice`, then a forced device-list refresh), and refreshes the CDEH
-    /// identity's device list too. A phone or this Mac's own identity is refused.
+    /// identity's device list too. A phone or this computer's own identity is refused.
     pub async fn unlink_pc(&self, id: &str) -> Result<(), EngineError> {
         if self.own_clients().iter().any(|c| c.id.eq_ignore_ascii_case(id)) {
-            return Err(setup_err("this Mac's own identity cannot be unlinked here"));
+            return Err(setup_err("this computer's own identity cannot be unlinked here"));
         }
         let Some(pc) = self.account_pcs().into_iter().find(|p| p.client.id.eq_ignore_ascii_case(id)) else {
             return Err(setup_err("the PC is not in the account's device list".to_owned()));

@@ -233,7 +233,7 @@ impl Inner {
         self.spawn(async move {
             let mut target = match AudioTarget::open(c).await {
                 Ok(t) => t,
-                Err(e) => return warn!(error = %e, package = %package, "audio channel did not open; the app plays no sound on the Mac"),
+                Err(e) => return warn!(error = %e, package = %package, "audio channel did not open; the app plays no sound on the computer"),
             };
 
             loop {

@@ -69,7 +69,7 @@ impl ContentProcessor for RemoteControlProcessor {
         Processed::open(ValueSet::new())
     }
 
-    /// The command, then `{ result: 0 }` when the Mac accepted it, else `{ result: 1 }`. The phone's
+    /// The command, then `{ result: 0 }` when the computer accepted it, else `{ result: 1 }`. The phone's
     /// toggle off answers `{ result: 1 }` without acting (differs from Phone Link on Windows, which
     /// has no switch here). A failure carries no `subError` (Phone Link on Windows sends its OS error
     /// code there).

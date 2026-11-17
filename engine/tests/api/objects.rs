@@ -2,7 +2,7 @@
 //! start every object reports `NotStarted` and the same objects work once the engine starts (each call
 //! resolves the current core); they read the selected phone, whose OS version is the last writer's; a
 //! notification the phone pushes reaches the event sink as a typed change and is listed, pinned and
-//! dismissed through the object; waking the Mac removes the phone with `SystemReset`, re-wakes it and
+//! dismissed through the object; waking the computer removes the phone with `SystemReset`, re-wakes it and
 //! sends the unlock-or-wake connect; a stale PC of the account is listed and unlinked.
 
 use crate::support::auth_world;
@@ -218,7 +218,7 @@ async fn waking_removes_the_phone_with_system_reset_rewakes_it_and_sends_the_wak
 }
 
 /// The account's PCs: a stale PC of the account is listed and unlinked (it leaves the list after the
-/// forced refresh); this Mac's own identities and a phone are refused.
+/// forced refresh); this computer's own identities and a phone are refused.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn a_stale_pc_of_the_account_is_listed_and_unlinked() {
     let w = World::new(None).await;
@@ -240,7 +240,7 @@ async fn a_stale_pc_of_the_account_is_listed_and_unlinked() {
 
     let core = engine.current_core().expect("a core");
     for own in core.own_clients() {
-        assert!(phone.unlink_pc(own.id.clone()).await.is_err(), "this Mac's own identity is refused");
+        assert!(phone.unlink_pc(own.id.clone()).await.is_err(), "this computer's own identity is refused");
     }
     assert!(phone.unlink_pc(w.phone_id.clone()).await.is_err(), "a phone is refused");
 
@@ -289,7 +289,7 @@ async fn the_other_feature_objects_answer_once_started() {
     file_transfer.settings().expect("file transfer");
     camera.status("en".into()).expect("connected camera");
     let calls = calling.state().expect("calling");
-    assert!(!calls.pc_consent, "call history is off on a new Mac");
+    assert!(!calls.pc_consent, "call history is off on a new computer");
     assert!(calling.history().expect("call history").is_empty(), "history behind the prompt");
     assert_eq!(calling.refresh_if_empty().await.expect("refresh"), None, "refreshed without the consent");
 }

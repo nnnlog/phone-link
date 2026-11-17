@@ -1,6 +1,6 @@
 //! Call history's contribution to the connect message.
 //!
-//! Request: `configuration` › `CallLogs` = "use calls on this Mac" ∧ an Android phone, always; with
+//! Request: `configuration` › `CallLogs` = "use calls on this computer" ∧ an Android phone, always; with
 //! the phone's `CallLogs` capability and that flag, `sequenceNumbers` › `call_logs` (the stored
 //! `current`, `-1` when none) — left out when the store cannot be read, rather than sent as an
 //! invented value. Response: with the same two conditions and `result` `Int32 0`, its `call_logs`

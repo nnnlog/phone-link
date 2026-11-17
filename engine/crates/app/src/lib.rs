@@ -566,7 +566,7 @@ impl AppLayer {
         &self.standard_keys
     }
 
-    /// The macOS lock test: locked or unknown counts as locked.
+    /// The session lock test: locked or unknown counts as locked.
     pub(crate) fn is_locked(&self) -> bool {
         !matches!(self.edges.lock.lock_state(), LockState::Unlocked)
     }

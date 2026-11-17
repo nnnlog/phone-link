@@ -1,5 +1,7 @@
-//! OS-edge interfaces: the engine declares them as `uniffi` foreign traits; `gui/mac/` implements
-//! them in Swift and the CLI with file-backed stand-ins, so the engine links no macOS-only framework.
+//! OS-edge interfaces, which the engine declares as `uniffi` foreign traits.
+//!
+//! The apps implement them (`gui/mac/` in Swift, `gui/linux/` in Rust) and the CLI with file-backed
+//! stand-ins, so the engine links no platform framework.
 //!
 //! The traits are synchronous, and most callers, async ones included, call them directly: a Keychain
 //! item, the session-lock query and the reachability flag are short local calls. The few edge calls
@@ -55,7 +57,7 @@ pub enum LockState {
     Unknown,
 }
 
-/// Whether the Mac's user session is locked.
+/// Whether the computer's user session is locked.
 #[uniffi::export(with_foreign)]
 pub trait SessionLock: Send + Sync {
     /// The session's lock state now.
@@ -77,7 +79,7 @@ pub trait HostInfo: Send + Sync {
 /// only while the device has no connectivity.
 #[uniffi::export(with_foreign)]
 pub trait Reachability: Send + Sync {
-    /// Whether the Mac has an internet connection now.
+    /// Whether the computer has an internet connection now.
     fn is_internet_available(&self) -> bool;
 }
 

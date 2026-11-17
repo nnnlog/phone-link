@@ -1,11 +1,11 @@
-//! Wallpaper: the phone's wallpaper on the Mac and the Mac's wallpaper on the phone.
+//! Wallpaper: the phone's wallpaper on the computer and the computer's wallpaper on the phone.
 //!
 //! | Module | Implements |
 //! |---|---|
 //! | [`phone_link`] | Phone Link's contract: the `wallpaper` content processor and connect provider #4 |
 //! | [`cdeh`] | the Cross Device contract: the phone wallpaper pull, the `/wallpaper` receiver, the tag-5 subscription |
 //! | [`store`] | both copies of the phone's wallpaper per phone, Phone Link's sequence numbers and the phone's wallpaper permission |
-//! | [`edge`] | the Mac's desktop picture as an OS edge, its size rule, and the `/wallpaper` answer |
+//! | [`edge`] | the computer's desktop picture as an OS edge, its size rule, and the `/wallpaper` answer |
 //!
 //! The UI shows one wallpaper per phone ([`Wallpaper::shown`]): Phone Link's home-screen image while
 //! the phone is supported and reports its wallpaper permission, else the Cross Device copy's

@@ -1,6 +1,6 @@
 //! Remote control — the Phone Link contract: `remoteControl` content on `/legacy/phonecontent`, its
 //! commands and answers, the value rules of `remoteControlType`, the metadata phase, the per-phone
-//! toggle, and the App layer's answer while the Mac is locked. The Mac's actions only reach a
+//! toggle, and the App layer's answer while the computer is locked. The computer's actions only reach a
 //! recording edge.
 
 use crate::support::platform_world;

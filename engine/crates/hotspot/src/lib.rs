@@ -10,16 +10,16 @@
 //!   Bluetooth device, paired on the spot when no paired device is the phone ([`Bluetooth::pair`]);
 //!   then *setup complete* and `/hotspotdevicedatasyncrequest` the first time. Then a fresh RSA-2048
 //!   key pair and nonce, the `SideChannelClientRequest` authorized by a data JWT (`hotspot.request`)
-//!   over the phone's RFCOMM side channel ([`wire`]) — the Mac's service records for the phone read
+//!   over the phone's RFCOMM side channel ([`wire`]) — the computer's service records for the phone read
 //!   again once when they lack the side channel — the reply's checks and its JWT
 //!   (`hotspot.response`, signed by the phone), the RSA-OAEP credentials, and the join through the
 //!   [`HotspotWifi`] edge; the SSID joined is kept in the record.
-//! - **Joined** ([`HotspotView::joined`]): the Mac's Wi-Fi is on the network the last connect joined;
+//! - **Joined** ([`HotspotView::joined`]): the computer's Wi-Fi is on the network the last connect joined;
 //!   **disconnect** ([`Hotspot::disconnect`]) leaves it.
 //!
 //! Phone Link on Windows offers the hotspot as an entry in the system Wi-Fi list, which macOS has no
-//! API for; here the user starts the connect from the menu bar and the engine joins the network
-//! itself. When the join fails the credentials are returned so the user can join by hand.
+//! API for; here the user starts the connect from the menu bar or the tray menu and the engine joins the
+//! network itself. When the join fails the credentials are returned so the user can join by hand.
 
 #![cfg_attr(feature = "test-support", warn(unreachable_pub))]
 
@@ -119,9 +119,9 @@ pub enum HotspotFailure {
     Bluetooth(BluetoothFailure),
     #[error("the phone did not answer the consent request")]
     ConsentTimedOut,
-    /// The authorization JWT could not be made, or the phone's reply is not one this Mac trusts; the
+    /// The authorization JWT could not be made, or the phone's reply is not one this computer trusts; the
     /// text says which.
-    #[error("the phone does not trust this Mac: {0}")]
+    #[error("the phone does not trust this computer: {0}")]
     NotTrusted(String),
     #[error("the phone's side channel could not be reached: {0}")]
     Unreachable(String),
@@ -160,11 +160,11 @@ impl From<BluetoothFailure> for HotspotFailure {
 /// What the hotspot item shows for one phone.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct HotspotView {
-    /// The phone has side-channel OEM support and is hotspot-capable, and this Mac has Wi-Fi.
+    /// The phone has side-channel OEM support and is hotspot-capable, and this computer has Wi-Fi.
     pub supported: bool,
     /// A connect or disconnect is running.
     pub busy: bool,
-    /// The Mac's Wi-Fi is associated with the network the last connect joined.
+    /// The computer's Wi-Fi is associated with the network the last connect joined.
     pub joined: bool,
 }
 
@@ -246,7 +246,7 @@ impl Hotspot {
             && self.wifi.has_interface()
     }
 
-    /// The Mac's Wi-Fi is associated with the network the last connect to `record`'s phone joined.
+    /// The computer's Wi-Fi is associated with the network the last connect to `record`'s phone joined.
     fn joined(&self, record: &PhoneRecord) -> bool {
         record.hotspot.ssid.is_some() && self.wifi.current_ssid() == record.hotspot.ssid
     }
@@ -357,7 +357,7 @@ impl Hotspot {
     /// comes first: consent and the two Bluetooth permissions, then the phone's Bluetooth device
     /// (paired now when no paired device is the phone), then *setup complete*. The permissions come
     /// before the pairing because the phone opens its side-channel server only once the OEM Bluetooth
-    /// permission is granted, and the service records the Mac reads when it pairs must carry it.
+    /// permission is granted, and the service records the computer reads when it pairs must carry it.
     pub async fn connect(&self, phone: &DcgClient) -> Result<String, HotspotFailure> {
         info!("hotspot connect started");
         let ssid = self.try_connect(phone).await?;
@@ -413,8 +413,8 @@ impl Hotspot {
         Ok(ssid)
     }
 
-    /// Leaves `phone`'s hotspot while the Mac's Wi-Fi is on it; nothing is sent to the phone, and
-    /// nothing is done while the Mac is not on it.
+    /// Leaves `phone`'s hotspot while the computer's Wi-Fi is on it; nothing is sent to the phone, and
+    /// nothing is done while the computer is not on it.
     pub async fn disconnect(&self, phone: &DcgClient) -> Result<(), HotspotFailure> {
         let _busy = self.begin()?;
         if !self.record(phone).is_some_and(|r| self.joined(&r)) {
@@ -429,7 +429,7 @@ impl Hotspot {
     }
 
     /// Sends `request` over the side channel and returns the reply's JWT, retrying transport failures.
-    /// The first time the service is missing, the Mac's service records for the phone are read again
+    /// The first time the service is missing, the computer's service records for the phone are read again
     /// before the next attempt: records read before the phone opened its server lack it.
     async fn exchange(&self, address: &str, request: &[u8], nonce: &str) -> Result<String, HotspotFailure> {
         let attempts = 1 + self.config.retries;

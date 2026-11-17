@@ -560,7 +560,7 @@ impl Messaging {
     pub fn set_pc_settings(&self, settings: PcSettings) -> Result<(), MessagingError> {
         let (_, phone, _) = self.inner.selected()?;
         self.inner.db(&phone)?.transaction(|tx| store::set_pc_settings(tx, settings))?;
-        info!(settings_state = ?settings, "messaging settings on this Mac switched");
+        info!(settings_state = ?settings, "messaging settings on this computer switched");
         self.inner.emit(MessagingEvent::SettingsChanged { phone });
         Ok(())
     }

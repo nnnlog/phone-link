@@ -1,7 +1,7 @@
 //! Screen mirroring for the UI ([`crate::features::screen_mirroring`]).
 //!
-//! It covers the selected phone's mirroring state and settings, its windows (one macOS window per
-//! session), the windows' actions and input, and the Mac keyboard's mapping to the keys the phone
+//! It covers the selected phone's mirroring state and settings, its windows (one window per
+//! session), the windows' actions and input, and the computer keyboard's mapping to the keys the phone
 //! receives.
 //!
 //! A window opens on [`ScreenMirroringChange::SessionOpened`] — for a window the UI asked for, too —
@@ -193,7 +193,7 @@ impl From<MirrorNavButton> for NavButton {
     }
 }
 
-/// The HID usage the phone receives for the Mac virtual key code `key_code` (`kVK_*`), if any.
+/// The HID usage the phone receives for the macOS virtual key code `key_code` (`kVK_*`), if any.
 #[uniffi::export]
 pub fn mirror_mac_key(key_code: u16) -> MirrorKeyMapping {
     match sm::mac_key(key_code) {
@@ -276,7 +276,7 @@ impl ScreenMirroringApi {
         Ok(self.feature()?.launch_notification(&key, action_index).await?)
     }
 
-    /// The window's keyboard-settings (language) button; `input_source` is the kind of the Mac's
+    /// The window's keyboard-settings (language) button; `input_source` is the kind of the computer's
     /// current keyboard input source, read on the main thread when the button is pressed.
     pub async fn request_keyboard_settings(&self, input_source: MirrorInputSource) -> Result<(), FeatureApiError> {
         Ok(self.feature()?.request_keyboard_settings(input_source.into()).await?)
@@ -294,7 +294,7 @@ impl ScreenMirroringApi {
         Ok(self.feature()?.window_ready(&session_id)?)
     }
 
-    /// The window's focus changed; `caps_lock` = the Mac's Caps Lock state now.
+    /// The window's focus changed; `caps_lock` = the computer's Caps Lock state now.
     pub fn focus_changed(
         &self,
         session_id: String,
@@ -341,7 +341,7 @@ impl ScreenMirroringApi {
         Ok(self.feature()?.resend_permission()?)
     }
 
-    /// Answers the phone's request to move window `session_id`'s app to this Mac.
+    /// Answers the phone's request to move window `session_id`'s app to this computer.
     ///
     /// `do_not_ask` accepts later requests of the same kind without asking. Fails with
     /// `NotAvailable` when the phone has asked nothing.
@@ -393,13 +393,13 @@ impl ScreenMirroringApi {
         Ok(self.feature()?.confirm_layout_switch(&session_id, do_not_ask)?)
     }
 
-    /// The Mac's audio output devices changed.
+    /// The computer's audio output devices changed.
     pub fn audio_output_changed(&self) -> Result<(), FeatureApiError> {
         self.feature()?.audio_output_changed();
         Ok(())
     }
 
-    /// The nearby prompt's PIN option: asks the phone to show a code the user types on this Mac.
+    /// The nearby prompt's PIN option: asks the phone to show a code the user types on this computer.
     ///
     /// Like the other nearby calls, it fails with `NotAvailable` while no nearby check runs.
     pub fn nearby_request_pin_code(&self) -> Result<(), FeatureApiError> {
@@ -427,7 +427,7 @@ impl ScreenMirroringApi {
         Ok(())
     }
 
-    /// A drag of Mac `files` entered window `session_id`'s video view.
+    /// A drag of the computer's `files` entered window `session_id`'s video view.
     pub fn drag_enter(
         &self,
         session_id: String,
@@ -453,7 +453,7 @@ impl ScreenMirroringApi {
         Ok(self.feature()?.drag_drop(&session_id)?)
     }
 
-    /// Called on every pointer move in the window: the phone's files to start a Mac drag of now, when
+    /// Called on every pointer move in the window: the phone's files to start a drag on the computer of now, when
     /// the phone handed a drag over (`button_held` = a mouse button is down; without one the drag
     /// ends at once and nothing is returned).
     pub fn take_phone_drag(
@@ -465,7 +465,7 @@ impl ScreenMirroringApi {
         Ok(items.map(|v| v.into_iter().map(Into::into).collect()))
     }
 
-    /// The Mac drag of the phone's files ended: `dropped` when a destination took it.
+    /// The computer's drag of the phone's files ended: `dropped` when a destination took it.
     pub fn phone_drag_ended(&self, session_id: String, dropped: bool) -> Result<(), FeatureApiError> {
         Ok(self.feature()?.phone_drag_ended(&session_id, dropped)?)
     }
@@ -487,7 +487,7 @@ impl ScreenMirroringApi {
         Ok(self.feature()?.mouse_move(&session_id, x, y)?)
     }
 
-    /// A Mac mouse button went down or up at (`x`, `y`), normalized to the window's video (0–1).
+    /// A computer mouse button went down or up at (`x`, `y`), normalized to the window's video (0–1).
     ///
     /// Of buttons held together, only the first one pressed reaches the phone; the others move the
     /// pointer only.
@@ -554,8 +554,8 @@ impl ScreenMirroringApi {
         Ok(self.feature()?.input_focus(&session_id, focused, caps_lock)?)
     }
 
-    /// A Mac key (`kVK_*`); Caps Lock as a down and an up on each of its toggles. `flags` are the
-    /// event's modifier flags (`NSEvent.ModifierFlags.rawValue`, after the event).
+    /// A computer key as its macOS virtual key code (`kVK_*`); Caps Lock as a down and an up on each of its
+    /// toggles. `flags` are the event's modifier flags (`NSEvent.ModifierFlags.rawValue`, after the event).
     pub fn key(
         &self,
         session_id: String,

@@ -30,18 +30,18 @@ pub const MIGRATIONS: &[&str] = &[
     );",
 ];
 
-/// The phone's mirroring settings on this Mac.
+/// The phone's mirroring settings on this computer.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Settings {
     /// "Allow apps": off, no window starts.
     pub allow_apps: bool,
     /// Blank the phone's own screen while it is mirrored.
     pub black_screen: bool,
-    /// Play the phone's app audio on the Mac.
+    /// Play the phone's app audio on the computer.
     pub audio_streaming: bool,
     /// Open app windows in the expanded layout.
     pub always_expanded: bool,
-    /// Answer the phone's "move to the Mac" request without asking (app restart / task transfer).
+    /// Answer the phone's "move to the computer" request without asking (app restart / task transfer).
     pub do_not_ask_restart: bool,
     pub do_not_ask_task_transfer: bool,
     /// Skip the phone's touch-confirmation screen.

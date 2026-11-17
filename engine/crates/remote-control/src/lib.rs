@@ -1,4 +1,4 @@
-//! Remote control: the phone locks, sleeps, shuts down or restarts the Mac. The Mac acts without
+//! Remote control: the phone locks, sleeps, shuts down or restarts the computer. The computer acts without
 //! asking — no confirmation, countdown or notification — and answers: after acting, except a lock or a
 //! sleep the Cross Device contract asks for, which it answers first.
 //!
@@ -7,13 +7,13 @@
 //! | [`cdeh`] | the Cross Device contract: the `/remotecontrol` receiver, its gates, the `remote_control.v1` answer |
 //! | [`phone_link`] | the Phone Link contract: the `remoteControl` content processor |
 //! | [`store`] | the per-phone toggle |
-//! | [`edge`] | the Mac's actions as an OS edge ([`PcPowerControl`]) and its stand-ins |
+//! | [`edge`] | the computer's actions as an OS edge ([`PcPowerControl`]) and its stand-ins |
 //!
 //! Both contracts act through the same edge and obey the same per-phone toggle. The Cross Device
 //! contract also needs the phone's `REMOTE_CONTROL` capability (`REMOTE_CONTROL_V2` for every command
-//! but lock) and the phone's "enabled" switch, and the Mac advertises `REMOTE_CONTROL` and
+//! but lock) and the phone's "enabled" switch, and the computer advertises `REMOTE_CONTROL` and
 //! `REMOTE_CONTROL_V2` as its options allow ([`with_remote_control_capabilities`]; both are on by
-//! default, so the phone is offered every command the Mac carries out).
+//! default, so the phone is offered every command the computer carries out).
 
 #![cfg_attr(feature = "test-support", warn(unreachable_pub))]
 
@@ -91,13 +91,13 @@ pub struct RemoteControlPhone {
     /// The per-phone toggle (default on).
     pub toggle: bool,
     /// The toggle applies: the phone advertises `REMOTE_CONTROL` and remote control is on on this
-    /// Mac.
+    /// computer.
     pub applicable: bool,
     /// The phone advertises `REMOTE_CONTROL`.
     pub capable: bool,
-    /// The phone can also put the Mac to sleep, shut it down and restart it.
+    /// The phone can also put the computer to sleep, shut it down and restart it.
     ///
-    /// It advertises `REMOTE_CONTROL_V2`, and the V2 option is on, so the Mac advertises it too.
+    /// It advertises `REMOTE_CONTROL_V2`, and the V2 option is on, so the computer advertises it too.
     pub v2_capable: bool,
 }
 

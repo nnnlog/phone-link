@@ -1,4 +1,4 @@
-//! The Mac's lock, unlock, sleep and wake, the account's removal, and notification responses.
+//! The computer's lock, unlock, sleep and wake, the account's removal, and notification responses.
 
 use super::{CdehStop, CdehTrigger, CoreEvent, EngineCore, SystemEvent};
 use crate::app::ConnectTrigger;
@@ -8,7 +8,7 @@ use std::sync::atomic::Ordering;
 use tracing::{info, warn};
 
 impl EngineCore {
-    /// The Mac's session was locked or unlocked, or it is going to sleep or woke (macOS:
+    /// The computer's session was locked or unlocked, or it is going to sleep or woke (macOS:
     /// `com.apple.screenIsLocked` / `com.apple.screenIsUnlocked`, `NSWorkspace` will-sleep /
     /// did-wake). Lock and sleep are the disconnect trigger: an in-flight connect is cancelled.
     /// Unlock and wake reset every wake circuit breaker, remove every partner from the partner set with
@@ -16,7 +16,7 @@ impl EngineCore {
     /// has started: while this core is still starting the connect is not sent (its start sends the
     /// app-start connect). Once started, a lock also stops the CDEH identity's session — with it the
     /// App layer's messages, which share its connection — and an unlock starts it again; a wake starts
-    /// it unless the Mac is still locked, a start that then starts nothing but still counts as a
+    /// it unless the computer is still locked, a start that then starts nothing but still counts as a
     /// change, as every start CDEH makes while locked does.
     pub fn system_event(&self, event: SystemEvent) {
         let _runtime = self.runtime.enter();

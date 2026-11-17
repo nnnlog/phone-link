@@ -1,9 +1,9 @@
-//! Mirroring's OS edge: the Mac's display values the phone is told, its audio output, and the
+//! Mirroring's OS edge: the computer's display values the phone is told, its audio output, and the
 //! presentation of each window's video and each app's audio.
 //!
 //! The CLI uses [`NoPresenter`]; the tests use [`testing`].
 
-/// The Mac's primary display (the one with the menu bar), in pixels.
+/// The computer's primary display (the one with the menu bar), in pixels.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, uniffi::Record)]
 pub struct DisplayGeometry {
     /// The visible frame's width (without the menu bar and the Dock).
@@ -30,7 +30,7 @@ pub struct AudioStreamFormat {
     pub frame_length_ms: u32,
 }
 
-/// What mirroring needs from the Mac. Every method is called on an engine thread, never the main
+/// What mirroring needs from the computer. Every method is called on an engine thread, never the main
 /// thread, and may be called from several sessions at once.
 #[uniffi::export(with_foreign)]
 pub trait MirrorPresenter: Send + Sync {

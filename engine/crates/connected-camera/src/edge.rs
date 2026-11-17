@@ -1,4 +1,4 @@
-//! The connected camera's OS edge: the Mac's system camera that shows the phone.
+//! The connected camera's OS edge: the computer's system camera that shows the phone.
 //!
 //! The edge publishes one camera per registered phone, shows still images on it, and decodes the
 //! phone's H.264 frames onto it. It reports the camera's clients starting and stopping through
@@ -21,11 +21,11 @@ pub enum CameraPlaceholder {
     Error,
 }
 
-/// The Mac's camera for phones.
+/// The computer's camera for phones.
 #[uniffi::export(with_foreign)]
 pub trait PhoneCamera: Send + Sync {
-    /// Cameras can be published: the camera extension is installed and running on a macOS that
-    /// supports it.
+    /// Cameras can be published (macOS: the camera extension is installed and running on a macOS
+    /// that supports it; Linux: a v4l2loopback device is there).
     fn is_available(&self) -> bool;
     /// Publishes camera `device_id` named `name`: NV12, 1280 × 720 at 30 fps, showing black.
     fn publish(&self, device_id: String, name: String) -> Result<(), EdgeError>;

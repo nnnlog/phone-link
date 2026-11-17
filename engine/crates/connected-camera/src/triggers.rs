@@ -72,7 +72,7 @@ impl Inner {
     pub(super) fn start_listening(&self, peer: &PeerDevice, force_session_start: bool) {
         let phone = &peer.client;
         if !self.camera.is_available() || !peer.info.is_android() || !self.phone_enabled(phone) {
-            debug!(%phone, "no Mac camera, not an Android phone, or phone disabled; camera not listening");
+            debug!(%phone, "no computer camera, not an Android phone, or phone disabled; camera not listening");
             return;
         }
 

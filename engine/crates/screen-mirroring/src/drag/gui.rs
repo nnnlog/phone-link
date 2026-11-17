@@ -2,11 +2,11 @@
 
 use std::path::PathBuf;
 
-/// A file the Mac drags onto the window.
+/// A file the computer drags onto the window.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MacDragFile {
     pub path: PathBuf,
-    /// The MIME type of its extension, when the Mac knows one.
+    /// The MIME type of its extension, when the computer knows one.
     pub mime_type: Option<String>,
 }
 
@@ -21,11 +21,11 @@ pub enum EnterOutcome {
     OverLimit,
 }
 
-/// One file of a phone → Mac drag, as the Mac drag offers it.
+/// One file of a phone → computer drag, as the computer's drag offers it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PhoneDragItem {
     pub data_id: String,
-    /// Its name on the Mac ([`mac_file_name`]).
+    /// Its name on the computer ([`mac_file_name`]).
     pub name: String,
     pub size: u64,
     pub mime_type: String,

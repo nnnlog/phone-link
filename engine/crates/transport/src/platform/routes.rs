@@ -36,7 +36,7 @@ pub struct PlatformDeps {
     pub trust: Arc<dyn TrustGate>,
     /// The PC's own enrolled identity (`MsaepMessage.dcg_client_id`).
     pub own: DcgClient,
-    /// The macOS lock test of the Cross Device Experience Host request wrapper.
+    /// The session lock test of the Cross Device Experience Host request wrapper.
     pub lock: Arc<dyn SessionLock>,
     /// Wall clock for `TimeToExpireInSeconds` and the expiry of a rotated partner certificate.
     pub clock: Arc<dyn Clock>,

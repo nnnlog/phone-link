@@ -55,7 +55,7 @@ async fn an_announcement_is_pulled_and_written_without_an_echo() {
     assert!(w.announcements().is_empty());
 
     // A copy by the user after it is.
-    w.pasteboard.copy_text("typed on the Mac");
+    w.pasteboard.copy_text("typed on the computer");
     after_copy().await;
     assert_eq!(w.announcements().len(), 1);
 }
@@ -386,7 +386,7 @@ async fn a_write_stopped_part_way_is_not_announced_back() {
 
     // A copy by the user after it is announced.
     w.pasteboard.refuse_type(None);
-    w.pasteboard.copy_text("typed on the Mac");
+    w.pasteboard.copy_text("typed on the computer");
     after_copy().await;
     assert_eq!(w.announcements().len(), 1);
 }

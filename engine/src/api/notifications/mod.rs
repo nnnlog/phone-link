@@ -169,7 +169,7 @@ impl From<&NotificationsStatus> for NotificationsState {
 }
 
 /// An app's notification flags: `feed` is "show in the list" (sent to the phone), `banner` is "show
-/// banners" (this Mac only); `other_bits` keeps any further bits the phone reported.
+/// banners" (this computer only); `other_bits` keeps any further bits the phone reported.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Record)]
 pub struct AppNotificationFlags {
     pub feed: bool,
@@ -336,7 +336,7 @@ impl NotificationsApi {
 
 #[uniffi::export(async_runtime = "tokio")]
 impl NotificationsApi {
-    /// The selected phone's notification access, this Mac's settings for it, and the sync state.
+    /// The selected phone's notification access, this computer's settings for it, and the sync state.
     ///
     /// Fails with `NoPhone` when no phone is selected.
     pub fn state(&self) -> Result<NotificationsState, FeatureApiError> {
@@ -358,7 +358,7 @@ impl NotificationsApi {
         Ok(self.feature()?.clear_all().await?.map(Into::into))
     }
 
-    /// Pins or unpins a notification (this Mac only).
+    /// Pins or unpins a notification (this computer only).
     pub fn set_pinned(&self, key: String, pinned: bool) -> Result<(), FeatureApiError> {
         self.run(|f| f.set_pinned(&key, pinned))
     }
@@ -410,7 +410,7 @@ impl NotificationsApi {
         Ok(self.feature()?.change_app_setting(&package_name, flags.into()).await?.into())
     }
 
-    /// Changes only an app's banner flag (this Mac only).
+    /// Changes only an app's banner flag (this computer only).
     pub fn set_app_local_setting(
         &self,
         package_name: String,
@@ -435,12 +435,12 @@ impl NotificationsApi {
         self.run(|f| f.set_pc_permission(on))
     }
 
-    /// Mutes the banners of the app `package_name` for `duration` (this Mac only).
+    /// Mutes the banners of the app `package_name` for `duration` (this computer only).
     pub fn mute_app(&self, package_name: String, duration: NotificationMuteDuration) -> Result<(), FeatureApiError> {
         self.run(|f| f.mute_app(&package_name, duration.into()))
     }
 
-    /// Ends a mute of the app `package_name`'s banners (this Mac only).
+    /// Ends a mute of the app `package_name`'s banners (this computer only).
     pub fn unmute_app(&self, package_name: String) -> Result<(), FeatureApiError> {
         self.run(|f| f.unmute_app(&package_name))
     }

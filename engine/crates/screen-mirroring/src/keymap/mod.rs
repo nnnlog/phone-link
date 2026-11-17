@@ -1,4 +1,4 @@
-//! The Mac keyboard's virtual key codes as the USB HID keyboard-page usages the phone receives.
+//! The macOS virtual key codes of the computer's keys as the USB HID keyboard-page usages the phone receives.
 //!
 //! Only usages Phone Link on Windows sends are produced: Command, Tab, Fn and the media and volume
 //! keys reach the phone as nothing, and the keypad's Enter and / arrive as the main Return and /
@@ -6,7 +6,7 @@
 
 mod table;
 
-/// What a Mac key sends.
+/// What a computer key sends.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum KeyMapping {
     /// Its usage goes down and up with the key.
@@ -28,7 +28,7 @@ pub mod usage {
     pub const LEFT_CONTROL: u8 = 0xE0;
 }
 
-/// The mapping of the Mac virtual key code `key_code` (`kVK_*`).
+/// The mapping of the macOS virtual key code `key_code` (`kVK_*`).
 pub fn mac_key(key_code: u16) -> KeyMapping {
     table::MAC_KEYS.iter().find(|(code, _)| *code == key_code).map_or(
         // Volume, mute, the contextual-menu key and anything else.

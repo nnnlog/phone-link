@@ -413,7 +413,7 @@ async fn channel_refusals_and_a_second_send() {
         Err(SendError::ChannelFailed(ChannelOpenError::Channel(PlatformChannelError::Timeout)))
     );
 
-    // A locked Mac opens no channel.
+    // A locked computer opens no channel.
     world.w.lock.set(phonelink_engine::edge::LockState::Locked);
     assert_eq!(send(&feature).await, Err(SendError::Permission("ResponseStatus(Locked)".into())));
     world.w.lock.set(phonelink_engine::edge::LockState::Unlocked);

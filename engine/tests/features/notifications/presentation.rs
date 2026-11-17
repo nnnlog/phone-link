@@ -1,4 +1,4 @@
-//! Presentation on macOS: the banner decision, the 20 s duplicate check, per-app flags and mutes,
+//! Presentation as system notifications: the banner decision, the 20 s duplicate check, per-app flags and mutes,
 //! group-message consent, throttling with its notice, the content of a posted notification,
 //! withdrawals, and the responses to them.
 

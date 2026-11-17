@@ -111,7 +111,7 @@ pub enum Details {
     Closed { reason: Option<String> },
     /// The phone is locked or its screen is off.
     Locked { secure: bool, virtual_device_streaming: bool },
-    /// The phone asks to move the app to the Mac.
+    /// The phone asks to move the app to the computer.
     Restart { task_transfer: bool },
     /// The user asked for another screen layout: the app restarts in it once confirmed.
     LayoutSwitch,

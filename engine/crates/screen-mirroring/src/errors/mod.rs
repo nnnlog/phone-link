@@ -138,7 +138,7 @@ pub fn setup_code(code: i32, ice_support: bool) -> i32 {
 }
 
 /// The disconnection code of a connection that closed with `reason`; `requested` is the code the PC
-/// closed it with, `mac_locked` whether the Mac's session is locked.
+/// closed it with, `mac_locked` whether the computer's session is locked.
 pub fn close_code(reason: &CloseReason, requested: Option<i32>, mac_locked: bool) -> i32 {
     match reason {
         CloseReason::UserEnded if requested.is_some() => requested.expect("checked"),

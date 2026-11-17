@@ -23,7 +23,7 @@
 //! there is no startup pull; `/contacts/v2` is sent only when a view asks
 //! ([`ContactDirectory::request_sync`], [`Contacts::sync`],
 //! [`Contacts::request_device_permission`]). Inbound `contactsV2` is processed for every phone,
-//! whatever its capability, permission or consent. Synced contacts are not copied into the Mac's
+//! whatever its capability, permission or consent. Synced contacts are not copied into the computer's
 //! contacts.
 
 #![cfg_attr(feature = "test-support", warn(unreachable_pub))]
@@ -346,7 +346,7 @@ impl Contacts {
     /// The contacts view's "give consent" action and the settings toggle.
     pub fn set_pc_consent(&self, phone: &DcgClient, consent: bool) -> Result<(), FeatureError> {
         if self.shared.store(phone)?.set_pc_consent(consent)? {
-            info!(enabled = consent, "contacts consent on this Mac switched");
+            info!(enabled = consent, "contacts consent on this computer switched");
             self.shared.emit(ContactsEvent::PromptChanged { phone: phone.clone() });
         }
         Ok(())

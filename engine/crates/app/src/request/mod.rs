@@ -171,7 +171,7 @@ pub struct DrmAppRequest {
 pub enum LocalGate {
     /// No phone is selected.
     NoPhone,
-    /// The PC session is locked (the macOS lock test said locked or unknown).
+    /// The PC session is locked (the session lock test said locked or unknown).
     Locked,
     /// The enrolled account is missing or its token cannot be refreshed ([`AccountGate`]).
     ///

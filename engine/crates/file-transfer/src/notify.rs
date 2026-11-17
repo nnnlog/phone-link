@@ -126,7 +126,7 @@ impl Inner {
             permission_id(&peer.client),
             peer,
             "Permission needed".to_owned(),
-            "Allow your phone to receive files from this Mac".to_owned(),
+            "Allow your phone to receive files from this computer".to_owned(),
         );
         n.actions = vec![NotificationAction {
             id: ACTION_GRANT.to_owned(),

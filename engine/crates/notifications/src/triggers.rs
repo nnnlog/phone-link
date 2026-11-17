@@ -449,7 +449,7 @@ impl Inner {
         store::set_value(&db, stored::PC_PERMISSION, i64::from(on))?;
 
         if before != on {
-            info!(enabled = on, "notifications on this Mac switched");
+            info!(enabled = on, "notifications on this computer switched");
         }
 
         if self.with_phone(&phone, |p| p.permissions.is_none()) {

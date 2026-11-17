@@ -545,7 +545,7 @@ fn primary_layers(
 /// clipboard's global switch is on) and returns the base ones.
 fn advertise_capabilities(cdeh_auth: &AuthService, feature_edges: &FeatureEdges) -> Result<Vec<String>, EngineError> {
     // `REMOTE_CONTROL` and `REMOTE_CONTROL_V2` as the remote-control options allow.
-    // `FILE_TRANSFER` when the Mac receives files from the phone.
+    // `FILE_TRANSFER` when the computer receives files from the phone.
     let base_capabilities = with_file_transfer_capability(
         &with_remote_control_capabilities(
             &cdeh_auth.config().auth.capabilities,
@@ -588,7 +588,7 @@ fn linked_phone(peers: &[PeerDevice], id: &str) -> Result<PeerDevice, EngineErro
 // uniffi export
 // ------------------------------------------------------------------------------------------------
 
-/// A change of the Mac's session or power state the engine reacts to ([`EngineCore::system_event`]).
+/// A change of the computer's session or power state the engine reacts to ([`EngineCore::system_event`]).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, uniffi::Enum)]
 pub enum SystemEvent {
     ScreenLocked,

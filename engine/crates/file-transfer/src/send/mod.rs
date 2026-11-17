@@ -105,7 +105,7 @@ pub enum SendError {
     Cancelled,
     #[error("the transfer channel did not open in time")]
     ChannelTimedOut,
-    #[error("the Mac is locked")]
+    #[error("the computer is locked")]
     PcLocked,
     #[error("the phone does not transfer on a metered connection")]
     Metered,
@@ -119,7 +119,7 @@ pub enum SendError {
     #[error("the files could not be sent: {0}")]
     SendStreamsFailed(String),
     /// The phone's message, and what is wrong with it.
-    #[error("the phone sent a message the Mac does not understand: {0}")]
+    #[error("the phone sent a message the computer does not understand: {0}")]
     InvalidMessage(&'static str),
     #[error("a transfer error occurred")]
     TransferError,

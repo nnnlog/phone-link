@@ -207,7 +207,7 @@ impl BluetoothRecord {
 /// Instant hotspot's facts about one phone.
 ///
 /// What its `connect` replies and its `HotspotPermissionsSettingUpdate` commands report, whether
-/// setup finished on this Mac, and the network the last connect joined.
+/// setup finished on this computer, and the network the last connect joined.
 ///
 /// Every fact is `false` (`None`) until something reports it.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -222,10 +222,10 @@ pub struct HotspotRecord {
     /// The OEM RFCOMM server is open: `oemBluetoothRfcommServerOpen` turns it on and never off;
     /// `oemBluetoothRfcommEnabled` sets it either way.
     pub oem_rfcomm_enabled: bool,
-    /// Setup finished on this Mac (local; never sent).
+    /// Setup finished on this computer (local; never sent).
     pub setup_complete: bool,
     /// The SSID the last successful connect joined (local; never sent): the hotspot reads as joined
-    /// while the Mac's Wi-Fi is associated with a network of this name.
+    /// while the computer's Wi-Fi is associated with a network of this name.
     pub ssid: Option<String>,
 }
 

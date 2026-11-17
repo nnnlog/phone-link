@@ -1,6 +1,6 @@
-//! Phone to Mac: the drag's state machine.
+//! Phone to computer: the drag's state machine.
 
-/// Where a phone → Mac drag is.
+/// Where a phone → computer drag is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Phase {
     Ready,
@@ -11,7 +11,7 @@ pub enum Phase {
     CancelWait,
 }
 
-/// What moves a phone → Mac drag.
+/// What moves a phone → computer drag.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PhoneDragEvent {
     StartPhone,
@@ -37,7 +37,7 @@ pub enum Next {
     CancelBroadcast,
 }
 
-/// The phone → Mac transitions; a pair the table does not have is [`Next::CancelBroadcast`].
+/// The phone → computer transitions; a pair the table does not have is [`Next::CancelBroadcast`].
 pub fn next(from: Phase, event: PhoneDragEvent) -> Next {
     use Next::{CancelBroadcast, Cancelled, Completed, To};
     use Phase::{CancelWait, DragStarted, Drop, Ready, RequestingOwnership, WatchingPointer};
@@ -59,7 +59,7 @@ pub fn next(from: Phase, event: PhoneDragEvent) -> Next {
     }
 }
 
-/// The name a phone file gets on the Mac: `/` and `:` become `_`; an empty, `.` or `..` name is `_`.
+/// The name a phone file gets on the computer: `/` and `:` become `_`; an empty, `.` or `..` name is `_`.
 pub fn mac_file_name(phone_name: &str) -> String {
     let name: String = phone_name.chars().map(|c| if c == '/' || c == ':' { '_' } else { c }).collect();
     if name.is_empty() || name == "." || name == ".." { "_".to_string() } else { name }

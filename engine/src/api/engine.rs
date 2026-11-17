@@ -119,7 +119,7 @@ impl Engine {
 pub struct DeviceRegistration {
     /// The device PUID the account service assigned.
     pub puid: String,
-    /// This Mac's `distinguishedDeviceId` on each of its enrolled records (as the phone pairs them).
+    /// This computer's `distinguishedDeviceId` on each of its enrolled records (as the phone pairs them).
     pub distinguished_device_ids: Vec<String>,
 }
 
@@ -289,7 +289,7 @@ impl Engine {
     }
 
     /// The machine's device registration: the device PUID the account service assigned, and this
-    /// Mac's `distinguishedDeviceId` on each of its enrolled records (empty when not yet listed).
+    /// computer's `distinguishedDeviceId` on each of its enrolled records (empty when not yet listed).
     /// `None` when the machine is not registered.
     pub fn device_registration(&self) -> Option<DeviceRegistration> {
         let read: Result<_, Box<dyn std::error::Error + Send + Sync>> = match build_broker(&self.edges) {
@@ -327,7 +327,7 @@ impl Engine {
         Some(DeviceRegistration { puid, distinguished_device_ids: distinguished })
     }
 
-    /// Resets the machine's device registration: deletes this Mac's own records from the account
+    /// Resets the machine's device registration: deletes this computer's own records from the account
     /// (best-effort), signs out locally, and forgets the device credential and ticket. The next
     /// sign-in registers the machine afresh and receives a new `distinguishedDeviceId`. The MSA
     /// device identity created on the account service cannot be removed and stays.
@@ -336,12 +336,12 @@ impl Engine {
         if let Some(core) = core {
             // Best-effort server delete of both identities' own records before dropping the core.
             if let Err(e) = core.auth.delete_own_device_info().await {
-                tracing::warn!(error = %e, "this Mac's Phone Link record not deleted from the account; it stays");
+                tracing::warn!(error = %e, "this computer's Phone Link record not deleted from the account; it stays");
             }
             if let Some(cdeh) = &core.cdeh
                 && let Err(e) = cdeh.auth.delete_own_device_info().await
             {
-                tracing::warn!(error = %e, "this Mac's Cross Device record not deleted from the account; it stays");
+                tracing::warn!(error = %e, "this computer's Cross Device record not deleted from the account; it stays");
             }
 
             core.retire().await;
@@ -364,7 +364,7 @@ impl Engine {
         Ok(())
     }
 
-    /// The Mac's session was locked or unlocked, or it sleeps or woke ([`EngineCore::system_event`]).
+    /// The computer's session was locked or unlocked, or it sleeps or woke ([`EngineCore::system_event`]).
     /// Before a start has built a core it is ignored. During a start the core gets it: unlock and
     /// wake reset the wake breakers and the partner set at once, but their connect is not sent
     /// until the App layer has started — the start sends its own.
@@ -442,7 +442,7 @@ impl Engine {
         FileTransferApi::new(self)
     }
 
-    /// The phone-files feature: browsing the selected phone's files from this Mac.
+    /// The phone-files feature: browsing the selected phone's files from this computer.
     pub fn phone_files(self: Arc<Self>) -> Arc<PhoneFilesApi> {
         PhoneFilesApi::new(self)
     }
@@ -457,7 +457,7 @@ impl Engine {
         PhoneAppsApi::new(self)
     }
 
-    /// The screen-mirroring feature: the selected phone's screen and apps in windows on this Mac.
+    /// The screen-mirroring feature: the selected phone's screen and apps in windows on this computer.
     pub fn screen_mirroring(self: Arc<Self>) -> Arc<ScreenMirroringApi> {
         ScreenMirroringApi::new(self)
     }
@@ -472,7 +472,7 @@ impl Engine {
         PairingApi::new(self)
     }
 
-    /// This Mac's device id, the selected phone, and whether that phone is connected.
+    /// This computer's device id, the selected phone, and whether that phone is connected.
     ///
     /// Before a start (or while the core is being rebuilt) every field is empty or `false`.
     pub fn status(&self) -> EngineStatus {

@@ -6,8 +6,8 @@
 //! content, commands; the contribution to the connect message; the `wifiState` reset | | [`model`] | the CDEH
 //! decoding of `DeviceStatusResponseMessage` into `DeviceStatus`; the status model and what is shown when
 //! data is missing | | [`battery`] | the low-battery notification | | [`ring`] | ring my phone: the ring
-//! control, its request and what it shows | | [`edge`] | the PC status for the phone from its macOS sources:
-//! `IOKit`, `NWPathMonitor`, `CoreWLAN` |
+//! control, its request and what it shows | | [`edge`] | the PC status for the phone from the OS's sources
+//! (macOS: `IOKit`, `NWPathMonitor`, `CoreWLAN`) |
 //!
 //! This module holds the feature handle: the CDEH model in memory, the controls' pending states and
 //! confirmation timers, the ring control's countdown, the pull triggers, and the UI-facing operations. The

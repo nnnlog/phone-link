@@ -46,7 +46,7 @@ pub enum UploadError {
     NotRunning,
     #[error("the folder is not in the tree")]
     UnknownFolder,
-    /// The name stays on the Mac: it is not sent to the phone.
+    /// The name stays on the computer: it is not sent to the phone.
     #[error("files with this name are not sent to the phone")]
     Ignored,
     #[error("an item with this name already exists")]
@@ -57,7 +57,7 @@ pub enum UploadError {
     NotAFile,
     #[error("cancelled")]
     Cancelled,
-    /// The upload kept failing; the item stays on the Mac.
+    /// The upload kept failing; the item stays on the computer.
     #[error("the file could not be sent: {0}")]
     Transfer(#[from] TransferError),
     #[error("the file could not be sent: {0}")]

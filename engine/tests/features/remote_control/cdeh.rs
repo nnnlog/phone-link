@@ -1,7 +1,7 @@
 //! Remote control — the Cross Device contract over the platform layer: the `/remotecontrol`
-//! receiver's actions and answers (a lock or a sleep answered before the Mac acts, the others after),
+//! receiver's actions and answers (a lock or a sleep answered before the computer acts, the others after),
 //! its gates (option, phone capabilities, toggle, enabled switch) and the device-list refresh before a
-//! capability failure, the addresses that reach it, and what the UI reads. The Mac's actions only
+//! capability failure, the addresses that reach it, and what the UI reads. The computer's actions only
 //! reach a recording edge.
 
 use crate::support::platform_world;
@@ -34,7 +34,7 @@ async fn every_control_type_acts_and_answers() {
         (T::Sleep, PowerAction::Sleep),
         (T::Shutdown, PowerAction::ShutDown),
         (T::Restart, PowerAction::Restart),
-        // No pending-update install on macOS: the plain action.
+        // No pending-update install here: the plain action.
         (T::UpdateAndShutdown, PowerAction::ShutDown),
         (T::UpdateAndRestart, PowerAction::Restart),
     ] {
@@ -61,7 +61,7 @@ async fn a_failing_action_answers_failed_unless_it_was_answered_first() {
     let w = RcWorld::connected().await;
     w.power.set_failing(true);
 
-    // A lock or a sleep is answered SUCCESS before the Mac acts: the failure is only logged.
+    // A lock or a sleep is answered SUCCESS before the computer acts: the failure is only logged.
     for t in [RemoteControlType::Lock, RemoteControlType::Sleep] {
         assert_eq!(result(&w.drm(t as i32).await), (SUCCESS, None), "{t:?}");
     }
@@ -83,20 +83,20 @@ async fn a_lock_or_a_sleep_whose_answer_was_not_sent_is_not_carried_out() {
     let lock = rc::request_bytes(RemoteControlType::Lock as i32);
     let sleep = rc::request_bytes(RemoteControlType::Sleep as i32);
 
-    // An answer that was sent: the Mac acts.
+    // An answer that was sent: the computer acts.
     let response = w.sw.phone_drm_request(4, 2, "/remotecontrol", &lock).await;
     assert_eq!(response.status, PlatformRequestStatus::Success);
     settle().await;
     assert_eq!(w.power.actions(), [PowerAction::LockScreen]);
 
-    // An answer the transport could not send: the Mac does not act.
+    // An answer the transport could not send: the computer does not act.
     w.sw.w.pair.pc_link.script(Behavior::Fail(DcgSendStatus::TimedOut));
     let response = w.sw.phone_drm_request(4, 2, "/remotecontrol", &sleep).await;
     assert_eq!(response.status, PlatformRequestStatus::ResponseTimedOut, "no answer reached the phone");
     settle().await;
     assert_eq!(w.power.actions(), [PowerAction::LockScreen], "the sleep was not carried out");
 
-    // A shutdown is answered after the Mac acted, whatever its answer's fate.
+    // A shutdown is answered after the computer acted, whatever its answer's fate.
     w.sw.w.pair.pc_link.script(Behavior::Fail(DcgSendStatus::TimedOut));
     let shutdown = rc::request_bytes(RemoteControlType::Shutdown as i32);
     w.sw.phone_drm_request(4, 2, "/remotecontrol", &shutdown).await;

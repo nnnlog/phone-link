@@ -1,4 +1,4 @@
-//! The Mac's desktop picture for the phone's `/wallpaper` request (phone → PC): the OS edge that reads
+//! The desktop picture for the phone's `/wallpaper` request (phone → PC): the OS edge that reads
 //! and encodes it, the size rule it encodes to, and the `WallpaperResponseMessage` the engine builds.
 
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -14,7 +14,7 @@ use phonelink_proto::device_info::v1::{
 /// A picture taller than this many pixels is scaled down to it.
 pub const MAX_PICTURE_HEIGHT: u32 = 512;
 
-/// The Mac's desktop picture as the phone gets it.
+/// The computer's desktop picture as the phone gets it.
 #[derive(Debug, Clone, PartialEq, Eq, uniffi::Enum)]
 pub enum PcWallpaper {
     /// The picture, decoded, scaled to [`wallpaper_scaled_size`] and encoded as JPEG.
@@ -32,7 +32,7 @@ pub struct PictureSize {
     pub height: u32,
 }
 
-/// Where the Mac's desktop picture comes from (macOS: `NSWorkspace.desktopImageURL(for:)` of the
+/// Where the computer's desktop picture comes from (macOS: `NSWorkspace.desktopImageURL(for:)` of the
 /// primary screen, `ImageIO`). Synchronous: the receiver calls it off the async runtime.
 #[uniffi::export(with_foreign)]
 pub trait PcWallpaperSource: Send + Sync {
@@ -92,7 +92,7 @@ impl PcWallpaperAnswers {
             PcWallpaper::Unreadable | PcWallpaper::NotSet => None,
         };
 
-        info!(answer_kind = wallpaper.kind(), "the Mac's wallpaper answered");
+        info!(answer_kind = wallpaper.kind(), "the computer's wallpaper answered");
         pc_wallpaper_response(wallpaper)
     }
 
@@ -100,11 +100,11 @@ impl PcWallpaperAnswers {
     fn answer_after_failure(&self, e: &EdgeError) -> WallpaperResponseMessage {
         match self.last().clone() {
             Some(jpeg) => {
-                warn!(error = %e, "reading the Mac's desktop picture failed; answered with the last picture");
+                warn!(error = %e, "reading the computer's desktop picture failed; answered with the last picture");
                 pc_wallpaper_response(PcWallpaper::Picture { jpeg })
             }
             None => {
-                warn!(error = %e, "reading the Mac's desktop picture failed and none was read yet; answered as unreadable");
+                warn!(error = %e, "reading the computer's desktop picture failed and none was read yet; answered as unreadable");
                 pc_wallpaper_response(PcWallpaper::Unreadable)
             }
         }

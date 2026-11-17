@@ -56,7 +56,7 @@ impl Inner {
                 phone,
                 id,
                 CameraError::ChannelNotCreated,
-                Some(&"the Mac is locked or its lock state is unknown"),
+                Some(&"the computer is locked or its lock state is unknown"),
             );
             return;
         }

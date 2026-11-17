@@ -1,7 +1,7 @@
 //! The connected camera for the UI ([`crate::features::connected_camera`]).
 //!
 //! It covers the selected phone's camera state, its setting, the control window's actions, and the
-//! signals of the Mac's camera — its clients starting and stopping, and the camera becoming
+//! signals of the computer's camera — its clients starting and stopping, and the camera becoming
 //! available.
 
 use std::sync::Arc;
@@ -23,7 +23,7 @@ impl From<ConnectedCameraError> for FeatureApiError {
     }
 }
 
-/// Where the phone's camera stands: offered to this Mac, connecting, streaming, paused, or failed.
+/// Where the phone's camera stands: offered to this computer, connecting, streaming, paused, or failed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Enum)]
 pub enum PhoneCameraState {
     Unregistered,
@@ -78,7 +78,7 @@ pub enum PhoneCameraError {
     CameraPermissionPermanentlyDenied,
     CameraPermissionNeededAutoprompt,
     CameraPermissionRevoked,
-    /// A value the Mac does not name.
+    /// A value the computer does not name.
     Other,
 }
 
@@ -207,7 +207,7 @@ fn effect(e: &Effect, locale: &str) -> PhoneCameraEffect {
 /// The selected phone's camera.
 #[derive(Debug, Clone, PartialEq, uniffi::Record)]
 pub struct PhoneCameraStatus {
-    /// The Mac's camera extension is running.
+    /// The computer's camera extension is running.
     pub mac_available: bool,
     pub capable: bool,
     /// Show the setting.
@@ -328,7 +328,7 @@ impl ConnectedCameraApi {
         Ok(())
     }
 
-    /// The Mac's camera extension became available or unavailable.
+    /// The computer's camera extension became available or unavailable.
     pub fn availability_changed(&self) -> Result<(), FeatureApiError> {
         let (feature, _) = self.feature()?;
         feature.availability_changed();

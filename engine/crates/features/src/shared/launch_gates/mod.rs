@@ -1,5 +1,5 @@
 //! The phone-apps gates: pure functions over the phone record. The phone apps read them, and so does
-//! every feature that launches a phone app on the Mac (screen mirroring).
+//! every feature that launches a phone app on the computer (screen mirroring).
 //!
 //! | Gate | Rule |
 //! |---|---|
@@ -83,7 +83,7 @@ fn model(record: &PhoneRecord) -> (u32, u32) {
     (record.client_model_name.unwrap_or(0), record.client_model_revision.unwrap_or(0))
 }
 
-/// *Phone-screen apps*: the phone runs apps for the Mac's screen — the Apps view and every launch.
+/// *Phone-screen apps*: the phone runs apps for the computer's screen — the Apps view and every launch.
 pub fn phone_screen_apps(record: &PhoneRecord, app: &AppConfig) -> bool {
     let (name, revision) = model(record);
     phone_screen_apps_of(record.contract_version(app), name, revision)
@@ -97,7 +97,7 @@ pub fn phone_screen_apps_of(contract_version: f64, client_model: u32, revision: 
     contract_version >= PHONE_SCREEN_APPS_MIN_CONTRACT && model_ok
 }
 
-/// *Remoting supported*: the phone can show its screen on the Mac — the Apps view, deep links and the
+/// *Remoting supported*: the phone can show its screen on the computer — the Apps view, deep links and the
 /// notification launch.
 pub fn remoting_supported(record: &PhoneRecord) -> bool {
     let (name, revision) = model(record);

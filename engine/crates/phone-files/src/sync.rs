@@ -188,7 +188,7 @@ impl Inner {
         }
     }
 
-    /// Whether the Mac's session is unlocked now.
+    /// Whether the computer's session is unlocked now.
     pub(super) async fn unlocked(&self) -> bool {
         let lock = self.env.edges.lock.clone();
         tokio::task::spawn_blocking(move || lock.lock_state()).await.unwrap_or(LockState::Unknown)
@@ -457,7 +457,7 @@ impl Inner {
                     }
 
                     // Phone Link on Windows asks again only once the phone has become unavailable; the
-                    // Mac asks at once, as that later request would: not user-initiated and whatever
+                    // computer asks at once, as that later request would: not user-initiated and whatever
                     // the triggering sequence.
                     expired_once = true;
                     (triggering, user, trigger) = (None, false, Trigger::SequenceNumberExpired);

@@ -1,5 +1,6 @@
 //! Screen mirroring: the phone's screen (the phone-screen window) or one phone app per window on the
-//! Mac, with the phone's video and app audio, and the Mac's mouse, touch, pen and keyboard sent back.
+//! computer, with the phone's video and app audio, and the computer's mouse, touch, pen and keyboard sent
+//! back.
 //!
 //! It runs on its own Nano connection, opened with the App layer's `/nanohandshake`; the phone
 //! creates every channel, and **workflows** started on its `launcher` channel drive the session.
@@ -12,10 +13,10 @@
 //! | [`link`] | the connection, its `launcher` channel, workflow start and stop, idle release, loss |
 //! | [`machine`] | the phone state and the window state, with their tables and rules |
 //! | [`session`] | one window: its channel set, display state, and the grouping of the phone's channels |
-//! | [`input`], [`keymap`] | the window's input to the phone, and the Mac keys as HID usages |
-//! | [`drag`] | drag and drop of files between the Mac and a window, both ways |
+//! | [`input`], [`keymap`] | the window's input to the phone, and the computer keys as HID usages |
+//! | [`drag`] | drag and drop of files between the computer and a window, both ways |
 //! | [`errors`] | status codes and what an error window shows |
-//! | [`edge`] | the Mac's display values, audio output and input source; video and audio presentation |
+//! | [`edge`] | the computer's display values, audio output and input source; video and audio presentation |
 //! | `runtime` | the set-up, the workflows' messages, the windows' lifecycle and teardown |
 //!
 //! Only the path where mirroring opens its own connection (the "legacy" path) is implemented; the
@@ -67,7 +68,7 @@ pub struct NearbyPrompt {
     pub expiry_token: i32,
     pub token_expired: bool,
     pub pin_code_wrong: bool,
-    /// Offer "skip unlocking" (the phone is on the Mac's network).
+    /// Offer "skip unlocking" (the phone is on the computer's network).
     pub skip_unlock: bool,
     /// Offer "continue without verifying" (verified).
     pub skip_verification: bool,
@@ -110,7 +111,7 @@ pub struct SessionView {
     pub button_order: Option<String>,
     pub recent_task_id: i64,
     pub screen_layout: Option<i32>,
-    /// The app's last screen layout on this Mac, kept per package from the phone's layout statuses
+    /// The app's last screen layout on this computer, kept per package from the phone's layout statuses
     /// (`0` for the phone screen, which keeps none).
     pub last_screen_layout: i32,
     /// The phone asks to move the app here (a task transfer when `true`).
@@ -133,7 +134,7 @@ pub enum AudioButton {
     /// The app plays sound, or is muted: the volume control.
     Volume,
 }
-/// An app's audio on the Mac.
+/// An app's audio on the computer.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PackageAudio {
     pub volume: i32,
@@ -220,7 +221,7 @@ impl ScreenMirroring {
         self.inner.clone().launch_notification(key, action_index).await
     }
 
-    /// The window's keyboard-settings button, with the kind of the Mac's input source when it was
+    /// The window's keyboard-settings button, with the kind of the computer's input source when it was
     /// pressed.
     pub async fn request_keyboard_settings(&self, input_source: InputSourceKind) -> Result<(), MirroringError> {
         self.inner.clone().request_keyboard_settings(input_source).await
@@ -236,7 +237,7 @@ impl ScreenMirroring {
         self.inner.window_ready(id)
     }
 
-    /// Session `id`'s window focus changed; `caps_lock` is the Mac's Caps Lock state.
+    /// Session `id`'s window focus changed; `caps_lock` is the computer's Caps Lock state.
     pub fn focus_changed(&self, id: &str, state: FocusableState, caps_lock: bool) -> Result<(), MirroringError> {
         self.inner.focus_changed(id, state, caps_lock)
     }
@@ -275,7 +276,7 @@ impl ScreenMirroring {
         self.inner.resend_permission()
     }
 
-    /// The answer to the phone's "move to the Mac" request.
+    /// The answer to the phone's "move to the computer" request.
     pub fn answer_move_to_virtual_display(
         &self,
         id: &str,
@@ -338,7 +339,7 @@ impl ScreenMirroring {
         self.inner.audio_output_changed();
     }
 
-    /// The Mac's session locked: the connection closes.
+    /// The computer's session locked: the connection closes.
     pub fn screen_lock_changed(&self, locked: bool) {
         self.inner.screen_lock_changed(locked);
     }
@@ -424,7 +425,7 @@ impl ScreenMirroring {
     }
 
     /// The window started (`true`) or stopped taking input to the phone: the input focus is taken
-    /// anew, or lost with everything held released; `caps_lock` is the Mac's Caps Lock state.
+    /// anew, or lost with everything held released; `caps_lock` is the computer's Caps Lock state.
     pub fn input_focus(&self, id: &str, focused: bool, caps_lock: bool) -> Result<(), MirroringError> {
         let mut left_released = false;
         self.inner.with_input(id, |p| {
@@ -438,7 +439,7 @@ impl ScreenMirroring {
         Ok(())
     }
 
-    /// A Mac key; `flags` are the event's modifier flags (`NSEvent.ModifierFlags.rawValue`).
+    /// A computer key; `flags` are the event's modifier flags (`NSEvent.ModifierFlags.rawValue`).
     pub fn key(&self, id: &str, key_code: u16, action: KeyAction, flags: u64) -> Result<(), MirroringError> {
         self.inner.with_input(id, |p| p.key(key_code, action, flags))
     }
@@ -466,7 +467,7 @@ impl ScreenMirroring {
     }
 
     /// A pointer move in window `id`: the phone's files to drag out of it now, if the phone handed a
-    /// drag over. `button_held` = a mouse button is down (the Mac drag can start).
+    /// drag over. `button_held` = a mouse button is down (the computer's drag can start).
     pub fn take_phone_drag(
         &self,
         id: &str,
@@ -475,7 +476,7 @@ impl ScreenMirroring {
         Ok(self.inner.drag(id)?.take_pending(button_held))
     }
 
-    /// The Mac drag of window `id`'s phone files ended; `dropped` on a destination that took it.
+    /// The computer's drag of window `id`'s phone files ended; `dropped` on a destination that took it.
     pub fn phone_drag_ended(&self, id: &str, dropped: bool) -> Result<(), MirroringError> {
         self.inner.drag(id)?.mac_drag_ended(dropped);
         Ok(())

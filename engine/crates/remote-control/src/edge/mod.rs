@@ -1,4 +1,4 @@
-//! The Mac's power and session actions as an OS edge: lock the screen, sleep, shut down, restart.
+//! The computer's power and session actions as an OS edge: lock the screen, sleep, shut down, restart.
 //!
 //! The engine decides whether to act; the edge only acts and reports whether the request was made.
 //! The tests use [`standins::RecordingPowerControl`], which never touches the machine; the CLI uses
@@ -10,7 +10,7 @@ use tracing::{info, warn};
 
 use phonelink_core::edge::EdgeError;
 
-/// What the phone asks the Mac to do.
+/// What the phone asks the computer to do.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PowerAction {
     LockScreen,
@@ -19,7 +19,7 @@ pub enum PowerAction {
     Restart,
 }
 
-/// The Mac's power and session actions (macOS: the login session's lock, `IOKit` system sleep, an
+/// The computer's power and session actions (macOS: the login session's lock, `IOKit` system sleep, an
 /// Apple event to `loginwindow`).
 ///
 /// Synchronous: the engine calls it off the async runtime. Each call
@@ -29,11 +29,11 @@ pub enum PowerAction {
 pub trait PcPowerControl: Send + Sync {
     /// Locks the login session now, whatever the "require password" setting says.
     fn lock_screen(&self) -> Result<(), EdgeError>;
-    /// Puts the Mac to sleep.
+    /// Puts the computer to sleep.
     fn sleep(&self) -> Result<(), EdgeError>;
-    /// Shuts the Mac down the way the Apple menu's Shut Down does, without its confirmation.
+    /// Shuts the computer down the way the Apple menu's Shut Down does, without its confirmation.
     fn shut_down(&self) -> Result<(), EdgeError>;
-    /// Restarts the Mac the way the Apple menu's Restart does, without its confirmation.
+    /// Restarts the computer the way the Apple menu's Restart does, without its confirmation.
     fn restart(&self) -> Result<(), EdgeError>;
 }
 
@@ -50,7 +50,7 @@ pub(crate) async fn perform(power: Arc<dyn PcPowerControl>, action: PowerAction)
 
     match outcome {
         Ok(Ok(())) => {
-            info!(?action, "power action requested from the Mac");
+            info!(?action, "power action requested from the computer");
             true
         }
         Ok(Err(e)) => {

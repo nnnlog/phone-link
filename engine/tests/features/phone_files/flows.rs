@@ -574,7 +574,7 @@ async fn an_upload_pushes_the_file_and_records_the_phone_metadata() {
     assert_eq!((item.identifier.as_str(), item.parent.as_str(), item.name.as_str()), ("40", "3", "report.pdf"));
     assert!(feature.children(&phone_id(), "3").unwrap().unwrap().iter().any(|i| i.identifier == "40"));
 
-    // A name that stays on the Mac is not sent.
+    // A name that stays on the computer is not sent.
     let other = world.dir.path().join(".DS_Store");
     std::fs::write(&other, b"x").unwrap();
     let r = feature.upload(&phone_id(), "3", ".DS_Store", other, None, CancellationToken::new()).await;

@@ -1,5 +1,5 @@
 //! File transfer, a Cross Device Experience Host feature on the CDEH identity's connection: the user
-//! sends files to the phone, and the phone's share sheet sends files to the Mac.
+//! sends files to the phone, and the phone's share sheet sends files to the computer.
 //!
 //! The files travel over a Nano `NamedStreams` channel created against the phone's context handle;
 //! the relay carries the set-up — the files permission request, the phone's tag-3 publication that
@@ -55,7 +55,7 @@ pub use wire::PermissionTrigger;
 use phonelink_core::sync::MutexExt;
 use phonelink_features::RegistrationError;
 
-/// `base` without `FILE_TRANSFER`, plus `FILE_TRANSFER` when the Mac receives files.
+/// `base` without `FILE_TRANSFER`, plus `FILE_TRANSFER` when the computer receives files.
 pub fn with_file_transfer_capability(base: &[String], config: &FileTransferConfig) -> Vec<String> {
     let mut capabilities: Vec<String> = base.iter().filter(|c| c.as_str() != wire::CAPABILITY).cloned().collect();
     if config.phone_to_pc_enabled {
@@ -425,7 +425,7 @@ impl Inner {
         self.changed(phone);
     }
 
-    /// The Mac's computer name, sent as the sender of a transfer.
+    /// The computer's name, sent as the sender of a transfer.
     fn sender_name(&self) -> String {
         phonelink_core::config::display_name_from_host(&self.env.edges.host.host_name())
     }

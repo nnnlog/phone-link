@@ -21,7 +21,7 @@ impl WindowDrag {
         }
     }
 
-    /// `/drag/requestItem`: the phone pulls one file of the Mac drag.
+    /// `/drag/requestItem`: the phone pulls one file of the computer's drag.
     fn on_request_item(self: &Arc<Self>, body: &[u8]) {
         match wire::parse_drag_request_item(body) {
             Ok(id) => self.request_item(id),

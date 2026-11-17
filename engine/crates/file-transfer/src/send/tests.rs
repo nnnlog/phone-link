@@ -18,7 +18,7 @@ fn kind(e: &SendError) -> &'static str {
 
 #[test]
 fn channel_refusals_map_to_send_failures() {
-    // A status the Mac does not know, such as the phone's context source being dropped (8), reaches
+    // A status the computer does not know, such as the phone's context source being dropped (8), reaches
     // the feature as `Unspecified`.
     let cases = [
         (refused(AcceptanceReason::NotSupported), false, true, "another transfer"),

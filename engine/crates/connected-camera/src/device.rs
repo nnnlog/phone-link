@@ -1,4 +1,4 @@
-//! The virtual camera device on the Mac: registering, removing and its controls.
+//! The virtual camera device on the computer: registering, removing and its controls.
 
 use super::{Action, CameraError, CameraState, ConnectedCameraEvent, Inner, device_id, key, placeholder_for};
 use phonelink_core::types::DcgClient;

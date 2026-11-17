@@ -1,4 +1,4 @@
-//! Dragging from the Mac to the phone.
+//! Dragging from the computer to the phone.
 
 use super::{
     COOL_OFF, DEFAULT_MIME, EnterOutcome, MAX_FILE_BYTES, MAX_ITEMS, MacDragFile, State, ToPhone, WindowDrag, reason,
@@ -173,7 +173,7 @@ impl WindowDrag {
             let mut st = me.state.lock_or_panic();
             st.sending.remove(&item_id);
 
-            // Reason 1 (NoDataFound) ends the Mac side only; the phone is told nothing. Once per drag:
+            // Reason 1 (NoDataFound) ends the computer side only; the phone is told nothing. Once per drag:
             // the files of one drag fail alike.
             if let Err(e) = result
                 && st.send_failure_logged != Some(generation)

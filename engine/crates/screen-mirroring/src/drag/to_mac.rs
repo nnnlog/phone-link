@@ -1,4 +1,4 @@
-//! Dragging from the phone to the Mac.
+//! Dragging from the phone to the computer.
 
 use super::{
     ACTION_CANCEL, DragWriteError, FromPhone, FromPhoneItem, IDLE, ItemStatus, NO_DROP_WAIT, Next, PROGRESS_INTERVAL,
@@ -50,7 +50,7 @@ impl WindowDrag {
         n
     }
 
-    /// The Mac drag of the phone's files ended without a write: "user cancelled", and again when
+    /// The computer's drag of the phone's files ended without a write: "user cancelled", and again when
     /// that reached `CancelWait`.
     pub(super) fn drag_cancelled(&self, st: &mut State) {
         if matches!(st.phase, Phase::Ready) {
@@ -163,9 +163,9 @@ impl WindowDrag {
         }
     }
 
-    /// The next pointer move with a pending drag starts it: the files the Mac drag offers, `None`
+    /// The next pointer move with a pending drag starts it: the files the computer's drag offers, `None`
     /// when there is nothing to drag. Every file is requested from the phone now. `button_held` =
-    /// the move is a drag of the mouse; without it the Mac drag ends at once, cancelled.
+    /// the move is a drag of the mouse; without it the computer's drag ends at once, cancelled.
     pub fn take_pending(self: &Arc<Self>, button_held: bool) -> Option<Vec<PhoneDragItem>> {
         let mut st = self.state.lock_or_panic();
         let (clip, blob, dir) = self.checked_pending(&mut st)?;
@@ -392,7 +392,7 @@ impl WindowDrag {
         self.phone_cancel(reason::USER_CANCELLED);
     }
 
-    /// A received file failed because of `failure`: the Mac drag is cancelled.
+    /// A received file failed because of `failure`: the computer's drag is cancelled.
     pub(super) fn item_failed(&self, epoch_dir: &Path, failure: String) {
         let mut st = self.state.lock_or_panic();
         if st.from_phone.as_ref().is_some_and(|d| d.dir == epoch_dir) {
@@ -408,7 +408,7 @@ impl WindowDrag {
         self.drag_cancelled(st);
     }
 
-    /// The Mac drag of the phone's files ended: `dropped` on a destination that took it, else with
+    /// The computer's drag of the phone's files ended: `dropped` on a destination that took it, else with
     /// none (released outside, refused, Escape).
     pub fn mac_drag_ended(&self, dropped: bool) {
         let mut st = self.state.lock_or_panic();
@@ -473,7 +473,7 @@ impl WindowDrag {
     }
 }
 
-/// The `i`th file `clip` offers, as the Mac drag offers it.
+/// The `i`th file `clip` offers, as the computer's drag offers it.
 fn phone_drag_item(clip: &ClipData, i: usize) -> PhoneDragItem {
     PhoneDragItem {
         data_id: clip.data_ids[i].clone(),

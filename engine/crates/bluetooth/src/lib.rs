@@ -1,7 +1,7 @@
 //! The phone's Bluetooth Classic device, shared by every feature that reaches the phone over
 //! Bluetooth (instant hotspot's side channel today).
 //!
-//! It covers which device paired with this Mac is the phone, the phone app's Bluetooth facts, and
+//! It covers which device paired with this computer is the phone, the phone app's Bluetooth facts, and
 //! the pairing a feature runs as the first step of the user's action when no paired device is the
 //! phone.
 //!
@@ -113,7 +113,7 @@ impl Bluetooth {
         [record.display_name.clone(), record.name.clone(), bluetooth_name].into_iter().flatten().collect()
     }
 
-    /// The address of the first device paired with this Mac that is `phone`; `None` when none is.
+    /// The address of the first device paired with this computer that is `phone`; `None` when none is.
     pub async fn paired_phone(&self, phone: &DcgClient) -> Result<Option<String>, BluetoothFailure> {
         let record = self.record(phone).ok_or_else(no_record)?;
         let edge = self.edge.clone();
@@ -132,7 +132,7 @@ impl Bluetooth {
     }
 
     /// The address of `phone`'s Bluetooth device, pairing with it first when no device paired with
-    /// this Mac is the phone. `scenario` names the feature whose action needs the device in the
+    /// this computer is the phone. `scenario` names the feature whose action needs the device in the
     /// `/permission` requests' traces.
     pub async fn pair(&self, phone: &DcgClient, scenario: &str) -> Result<String, BluetoothFailure> {
         let _pairing = self.pairing.lock().await;
@@ -200,8 +200,8 @@ impl Bluetooth {
         }
     }
 
-    /// Makes the Mac read the service records of the paired device at `address` again, for a feature
-    /// whose RFCOMM service was missing from them: the Mac reads them when it pairs and a service the
+    /// Makes the computer read the service records of the paired device at `address` again, for a feature
+    /// whose RFCOMM service was missing from them: the computer reads them when it pairs and a service the
     /// phone opened later is not among them. The outcome is logged only; the feature's next attempt
     /// finds the service or not.
     pub async fn refresh_services(&self, address: &str, service_uuid: &str) {

@@ -36,7 +36,7 @@ pub struct WallpaperWorld {
 }
 
 impl WallpaperWorld {
-    /// The World phone (`item`), selected and not connected; the Mac's desktop picture is a JPEG.
+    /// The World phone (`item`), selected and not connected; the computer's desktop picture is a JPEG.
     pub fn new(item: DeviceInfoItem) -> Self {
         Self {
             sw: StatusWorld::new(item),
@@ -116,7 +116,7 @@ impl WallpaperWorld {
         phonelink_engine::codec::valueset::decode(&message.payload).unwrap()
     }
 
-    /// The phone asks for the Mac's wallpaper; the decoded answer, or `None` when none came.
+    /// The phone asks for the computer's wallpaper; the decoded answer, or `None` when none came.
     pub async fn phone_asks(&self, resource_type: i32, path: &str) -> Option<WallpaperResponseMessage> {
         let response = self.sw.phone_drm_request(resource_type, 1, path, b"").await;
         let message = response.message?;

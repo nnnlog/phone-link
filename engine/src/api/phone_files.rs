@@ -164,10 +164,10 @@ pub enum PhoneFileFailure {
     UnknownItem,
     /// An item with the name already exists.
     Exists,
-    /// The name stays on the Mac: it is not sent to the phone.
+    /// The name stays on the computer: it is not sent to the phone.
     Ignored,
     NotSupported,
-    /// The Mac's tree is behind the phone; a refresh corrects it.
+    /// The computer's tree is behind the phone; a refresh corrects it.
     NotInSync,
     PermissionRequired,
     /// The phone or its connection cannot be reached.

@@ -10,7 +10,7 @@
 //! id starts with the owning feature's name and a `/` (`notifications/…`, `messaging/…`).
 //!
 //! A notification that holds an authentication code carries the [`copy`] action instead of its own
-//! actions; the router handles that action itself and writes the code to the Mac's pasteboard through
+//! actions; the router handles that action itself and writes the code to the computer's pasteboard through
 //! the [`CodeCopier`], so pressing it never reaches the owning feature or the phone.
 
 use std::collections::HashMap;
@@ -107,7 +107,7 @@ pub mod copy {
     }
 }
 
-/// Writes an authentication code to the Mac's pasteboard, off the caller's thread.
+/// Writes an authentication code to the computer's pasteboard, off the caller's thread.
 pub trait CodeCopier: Send + Sync {
     fn copy_code(&self, code: String);
 }

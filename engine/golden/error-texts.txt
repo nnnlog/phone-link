@@ -26,7 +26,7 @@ HotspotError::Busy: a connect is already running
 HotspotError::NotSupported: the phone does not support instant hotspot
 HotspotError::Bluetooth: Bluetooth is off
 HotspotError::ConsentTimedOut: the phone did not answer the request
-HotspotError::NotTrusted: the phone does not trust this Mac: <x>
+HotspotError::NotTrusted: the phone does not trust this computer: <x>
 HotspotError::Unreachable: the phone could not be reached: <x>
 HotspotError::SideChannelNotOpen: the phone's side channel is not open
 HotspotError::NoAnswer: the phone did not answer

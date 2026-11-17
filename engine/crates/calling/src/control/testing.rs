@@ -1,5 +1,5 @@
 //! A scripted phone for call-control tests: its Bluetooth radio and paired device, and an HFP Audio
-//! Gateway on one RFCOMM channel that answers the Mac's AT commands from a call list the test drives.
+//! Gateway on one RFCOMM channel that answers the computer's AT commands from a call list the test drives.
 
 use std::collections::{HashSet, VecDeque};
 use std::sync::{Arc, Condvar, Mutex};
@@ -77,12 +77,12 @@ impl FakeAg {
         self.state.lock_or_panic().silent.insert(prefix.to_string());
     }
 
-    /// Every command the Mac sent, in order.
+    /// Every command the computer sent, in order.
     pub fn commands(&self) -> Vec<String> {
         self.state.lock_or_panic().commands.clone()
     }
 
-    /// The service UUIDs the Mac opened channels to.
+    /// The service UUIDs the computer opened channels to.
     pub fn opened(&self) -> Vec<String> {
         self.state.lock_or_panic().opened.clone()
     }

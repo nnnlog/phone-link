@@ -2,39 +2,36 @@
   <img src="gui/mac/Design/AppIcon.png" width="128" height="128" alt="Phone Link app icon">
 </p>
 
-<h1 align="center">Phone Link for macOS</h1>
+<h1 align="center">Phone Link for PC</h1>
 
-<p align="center">Your Android phone, on your Mac.</p>
+<p align="center">Your Android phone, on your PC.</p>
 
 <p align="center"><img src="docs/images/hero.png" alt="The Phone Link window with the notification list, and its Settings window"></p>
 
-Connects through Microsoft's Link to Windows app on your phone.
+Connects through Microsoft's Link to Windows app on your phone. Runs on macOS and Linux.
 
-A Linux version, built on the same engine with a Qt window, is in [`gui/linux/`](gui/linux/README.md); its
-README says how it differs from the Mac app.
-
-Phone Link for macOS is an independent project and is neither affiliated with, nor authorized,
+Phone Link for PC is an independent project and is neither affiliated with, nor authorized,
 sponsored, or approved by, Microsoft Corporation.
 
 ## Features
 
-- See your phone's notifications on your Mac and reply to them. You choose which apps can send them.
+- See your phone's notifications on your computer and reply to them. You choose which apps can send them.
 - Read and send SMS, MMS and RCS messages.
-- See your phone's recent calls, and place, answer, decline and end calls from your Mac over Bluetooth.
-  The call itself stays on your phone: you talk on the phone or a headset connected to it. Turn it on
-  in Settings › Calls.
+- See your phone's recent calls, and place, answer, decline and end calls from your computer over
+  Bluetooth. The call itself stays on your phone: you talk on the phone or a headset connected to it.
+  Turn it on in Settings › Calls.
 - Browse your phone's contacts and write to them.
 - Browse recent photos.
 - Mirror your phone's screen, or one app, in a window.
 - Use your phone's camera as a webcam.
-- Open your phone's storage in Finder.
+- Open your phone's storage in your file manager.
 - Send files both ways. Files from your phone go to Downloads › Mobile Devices.
 - Copy text or an image on one device and paste it on the other.
 - Pause or skip what your phone is playing.
 - See battery and signal, set Do Not Disturb or the ringer, ring your phone, or join its hotspot from
-  the menu bar.
-- Let your phone lock, sleep, restart or shut down your Mac. To stop this, turn off Allow the phone
-  to control this Mac in Settings.
+  the menu bar or system tray.
+- Let your phone lock, sleep, restart or shut down your computer. To stop this, turn it off in Settings ›
+  General.
 
 <table>
   <tr>
@@ -59,32 +56,49 @@ sponsored, or approved by, Microsoft Corporation.
   </tr>
 </table>
 
-More screenshots, including Settings, are in [docs/screenshots.md](docs/screenshots.md).
+The screenshots show the macOS app. The Linux app has the same sections in its own window;
+[`gui/linux/README.md`](gui/linux/README.md) lists what differs there. More screenshots, including
+Settings, are in [docs/screenshots.md](docs/screenshots.md).
 
 ## Differences from Windows
 
 - You sign in to your Microsoft account in the app's own window.
-- Your phone can't wake your Mac or start a connection to it.
-- Calls you place or answer on your Mac stay on your phone. You talk and listen on the phone, not through
-  the Mac's microphone and speakers, because macOS gives apps no voice link to a phone over Bluetooth.
-  So there is no mute, hold, keypad or moving a call to the Mac.
-- Calls reach your Mac only while Phone Link is open.
+- Your phone can't wake your computer or start a connection to it.
+- Calls you place or answer on your computer stay on your phone. You talk and listen on the phone, not
+  through the computer's microphone and speakers, because the app has no voice link to the phone over
+  Bluetooth. So there is no mute, hold, keypad or moving a call to the computer.
+- Calls reach your computer only while Phone Link is open.
 
 ## Install
 
-You need macOS 14 or later and an Android phone with Link to Windows.
+You need an Android phone with Link to Windows.
 
-Get `PhoneLink-<version>.dmg` from [Releases](https://github.com/nnnlog/phone-link/releases/latest),
-open it and drag Phone Link into Applications. Open the app, sign in with your Microsoft account and
-pick your phone, or scan the QR code to pair a new one.
+### macOS
+
+You need macOS 14 or later. Get `PhoneLink-<version>.dmg` from
+[Releases](https://github.com/nnnlog/phone-link/releases/latest), open it and drag Phone Link into
+Applications.
 
 The app checks for updates once a day. To change that or get beta versions, go to Settings ›
 General › Updates.
 
-Signing out deletes the messages, photos, contacts and notifications kept on your Mac. For a bug report,
-save the log from Settings › Advanced › Log. Personal details in the log are redacted.
+### Linux
+
+Releases hold only the macOS app. Build the `.deb`, `.rpm` or Arch package and install it as
+[`gui/linux/README.md`](gui/linux/README.md) describes, which also lists what the app needs (Qt 6, FUSE 3,
+a Secret Service provider and more). The package manager updates it.
+
+### First start
+
+Open the app, sign in with your Microsoft account and pick your phone, or scan the QR code to pair a new
+one.
+
+Signing out deletes the messages, photos, contacts and notifications kept on your computer. For a bug
+report, save the log from Settings › Advanced › Log. Personal details in the log are redacted.
 
 ## Build from source
+
+### macOS
 
 You need Xcode 26 or later, Rust, [`just`](https://github.com/casey/just) and `python3`.
 
@@ -106,15 +120,22 @@ Extension capability. Everything else works without it.
 Builds for other Macs need a team with Developer ID certificates: `just distribute` signs one, and
 `just distribute-notarized` also notarizes it.
 
+### Linux
+
+You need Rust 1.89 or later, `just`, a C++ compiler, CMake, and the development files of Qt 6 and PulseAudio.
+In a clone of the repository, `just linux-run` builds and runs the app, and `just linux-deb` or
+`just linux-rpm` builds a package. [`gui/linux/README.md`](gui/linux/README.md) has the packages to
+install on Ubuntu and the other recipes.
+
 ## Development
 
-`just check` runs the engine's lints and tests and the Mac app's tests and translation check, all of
+`just check` runs the engine's lints and tests and the macOS app's tests and translation check, all of
 which run offline. On Linux, `just linux-check` runs the Linux app's lints, tests and log-call check.
 
 | Directory | Contents |
 |---|---|
 | [`engine/`](engine/README.md) | The Rust core and the `phonelink` command-line tool |
-| [`gui/mac/`](gui/mac/README.md) | The SwiftUI app |
+| [`gui/mac/`](gui/mac/README.md) | The macOS app (SwiftUI) |
 | [`gui/linux/`](gui/linux/README.md) | The Linux app (Rust and Qt/QML) |
 
 ## Disclaimer

@@ -1,11 +1,11 @@
-//! Drag and drop between the Mac and one window.
+//! Drag and drop between the computer and one window.
 //!
-//! It covers files dragged from the Mac onto the phone (the window is the drop target, the phone
-//! pulls each file as a blob), and files dragged out of the phone onto the Mac (the phone hands the
-//! drag over when the pointer leaves the video, and the Mac drag carries one file promise per
+//! It covers files dragged from the computer onto the phone (the window is the drop target, the phone
+//! pulls each file as a blob), and files dragged out of the phone onto the computer (the phone hands the
+//! drag over when the pointer leaves the video, and the computer's drag carries one file promise per
 //! file).
 //!
-//! The phone → Mac side is the state machine of [`next`]; the window's other parts call in through
+//! The phone → computer side is the state machine of [`next`]; the window's other parts call in through
 //! [`WindowDrag`]: the GUI's drag destination and drag source, the window's pointer and focus, its
 //! state, and the `/drag/*` messages its channel receives.
 
@@ -24,9 +24,9 @@ mod inbound;
 mod to_mac;
 mod to_phone;
 
-/// A Mac → phone drag takes at most this many items.
+/// A computer → phone drag takes at most this many items.
 pub const MAX_ITEMS: usize = 100;
-/// A Mac → phone drag's largest file: 500 MB of 1 048 576 bytes.
+/// A computer → phone drag's largest file: 500 MB of 1 048 576 bytes.
 pub const MAX_FILE_BYTES: u64 = 500 * 1_048_576;
 /// A drag entering this soon after the last leave waits for the rest of it.
 pub const COOL_OFF: Duration = Duration::from_millis(500);

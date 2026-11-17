@@ -51,7 +51,7 @@ pub enum MirrorWindowState {
     Error,
     /// An error the phone-screen window can dismiss.
     DismissibleError,
-    /// The phone asks to move the app to the Mac (`move_to_virtual_display`).
+    /// The phone asks to move the app to the computer (`move_to_virtual_display`).
     Restart,
     FoldedCannotDraw,
     /// The phone is locked: Unlock (`wake`).
@@ -100,7 +100,7 @@ impl From<WindowState> for MirrorWindowState {
     }
 }
 
-/// How phone apps open on this Mac: not at all, in the phone-screen window, or each in a window.
+/// How phone apps open on this computer: not at all, in the phone-screen window, or each in a window.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Enum)]
 pub enum MirrorAppsFeatureType {
     Disabled,
@@ -161,7 +161,7 @@ pub struct MirrorError {
     pub action: MirrorErrorAction,
 }
 
-/// The phone's mirroring settings on this Mac.
+/// The phone's mirroring settings on this computer.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Record)]
 pub struct MirrorSettings {
     pub allow_apps: bool,
@@ -197,7 +197,7 @@ impl From<Settings> for MirrorSettings {
 #[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
 pub struct MirrorNearbyPrompt {
     pub device_id: Option<String>,
-    /// The code the Mac shows for the phone to scan or type.
+    /// The code the computer shows for the phone to scan or type.
     pub expiry_token: i32,
     pub token_expired: bool,
     pub pin_code_wrong: bool,
@@ -274,7 +274,7 @@ pub struct MirrorSessionView {
     pub error: Option<MirrorError>,
     /// With state `Locked`: the phone has a secure lock.
     pub secure_locked: bool,
-    /// With state `Locked` or `ScreenOff`: the phone can unlock from the Mac.
+    /// With state `Locked` or `ScreenOff`: the phone can unlock from the computer.
     pub unlock_from_mac: bool,
     /// With state `Restart`: the move is a task transfer.
     pub restart_task_transfer: bool,
@@ -297,7 +297,7 @@ pub struct MirrorSessionView {
     pub button_order: Option<String>,
     pub recent_task_id: i64,
     pub screen_layout: Option<i32>,
-    /// The app's last screen layout on this Mac (`0` for the phone screen): the layout whose kept
+    /// The app's last screen layout on this computer (`0` for the phone screen): the layout whose kept
     /// frame a new window of the app opens in.
     pub last_screen_layout: i32,
     /// The phone asks to move the app here: `true` for a task transfer.
@@ -321,7 +321,7 @@ pub enum MirrorFocus {
     Suspended,
 }
 
-/// The kind of the Mac's current keyboard input source.
+/// The kind of the computer's current keyboard input source.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Enum)]
 pub enum MirrorInputSource {
     /// A keyboard layout (ABC, U.S.).
@@ -330,7 +330,7 @@ pub enum MirrorInputSource {
     InputMethod,
 }
 
-/// A Mac mouse button.
+/// A computer mouse button.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Enum)]
 pub enum MirrorMouseButton {
     Left,
@@ -349,7 +349,7 @@ pub enum MirrorTouchPhase {
     Cancelled,
 }
 
-/// A Mac key going down, up, or repeating while held.
+/// A computer key going down, up, or repeating while held.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Enum)]
 pub enum MirrorKeyAction {
     Down,
@@ -366,7 +366,7 @@ pub enum MirrorNavButton {
     Recents,
 }
 
-/// What a Mac key sends to the phone.
+/// What a computer key sends to the phone.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Enum)]
 pub enum MirrorKeyMapping {
     /// This HID usage, down and up with the key.
@@ -425,15 +425,15 @@ impl From<&ScreenMirroringEvent> for ScreenMirroringChange {
     }
 }
 
-/// A file dragged from the Mac onto a window.
+/// A file dragged from the computer onto a window.
 #[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
 pub struct MirrorDragFile {
     pub path: String,
-    /// The MIME type of its extension, when the Mac knows one.
+    /// The MIME type of its extension, when the computer knows one.
     pub mime_type: Option<String>,
 }
 
-/// A window's answer to a drag of Mac files entering it.
+/// A window's answer to a drag of the computer's files entering it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Enum)]
 pub enum MirrorDragEnter {
     /// Copy: the files go to the phone app the drop lands on.
@@ -454,12 +454,12 @@ impl From<sm::drag::EnterOutcome> for MirrorDragEnter {
     }
 }
 
-/// One file the phone drags out of a window: a file promise of the Mac drag.
+/// One file the phone drags out of a window: a file promise of the computer's drag.
 #[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
 pub struct MirrorPhoneDragItem {
     /// What `write_phone_drag_item` names it by.
     pub data_id: String,
-    /// The file's name on the Mac.
+    /// The file's name on the computer.
     pub name: String,
     pub size: u64,
     /// The phone's MIME type for it (may be empty).

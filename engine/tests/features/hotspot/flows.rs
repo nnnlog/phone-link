@@ -322,7 +322,7 @@ fn the_connect_reply_keys_land_in_their_records() {
     assert_eq!(bluetooth.capabilities, 1);
 }
 
-/// A phone set up on this Mac and paired with it.
+/// A phone set up on this computer and paired with it.
 fn set_up_world() -> World {
     set_up(world())
 }
@@ -404,7 +404,7 @@ async fn a_silent_phone_is_not_retried() {
     assert!(sent(&world.h).is_empty());
 }
 
-/// A phone set up on this Mac that answers with its hotspot's credentials.
+/// A phone set up on this computer that answers with its hotspot's credentials.
 fn answering_world() -> World {
     let auth = Arc::new(PhoneAuth::default());
     let world = set_up(world_with(auth.clone()));
@@ -426,7 +426,7 @@ async fn a_connect_joins_and_reads_as_joined_while_the_mac_stays_on_the_network(
     assert_eq!(world.h.app.phone_record().unwrap().hotspot.ssid.as_deref(), Some(SSID));
     assert!(joined(&world));
 
-    // The Mac moves to another network: no longer joined; back on the hotspot: joined again.
+    // The computer moves to another network: no longer joined; back on the hotspot: joined again.
     *world.wifi.current.lock().unwrap() = Some("Office".into());
     assert!(!joined(&world));
     *world.wifi.current.lock().unwrap() = Some(SSID.into());

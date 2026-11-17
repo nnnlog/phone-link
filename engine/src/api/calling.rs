@@ -2,7 +2,7 @@
 //!
 //! The calls view reads the selected phone's call history with the contact each number resolves to,
 //! its access state (the prompt that stands in for the history), the sync state and the missed-call
-//! badge; it switches "use calls on this Mac", asks the phone for its call log, and runs the
+//! badge; it switches "use calls on this computer", asks the phone for its call log, and runs the
 //! empty-history refresh. Call control's state, the phone's current calls and the operations on them
 //! (dial, answer, decline, end, swap) go through the same object; every call's audio stays on the
 //! phone.
@@ -29,7 +29,7 @@ use super::{FeatureApiError, RequestOutcome, core_of, features_of, selected_phon
 pub enum CallsAccess {
     /// No calls view for this phone: not Android, or without the `Calls` capability.
     Unsupported,
-    /// "Use calls on this Mac" is off.
+    /// "Use calls on this computer" is off.
     PcConsentRequired,
     /// The phone shares no call history; the view asks to update Link to Windows.
     CallLogsUnsupported,
@@ -58,12 +58,12 @@ impl From<FeatureAccess> for CallsAccess {
 #[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
 pub struct CallingState {
     pub access: CallsAccess,
-    /// "Use calls on this Mac" (default off).
+    /// "Use calls on this computer" (default off).
     pub pc_consent: bool,
     pub up_to_date: bool,
     /// When the call history last finished syncing, Unix ms.
     pub last_updated_ms: Option<i64>,
-    /// The Mac is asking the phone for its call history.
+    /// The computer is asking the phone for its call history.
     pub refreshing: bool,
     /// Missed calls not yet seen in the calls view: the Calls section's badge.
     pub unseen_missed: u32,
@@ -93,7 +93,7 @@ pub enum CallKind {
     Blocked,
     /// Answered on another device.
     AnsweredExternally,
-    /// The phone sent no type, or one this Mac does not know.
+    /// The phone sent no type, or one this computer does not know.
     Unknown,
 }
 
@@ -197,14 +197,14 @@ impl From<&CallingEvent> for CallingChange {
 /// Call control's connection to the phone.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Enum)]
 pub enum CallControlStatus {
-    /// "Make and answer calls on this Mac" or "Show call history on this Mac" is off, or the phone
+    /// "Make and answer calls on this computer" or "Show call history on this computer" is off, or the phone
     /// cannot have call control.
     Off,
     /// Getting ready.
     Starting,
-    /// The Mac's Bluetooth is off.
+    /// The computer's Bluetooth is off.
     BluetoothOff,
-    /// No device paired with the Mac is the phone: *Begin Pairing*.
+    /// No device paired with the computer is the phone: *Begin Pairing*.
     NotPaired,
     Connecting,
     /// The connection failed: *Try Again*.
@@ -234,9 +234,9 @@ impl From<ControlStatus> for CallControlStatus {
 pub struct CallControlState {
     /// The phone can have call control (Android, with calling, features not disabled).
     pub offered: bool,
-    /// "Show call history on this Mac", which call control needs too.
+    /// "Show call history on this computer", which call control needs too.
     pub pc_consent: bool,
-    /// "Make and answer calls on this Mac" (default off).
+    /// "Make and answer calls on this computer" (default off).
     pub enabled: bool,
     pub status: CallControlStatus,
 }
@@ -304,7 +304,7 @@ pub struct ActiveCall {
     pub status: ActiveCallStatus,
     /// Incoming while another call exists.
     pub waiting: bool,
-    /// When the Mac first saw the call talking, Unix ms.
+    /// When the computer first saw the call talking, Unix ms.
     pub talking_since_ms: Option<i64>,
     pub role: ActiveCallRole,
 }
@@ -453,7 +453,7 @@ impl CallingApi {
         self.run(|f, phone| f.mark_seen(phone))
     }
 
-    /// "Use calls on this Mac". Switched on, the phone is asked for its call history once if none is
+    /// "Use calls on this computer". Switched on, the phone is asked for its call history once if none is
     /// stored and the phone allows it.
     pub fn set_pc_consent(&self, consent: bool) -> Result<(), FeatureApiError> {
         self.run(|f, phone| f.set_pc_consent(phone, consent))
@@ -475,7 +475,7 @@ impl CallingApi {
         self.run(|f, phone| Ok(f.control().state(phone)?.into()))
     }
 
-    /// "Make and answer calls on this Mac". Switched on, the Mac connects to the phone over Bluetooth
+    /// "Make and answer calls on this computer". Switched on, the computer connects to the phone over Bluetooth
     /// (not waited for).
     pub fn set_control_enabled(&self, enabled: bool) -> Result<(), FeatureApiError> {
         self.run(|f, phone| f.control().set_enabled(phone, enabled))
@@ -491,7 +491,7 @@ impl CallingApi {
         self.control(|c| async move { Ok(c.connect().await) }).await.map(Into::into)
     }
 
-    /// Pairs the Mac with the phone over Bluetooth (*Begin Pairing*), then connects.
+    /// Pairs the computer with the phone over Bluetooth (*Begin Pairing*), then connects.
     pub async fn pair_for_control(&self) -> Result<CallControlStatus, CallControlError> {
         self.control(|c| async move { c.pair().await }).await.map(Into::into)
     }

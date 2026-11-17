@@ -97,7 +97,7 @@ impl Inner {
                     "button response on a phone notification dropped; its only button, Copy, never reaches the feature"
                 );
             }
-            NotificationResponse::Dismissed => debug!("phone notification dismissed on the Mac; nothing is sent"),
+            NotificationResponse::Dismissed => debug!("phone notification dismissed on the computer; nothing is sent"),
         }
     }
 

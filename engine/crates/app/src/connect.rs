@@ -46,13 +46,13 @@ pub enum ConnectTrigger {
     BecameConnected,
     /// The app came to the foreground — immediate.
     AppActivated,
-    /// macOS unlock or wake — background.
+    /// The computer's unlock or wake — background.
     UnlockOrWake,
     /// A user refresh or retry action — immediate.
     Refresh,
     /// The phone's recorded sync-over-mobile-data setting went from off to on — background.
     SyncOverMeteredEnabled,
-    /// macOS lock or sleep — the disconnect trigger: cancels an in-flight connect.
+    /// The computer's lock or sleep — the disconnect trigger: cancels an in-flight connect.
     LockOrSleep,
 }
 

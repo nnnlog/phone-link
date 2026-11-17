@@ -3,7 +3,7 @@
 //!
 //! This machine submits no hardware fingerprint — the SMBIOS components are marked unavailable, the
 //! disk serial is a single zero byte, and the two CLEP challenge blobs are the fixed all-zero-input
-//! constants — because a Mac exposes none of the Windows fields.
+//! constants — because a computer exposes none of the Windows fields.
 
 use rand::Rng;
 use rand::distr::Alphanumeric;
@@ -56,7 +56,7 @@ pub fn device_add_request(membername: &str, password: &str) -> String {
     let val = |id: &str, b64: &str| format!("<Component name=\"{id}\">{b64}</Component>");
 
     let components = [
-        err("4100"),             // SMBIOS board version — unavailable on a Mac
+        err("4100"),             // SMBIOS board version — unavailable on a computer
         err("4101"),             // SMBIOS serial — unavailable
         err("4102"),             // SMBIOS UUID — unavailable
         val("4113", "AA=="),     // disk serial subset — a single zero byte

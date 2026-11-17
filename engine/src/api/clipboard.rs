@@ -54,7 +54,7 @@ impl From<ClipKind> for ClipContent {
     }
 }
 
-/// A change to clipboard sharing, or a clip that moved between this Mac and the phone.
+/// A change to clipboard sharing, or a clip that moved between this computer and the phone.
 #[derive(Debug, Clone, PartialEq, Eq, uniffi::Enum)]
 pub enum ClipboardChange {
     GlobalSwitchChanged {
@@ -66,7 +66,7 @@ pub enum ClipboardChange {
     Received {
         content: ClipContent,
     },
-    /// This Mac's clipboard was announced to the phone.
+    /// This computer's clipboard was announced to the phone.
     Announced {
         content: ClipContent,
     },
@@ -110,12 +110,12 @@ impl ClipboardApi {
 
 #[uniffi::export]
 impl ClipboardApi {
-    /// The global switch (default on); it decides whether this Mac offers clipboard sharing at all.
+    /// The global switch (default on); it decides whether this computer offers clipboard sharing at all.
     pub fn global_switch(&self) -> Result<bool, FeatureApiError> {
         self.run(|f, _| f.global_switch())
     }
 
-    /// Turns clipboard sharing for this Mac on or off; a change is saved and told to every phone.
+    /// Turns clipboard sharing for this computer on or off; a change is saved and told to every phone.
     pub fn set_global_switch(&self, enabled: bool) -> Result<(), FeatureApiError> {
         self.run(|f, _| f.set_global_switch(enabled))
     }

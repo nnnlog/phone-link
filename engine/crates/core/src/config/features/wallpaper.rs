@@ -3,7 +3,7 @@
 /// The feature's options, at their defaults.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WallpaperConfig {
-    /// Answer the phone's `/wallpaper` requests with the Mac's desktop picture (default on). Off, no
+    /// Answer the phone's `/wallpaper` requests with the computer's desktop picture (default on). Off, no
     /// receiver is registered and the phone's requests go unanswered.
     pub pc_wallpaper_sync_enabled: bool,
 }

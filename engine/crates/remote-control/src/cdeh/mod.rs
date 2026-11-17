@@ -1,8 +1,8 @@
 //! The Cross Device Experience Host contract: the `/remotecontrol` receiver on
 //! `/DeviceResourceManager`, its gates, and the `remote_control.v1` answer.
 //!
-//! A lock or a sleep is answered `SUCCESS` first, and the Mac acts only once that answer was sent;
-//! the other actions are answered after the Mac acted, with their outcome.
+//! A lock or a sleep is answered `SUCCESS` first, and the computer acts only once that answer was sent;
+//! the other actions are answered after the computer acted, with their outcome.
 
 use std::sync::{Arc, Weak};
 
@@ -95,12 +95,12 @@ impl Inner {
         }
     }
 
-    /// The gate's last step: the phone's enabled flag on this Mac.
+    /// The gate's last step: the phone's enabled flag on this computer.
     fn enabled_gate(&self, source: &DcgClient) -> Gate {
         match self.switches.is_enabled(source) {
             Ok(true) => Gate::Act,
             Ok(false) => {
-                info!(partner = %source, "remote control refused; the phone is disabled on this Mac");
+                info!(partner = %source, "remote control refused; the phone is disabled on this computer");
                 Gate::Answer(RemoteControlResult::Disabled)
             }
             Err(e) => {
@@ -141,7 +141,7 @@ impl Inner {
     }
 
     /// The request's `control_type`, or the answer (logged) when the payload is empty, remote
-    /// control is off on this Mac or the payload does not decode.
+    /// control is off on this computer or the payload does not decode.
     fn control_type(&self, request: &DrmRequest) -> Result<i32, Vec<u8>> {
         let source = &request.source;
         if request.payload.is_empty() {
@@ -149,7 +149,7 @@ impl Inner {
             return Err(answer(RemoteControlResult::Failed, None));
         }
         if !self.config.enabled {
-            info!(partner = %source, "remote control refused; it is off on this Mac");
+            info!(partner = %source, "remote control refused; it is off on this computer");
             return Err(answer(RemoteControlResult::Disabled, None));
         }
 
@@ -185,7 +185,7 @@ impl Inner {
     }
 }
 
-/// A lock and a sleep are answered `SUCCESS` before the Mac acts, so the answer leaves before the
+/// A lock and a sleep are answered `SUCCESS` before the computer acts, so the answer leaves before the
 /// session the lock stops or the sleep suspends; the other actions are answered with their outcome.
 pub fn answered_first(action: PowerAction) -> bool {
     matches!(action, PowerAction::LockScreen | PowerAction::Sleep)
@@ -205,7 +205,7 @@ async fn act_once_answered(
             perform(power, action).await;
         }
         AnswerDelivery::NotSent => {
-            warn!(partner = %source, ?action, "remote control answer not sent; the Mac does not act");
+            warn!(partner = %source, ?action, "remote control answer not sent; the computer does not act");
         }
     }
 }
@@ -215,10 +215,10 @@ fn power_action(source: &DcgClient, control_type: i32) -> Result<PowerAction, Ve
     match RemoteControlType::try_from(control_type) {
         Ok(RemoteControlType::Lock) => Ok(PowerAction::LockScreen),
         Ok(RemoteControlType::Sleep) => Ok(PowerAction::Sleep),
-        // macOS has no "install updates while shutting down": the plain action.
+        // No "install updates while shutting down" here: the plain action.
         Ok(RemoteControlType::Shutdown | RemoteControlType::UpdateAndShutdown) => Ok(PowerAction::ShutDown),
         Ok(RemoteControlType::Restart | RemoteControlType::UpdateAndRestart) => Ok(PowerAction::Restart),
-        // No update restart is ever pending on this Mac.
+        // No update restart is ever pending on this computer.
         Ok(RemoteControlType::QueryUpdateAvailability) => Err(answer(RemoteControlResult::Success, Some(false))),
         Ok(RemoteControlType::Unspecified | RemoteControlType::TriggerToggleOn) | Err(_) => {
             warn!(partner = %source, control_type, "remote control type unrecognized; answered FAILED");

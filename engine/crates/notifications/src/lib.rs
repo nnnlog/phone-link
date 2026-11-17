@@ -1,4 +1,4 @@
-//! Phone notifications mirrored on the Mac.
+//! Phone notifications mirrored on the computer.
 //!
 //! | Module | Implements |
 //! |---|---|
@@ -9,7 +9,7 @@
 //! | `queue` | the persistent action queue |
 //! | [`settings`], `preferences` | per-app notification settings (requests 25 / 26 / 27, responses, local-only settings) |
 //! | `connect` | the contribution to the connect message |
-//! | [`presentation`], `responses` | presentation on macOS and the responses to what it posts |
+//! | [`presentation`], `responses` | presentation as system notifications and the responses to what it posts |
 //! | [`store`] | preconditions and state: the per-phone notification store, queue, settings and values |
 //!
 //! [`install`] registers the `notifications` content processor, the `SyncNotifications` connect

@@ -107,7 +107,7 @@ pub fn launch_notification_v2(transaction_id: &str, key: &str, action_index: i32
 
 pub const KEYBOARD_SETTINGS_INTENT: &str = "hardware_keyboard_settings";
 
-/// The kind of the Mac's current keyboard input source, which picks the keyboard settings the phone
+/// The kind of the computer's current keyboard input source, which picks the keyboard settings the phone
 /// opens in the phone screen.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum InputSourceKind {
@@ -201,7 +201,7 @@ pub fn app_focusable_state(state: FocusableState, correlation_id: &str) -> Vec<u
         .bytes()
 }
 
-/// One file of a Mac → phone drag.
+/// One file of a computer → phone drag.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ClipItem {
     pub mime_type: String,

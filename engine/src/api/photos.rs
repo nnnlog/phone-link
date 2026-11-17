@@ -83,7 +83,7 @@ impl From<&PhotoItem> for Photo {
 pub struct PhotosState {
     /// The phone has the photos feature.
     pub enabled: bool,
-    /// "Show photos on this Mac".
+    /// "Show photos on this computer".
     pub consent: bool,
     /// The phone allows photos; off shows the permission prompt.
     pub photos_permission: bool,
@@ -352,7 +352,7 @@ impl PhotosApi {
         Ok((&self.feature()?.delete(id).await?).into())
     }
 
-    /// "Show photos on this Mac".
+    /// "Show photos on this computer".
     pub fn set_consent(&self, on: bool) -> Result<(), FeatureApiError> {
         self.run(|f| f.set_consent(on))
     }

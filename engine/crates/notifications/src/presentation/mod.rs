@@ -1,5 +1,5 @@
-//! Presentation on macOS (`UNUserNotificationCenter` through
-//! [`SystemNotifier`](phonelink_features::shared::notifier::SystemNotifier)).
+//! Presentation as system notifications (macOS: `UNUserNotificationCenter`) through
+//! [`SystemNotifier`](phonelink_features::shared::notifier::SystemNotifier).
 //!
 //! It covers whether an upserted item alerts (Phone Link's decision rules), the 20 s duplicate
 //! check, per-package throttling with its "paused" notice, and the content of the system

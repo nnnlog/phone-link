@@ -53,7 +53,7 @@ pub struct AccountPc {
     /// When it was enrolled and when the device list last saw it, Unix seconds (`0` unknown).
     pub registered: i64,
     pub last_seen: i64,
-    /// One of this Mac's own identities (never unlinked from here).
+    /// One of this computer's own identities (never unlinked from here).
     pub this_mac: bool,
 }
 
@@ -122,7 +122,7 @@ impl PhoneApi {
         Ok(phones)
     }
 
-    /// The account's PCs, this Mac's identities marked, most recently seen first (no network).
+    /// The account's PCs, this computer's identities marked, most recently seen first (no network).
     pub fn account_pcs(&self) -> Result<Vec<AccountPc>, FeatureApiError> {
         let core = core_of(&self.engine)?;
         let own = core.own_clients();
@@ -144,7 +144,7 @@ impl PhoneApi {
         Ok(pcs)
     }
 
-    /// Unlinks the PC `id`, one of [`PhoneApi::account_pcs`] that is not this Mac, from the account.
+    /// Unlinks the PC `id`, one of [`PhoneApi::account_pcs`] that is not this computer, from the account.
     pub async fn unlink_pc(&self, id: String) -> Result<(), FeatureApiError> {
         let core = core_of(&self.engine)?;
         core.unlink_pc(&id).await.map_err(|e| match e {

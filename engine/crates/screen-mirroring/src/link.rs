@@ -54,7 +54,7 @@ pub struct OpenedLink {
     pub channels: mpsc::UnboundedReceiver<RawChannel>,
     pub events: mpsc::UnboundedReceiver<LinkEvent>,
     pub control: Arc<dyn LinkControl>,
-    /// The winning attempt was the direct IP one (the phone is on the Mac's network).
+    /// The winning attempt was the direct IP one (the phone is on the computer's network).
     pub local: bool,
 }
 

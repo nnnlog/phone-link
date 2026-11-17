@@ -1,10 +1,10 @@
-//! The Hands-Free Profile's AT dialogue as the HF sees it: the commands the Mac sends, and the lines
+//! The Hands-Free Profile's AT dialogue as the HF sees it: the commands the computer sends, and the lines
 //! the phone's Audio Gateway sends back, split and parsed.
 //!
 //! Every parser takes one line without its `\r\n`. A line the parsers do not know is
 //! [`Line::Other`]; nothing here fails on the phone's bytes.
 
-/// The HF features the Mac announces in `AT+BRSF`.
+/// The HF features the computer announces in `AT+BRSF`.
 ///
 /// Three-way calling (`0x02`), CLI presentation (`0x04`), enhanced call status (`0x20`) and enhanced
 /// call control (`0x40`). Echo cancellation, voice recognition, remote volume and codec negotiation
@@ -236,7 +236,7 @@ impl LineSplitter {
     }
 }
 
-/// The commands the Mac sends, each without its terminating `\r`.
+/// The commands the computer sends, each without its terminating `\r`.
 pub mod command {
     use super::HF_FEATURES;
 

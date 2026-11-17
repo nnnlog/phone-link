@@ -1,7 +1,7 @@
 //! The call-history store: one SQLite database per phone.
 //!
 //! It holds the call table, the `call_logs` sequence pair, and the per-phone state — "use calls on
-//! this Mac", "make and answer calls on this Mac", the one automatic refresh of an empty history, the
+//! this computer", "make and answer calls on this computer", the one automatic refresh of an empty history, the
 //! last completed sync, and the missed-call badge's mark.
 //!
 //! Times are Unix milliseconds.
@@ -73,9 +73,9 @@ impl SyncState {
 /// The per-phone switches and marks.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PhoneState {
-    /// "Use calls on this Mac" (default off).
+    /// "Use calls on this computer" (default off).
     pub pc_consent: bool,
-    /// "Make and answer calls on this Mac" (default off).
+    /// "Make and answer calls on this computer" (default off).
     pub call_control: bool,
     /// The one automatic refresh of an empty history was sent.
     pub auto_refresh_done: bool,
@@ -221,13 +221,13 @@ pub fn state(db: &FeatureDb) -> Result<PhoneState, StoreError> {
     db.read(read_state)
 }
 
-/// Sets "use calls on this Mac"; `true` when it changed.
+/// Sets "use calls on this computer"; `true` when it changed.
 pub fn set_pc_consent(db: &FeatureDb, consent: bool) -> Result<bool, StoreError> {
     db.read(|c| c.execute("UPDATE state SET pc_consent = ?1 WHERE id = 1 AND pc_consent != ?1", [consent]))
         .map(|n| n > 0)
 }
 
-/// Sets "make and answer calls on this Mac"; `true` when it changed.
+/// Sets "make and answer calls on this computer"; `true` when it changed.
 pub fn set_call_control(db: &FeatureDb, enabled: bool) -> Result<bool, StoreError> {
     db.read(|c| c.execute("UPDATE state SET call_control = ?1 WHERE id = 1 AND call_control != ?1", [enabled]))
         .map(|n| n > 0)

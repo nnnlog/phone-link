@@ -1,4 +1,4 @@
-//! The PC's own status for the phone's `/remotedevicestatus` request (phone → PC): the macOS sources
+//! The PC's own status for the phone's `/remotedevicestatus` request (phone → PC): the OS's sources
 //! as an OS edge, and the `DeviceStatusResponseMessage` the engine builds from them.
 //!
 //! The Wi-Fi bar mapping stays in Rust.
@@ -10,7 +10,7 @@ use phonelink_proto::device_info::v1::{
     DeviceStatus, DeviceStatusResponseMessage, DeviceStatusResponseStatus, NetworkType,
 };
 
-/// The Mac's internal battery, as `IOKit`'s power-source description reports it.
+/// The computer's internal battery, as `IOKit`'s power-source description reports it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Record)]
 pub struct PcBattery {
     /// `kIOPSCurrentCapacityKey`.
@@ -21,7 +21,7 @@ pub struct PcBattery {
     pub on_ac_power: bool,
 }
 
-/// The kind of the Mac's current internet path.
+/// The kind of the computer's current internet path.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Enum)]
 pub enum PcInternetPath {
     /// No satisfied path.
@@ -42,7 +42,7 @@ pub enum PcInternetPath {
 pub trait PcStatusSource: Send + Sync {
     /// The internal battery (macOS: `IOPSCopyPowerSourcesInfo` / `IOPSCopyPowerSourcesList` and the
     /// description of the source whose `kIOPSTypeKey` is `kIOPSInternalBatteryType`); `None` when the
-    /// Mac has none.
+    /// computer has none.
     fn internal_battery(&self) -> Result<Option<PcBattery>, EdgeError>;
     /// Low Power Mode is on (macOS: `ProcessInfo.processInfo.isLowPowerModeEnabled`).
     fn low_power_mode(&self) -> Result<bool, EdgeError>;
@@ -140,7 +140,7 @@ pub mod standins {
     }
 
     impl Default for PcState {
-        /// A desktop Mac on wired Ethernet.
+        /// A desktop computer on wired Ethernet.
         fn default() -> Self {
             Self {
                 battery: None,

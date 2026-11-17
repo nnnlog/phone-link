@@ -71,7 +71,7 @@ pub enum PhotosEvent {
     /// A delete finished.
     DeleteFinished { phone: DcgClient, result: DeleteResult },
     /// A new-photo notification was activated and the full image is stored: open it with the
-    /// default macOS viewer (the bytes: [`Photos::full_image`]).
+    /// system's default viewer (the bytes: [`Photos::full_image`]).
     OpenImage { phone: DcgClient, id: i64 },
 }
 

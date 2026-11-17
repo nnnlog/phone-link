@@ -75,8 +75,8 @@ enum SetupFailure {
         #[source]
         error: ParseError,
     },
-    /// A precondition on the Mac is off ("allow apps"): the connection closes with the code.
-    #[error("apps are not allowed on this Mac (status {0})")]
+    /// A precondition on the computer is off ("allow apps"): the connection closes with the code.
+    #[error("apps are not allowed on this computer (status {0})")]
     Closed(i32),
 }
 
@@ -174,7 +174,7 @@ struct State {
     held_audio: Vec<RawChannel>,
     /// Cancelled when the `audio` workflow ends: its open audio channels close.
     audio_stop: CancellationToken,
-    /// Whether the Mac had an audio output when the phone was last told (`pcStreamingAllowed`);
+    /// Whether the computer had an audio output when the phone was last told (`pcStreamingAllowed`);
     /// `None` while no `audio` workflow is open.
     audio_output: Option<bool>,
     package_audio: HashMap<String, PackageAudio>,
@@ -278,7 +278,7 @@ pub(crate) struct Inner {
     /// One `earlyLaunch` start at a time.
     early_lock: tokio::sync::Mutex<()>,
     runtime: Handle,
-    /// The folder phone → Mac drags receive their files in, one subfolder per window.
+    /// The folder phone → computer drags receive their files in, one subfolder per window.
     drag_staging: PathBuf,
     /// The settings, or an app's data, failed to read since the last read that succeeded: the
     /// failure was logged, and the next ones are not.
@@ -390,7 +390,7 @@ impl Inner {
             Arc::new(move || lock_edge.lock_state() == LockState::Locked);
         let links = Links::new(connector, config.link, notices_tx, mac_locked, runtime.clone());
 
-        // Phone files dragged to the Mac are received under the stores' folder, where files an earlier
+        // Phone files dragged to the computer are received under the stores' folder, where files an earlier
         // run left behind are removed; with in-memory stores, in a folder of this run's own.
         let drag_staging = match &env.stores {
             StoreLocation::Directory(dir) => {

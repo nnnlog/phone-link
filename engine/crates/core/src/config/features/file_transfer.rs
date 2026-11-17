@@ -6,7 +6,7 @@ use std::time::Duration;
 /// Every option and timer of the feature, at its default.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FileTransferConfig {
-    /// The Mac receives files from the phone: it advertises `FILE_TRANSFER`, and the received-files
+    /// The computer receives files from the phone: it advertises `FILE_TRANSFER`, and the received-files
     /// folder setting may show (default on). The receive request is answered either way.
     pub phone_to_pc_enabled: bool,
     /// Phones are offered as send targets, and the *Share* toggle shows (default on). Phone Link on

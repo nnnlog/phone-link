@@ -27,7 +27,7 @@ pub enum PairingFlow {
 pub struct PairingCode {
     /// The text to show — for a QR code, the exact text to encode.
     pub value: String,
-    /// When it stops working, Unix seconds on this Mac's clock.
+    /// When it stops working, Unix seconds on this computer's clock.
     pub expires_at: i64,
     /// Whole minutes it stays valid from when it arrived (at least 1).
     pub expires_in_minutes: u32,
@@ -111,7 +111,7 @@ pub enum PairingStep {
     },
     /// The user grants permissions on the phone.
     WaitingForPermissions,
-    /// The phone joined; this Mac is learning it.
+    /// The phone joined; this computer is learning it.
     Completing,
     Ended {
         result: PairingResult,
@@ -240,7 +240,7 @@ impl PairingApi {
 #[uniffi::export]
 impl PairingApi {
     /// Starts a session of `flow`, cancelling the one in progress, and returns its number. Needs a
-    /// start that signed in and enrolled this Mac.
+    /// start that signed in and enrolled this computer.
     pub fn start(&self, flow: PairingFlow) -> Result<u64, FeatureApiError> {
         let core = core_of(&self.engine)?;
         let _runtime = core.enter_runtime();

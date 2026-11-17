@@ -1,5 +1,5 @@
-//! The phone's calls as the Mac knows them: built from the AG's call list (`+CLCC`), with the calls
-//! placed or answered from the Mac tracked as primary and secondary.
+//! The phone's calls as the computer knows them: built from the AG's call list (`+CLCC`), with the calls
+//! placed or answered from the computer tracked as primary and secondary.
 
 use super::at::ClccEntry;
 
@@ -28,7 +28,7 @@ impl CallStatus {
     }
 }
 
-/// Where a call shows on the Mac.
+/// Where a call shows on the computer.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CallRole {
     /// Placed or answered on the phone: only an incoming call shows (its popup).
@@ -42,7 +42,7 @@ pub enum CallRole {
 /// One call.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Call {
-    /// The Mac's id for the call, never reused.
+    /// The computer's id for the call, never reused.
     pub id: u64,
     /// The AG's index (`<idx>`).
     pub index: u32,
@@ -52,7 +52,7 @@ pub struct Call {
     pub waiting: bool,
     /// The other party's number; empty when the phone gave none.
     pub number: String,
-    /// When the Mac first saw the call talking, Unix ms.
+    /// When the computer first saw the call talking, Unix ms.
     pub talking_since_ms: Option<i64>,
     pub role: CallRole,
 }
@@ -75,7 +75,7 @@ pub(crate) struct CallBook {
     caller: Option<String>,
     primary: Option<u64>,
     secondary: Option<u64>,
-    /// A dial from the Mac was answered `OK`: the first outgoing call with an id above this one is
+    /// A dial from the computer was answered `OK`: the first outgoing call with an id above this one is
     /// tracked.
     expecting_dialed: Option<u64>,
 }

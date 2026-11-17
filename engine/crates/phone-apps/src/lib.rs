@@ -1,4 +1,4 @@
-//! Phone apps — the phone's launchable apps and its recent apps on the Mac, Android only.
+//! Phone apps — the phone's launchable apps and its recent apps on the computer, Android only.
 //!
 //! | Module | Implements |
 //! |---|---|

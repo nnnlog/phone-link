@@ -1,7 +1,7 @@
 //! The Cross Device Experience Host (CDEH) contract.
 //!
 //! It covers the phone wallpaper pull (`GET` by type `WALLPAPER` with `WallpaperRequestMessage`),
-//! the `/wallpaper` receiver that answers the Mac's desktop picture, and the MSAEP tag-5
+//! the `/wallpaper` receiver that answers the computer's desktop picture, and the MSAEP tag-5
 //! subscription, whose observer does nothing.
 
 use std::sync::Arc;
@@ -24,7 +24,7 @@ use phonelink_transport::platform::{
     DrmAddress, DrmReceiver, DrmReceiverError, DrmRequest, DrmSendRequest, Publication, PublicationObserver,
 };
 
-/// The receiver path of the Mac's wallpaper.
+/// The receiver path of the computer's wallpaper.
 pub const PC_WALLPAPER_PATH: &str = "/wallpaper";
 /// The MSAEP tag subscribed with an observer that does nothing.
 pub const WALLPAPER_TAG: i16 = 5;
@@ -111,7 +111,7 @@ impl PublicationObserver for IgnoredPublications {
 }
 
 /// The `/wallpaper` receiver: answers every dispatched request — whatever its source, request type,
-/// query or payload, none of which is parsed — with the Mac's desktop picture.
+/// query or payload, none of which is parsed — with the computer's desktop picture.
 pub(crate) struct PcWallpaperReceiver {
     answers: Arc<PcWallpaperAnswers>,
 }
@@ -125,12 +125,12 @@ impl PcWallpaperReceiver {
 #[async_trait]
 impl DrmReceiver for PcWallpaperReceiver {
     async fn receive(&self, request: DrmRequest) -> Result<Option<Vec<u8>>, DrmReceiverError> {
-        debug!(partner = %request.source, raw_path = %request.path, "the phone asks for the Mac's wallpaper");
+        debug!(partner = %request.source, raw_path = %request.path, "the phone asks for the computer's wallpaper");
         let answers = self.answers.clone();
         let answer = match tokio::task::spawn_blocking(move || answers.answer()).await {
             Ok(answer) => answer,
             Err(e) => {
-                warn!(error = %e, "reading the Mac's desktop picture panicked; answered as unreadable");
+                warn!(error = %e, "reading the computer's desktop picture panicked; answered as unreadable");
                 pc_wallpaper_response(PcWallpaper::Unreadable)
             }
         };

@@ -1,4 +1,4 @@
-//! Changes the Mac makes to the phone's tree over `/DeviceResourceManager`: a new folder, a rename or
+//! Changes the computer makes to the phone's tree over `/DeviceResourceManager`: a new folder, a rename or
 //! move inside the tree, and deletes — collected into batches when the phone takes them, one request
 //! per item otherwise. A rename or move takes its item out of a batch still being collected.
 
@@ -42,12 +42,12 @@ pub enum OpError {
     UnknownFolder,
     #[error("an item with this name already exists")]
     Exists,
-    /// The name stays on the Mac: it is not sent to the phone.
+    /// The name stays on the computer: it is not sent to the phone.
     #[error("items with this name are not sent to the phone")]
     Ignored,
     #[error("the phone does not support this")]
     NotSupported,
-    /// The Mac's tree is behind the phone; a refresh corrects it.
+    /// The computer's tree is behind the phone; a refresh corrects it.
     #[error("the item changed on the phone")]
     NotInSync,
     /// The phone answered with this status, or did not answer.

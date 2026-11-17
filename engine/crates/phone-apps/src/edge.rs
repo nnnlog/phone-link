@@ -1,15 +1,15 @@
-//! The phone apps' OS edge: what the feature asks of the Mac — whether an installed application opens
+//! The phone apps' OS edge: what the feature asks of the computer — whether an installed application opens
 //! a URI (macOS: Launch Services), and the order of app names in the user's language.
 //!
 //! The CLI uses [`PlainAppsHost`]; the tests use [`testing`].
 
-/// The Mac's applications and language, for the phone apps.
+/// The computer's applications and language, for the phone apps.
 #[uniffi::export(with_foreign)]
 pub trait PhoneAppsHost: Send + Sync {
-    /// An application installed on this Mac opens `uri`. Called for a recent entry's document URI
+    /// An application installed on this computer opens `uri`. Called for a recent entry's document URI
     /// while it is stored, on a thread that may block.
     fn can_open_uri(&self, uri: String) -> bool;
-    /// The positions of `names` in the order the Mac's current locale sorts them, ignoring case,
+    /// The positions of `names` in the order the computer's current locale sorts them, ignoring case,
     /// diacritics, kana type and width; equal names keep their order in `names`. The result holds
     /// every position of `names` exactly once.
     fn name_order(&self, names: Vec<String>) -> Vec<u32>;
