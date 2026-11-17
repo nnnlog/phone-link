@@ -1,0 +1,14 @@
+{
+  "%@ can't receive files from this computer.": "%@ 앱은 이 컴퓨터에서 파일을 받을 수 없어요.",
+  "Camera device": "카메라 장치",
+  "Choose it as the camera in any app on this computer": "이 컴퓨터에 있는 모든 앱에서 휴대폰을 카메라로 선택할 수 있어요",
+  "Not set up": "설정되지 않음",
+  "Open your phone's screen and apps on this computer": "이 컴퓨터에서 휴대폰의 화면과 앱 열기",
+  "Phone Link adds your phone to this computer's cameras through a v4l2loopback device labeled “Phone Link”.": "Phone Link는 “Phone Link” 레이블이 붙은 v4l2loopback 장치로 휴대폰을 이 컴퓨터에 카메라로 추가해요.",
+  "Play apps' audio on this computer": "이 컴퓨터에서 앱 오디오 재생",
+  "Several v4l2loopback devices are loaded, and none is labeled “Phone Link”. Give one that label with its card_label option.": "v4l2loopback 장치가 여러 개 있지만 “Phone Link” 레이블이 붙은 장치가 없어요. 그중 하나에 card_label 옵션으로 이 레이블을 붙여 주세요.",
+  "This app can't receive files from this computer.": "이 앱은 이 컴퓨터에서 파일을 받을 수 없어요.",
+  "This phone's screen can't be shown on this computer.": "이 휴대폰의 화면은 이 컴퓨터에 표시할 수 없어요.",
+  "When your phone hands off what you're doing to this computer": "휴대폰에서 하던 작업을 이 컴퓨터로 넘길 때",
+  "When your phone moves an app to this computer": "휴대폰이 앱을 이 컴퓨터로 옮길 때"
+}

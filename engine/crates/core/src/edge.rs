@@ -1,4 +1,4 @@
-//! OS-edge interfaces: the engine declares them as `uniffi` foreign traits; `gui/` implements
+//! OS-edge interfaces: the engine declares them as `uniffi` foreign traits; `gui/mac/` implements
 //! them in Swift and the CLI with file-backed stand-ins, so the engine links no macOS-only framework.
 //!
 //! The traits are synchronous, and most callers, async ones included, call them directly: a Keychain

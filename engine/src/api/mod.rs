@@ -1,4 +1,4 @@
-//! The `uniffi` surface `gui/` drives the features through.
+//! The `uniffi` surface `gui/mac/` drives the features through.
 //!
 //! It covers one object per feature, reached from [`Engine`], each resolving the engine's current
 //! core on every call — `Engine::start` replaces a core that needs a rebuild, so a handle kept

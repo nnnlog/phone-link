@@ -1,6 +1,6 @@
 //! Protocol and feature core of the macOS Phone Link app: the engine, its `uniffi` surface, and
 //! the installed set of features, on top of the crates under `crates/`. The crate builds the
-//! library that `gui/` links through `uniffi` (with every crate beneath it) and the headless
+//! library that `gui/mac/` links through `uniffi` (with every crate beneath it) and the headless
 //! `phonelink` CLI.
 //!
 //! The public modules are what those two use: [`api`] (the `uniffi` surface), [`engine`] (the core

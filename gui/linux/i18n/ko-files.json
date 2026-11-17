@@ -1,0 +1,19 @@
+{
+  "%@ GB": "%@GB",
+  "%@ KB": "%@KB",
+  "%@ MB": "%@MB",
+  "%@ TB": "%@TB",
+  "%@ byte": "%@바이트",
+  "%@ bytes": "%@바이트",
+  "Browse, open, copy, rename and delete your phone's files from %@": "%@에서 휴대폰에 있는 파일을 탐색하고, 열고, 복사하고, 이름을 변경하거나 삭제할 수 있어요",
+  "Control what plays on your phone from this computer.": "휴대폰에서 재생 중인 항목을 이 컴퓨터에서 제어할 수 있어요.",
+  "Files your phone shares with this computer are saved to %@.": "휴대폰이 이 컴퓨터와 공유하는 파일은 %@에 저장돼요.",
+  "Play, pause and skip what plays on your phone from the system tray and the Phone Link window.": "휴대폰에서 재생 중인 항목을 시스템 트레이와 Phone Link 윈도우에서 재생하거나 일시 정지하고 건너뛸 수 있어요.",
+  "Sending files to this phone is turned off in Settings › Files.": "설정 › 파일에서 이 휴대폰으로 파일 보내기가 꺼져 있어요.",
+  "Unlock this computer and try again.": "이 컴퓨터의 잠금을 해제하고 다시 시도해 주세요.",
+  "Use media keys and the desktop's media controls": "미디어 키 및 데스크톱 미디어 제어 사용",
+  "While your phone has media open, the keyboard's play, pause and skip keys and the desktop's media controls control it.": "휴대폰에서 미디어가 열려 있는 동안에는 키보드의 재생, 일시 정지, 건너뛰기 키와 데스크톱 미디어 제어가 휴대폰을 제어해요.",
+  "Your phone can't receive files from this computer.": "휴대폰이 이 컴퓨터에서 파일을 받을 수 없어요.",
+  "Your phone can't receive files from this computer. Update Link to Windows on your phone.": "휴대폰이 이 컴퓨터에서 파일을 받을 수 없어요. 휴대폰에서 Windows와 연결을 업데이트해 주세요.",
+  "Your phone's files aren't in the file manager yet.": "휴대폰 파일이 아직 파일 관리자에 없어요."
+}

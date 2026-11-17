@@ -1,0 +1,11 @@
+# Settings for the lints `Cargo.toml` turns on: the engine's (`../../engine/clippy.toml`).
+allow-unwrap-in-tests = true
+allow-expect-in-tests = true
+allow-panic-in-tests = true
+disallowed-methods = [
+    { path = "std::sync::Mutex::lock", reason = "say what a poisoned lock means: phonelink_core::sync::MutexExt" },
+    { path = "std::sync::RwLock::read", reason = "say what a poisoned lock means: phonelink_core::sync::RwLockExt" },
+    { path = "std::sync::RwLock::write", reason = "say what a poisoned lock means: phonelink_core::sync::RwLockExt" },
+]
+# The app has no external API to keep stable, so the naming lints apply to every item.
+avoid-breaking-exported-api = false

@@ -1,4 +1,4 @@
-//! The handle `gui/` holds: [`Engine`] builds the engine's core on its first start (and a new one
+//! The handle `gui/mac/` holds: [`Engine`] builds the engine's core on its first start (and a new one
 //! when the core needs a rebuild), forwards the app's calls to it, and hands out the feature objects.
 
 use std::collections::HashMap;
@@ -58,7 +58,7 @@ pub struct EngineStatus {
     pub needs_phone_selection: bool,
 }
 
-/// The engine handle `gui/` holds.
+/// The engine handle `gui/mac/` holds.
 #[derive(uniffi::Object)]
 pub struct Engine {
     config: EngineConfig,

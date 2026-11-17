@@ -1,0 +1,15 @@
+{
+  "%@ doesn't open its apps on this computer.": "%@에 있는 앱은 이 컴퓨터에서 열 수 없어요.",
+  "Allow deleting photos from this computer": "이 컴퓨터에서 사진 삭제 허용",
+  "Click the notification to open or edit the photo on this computer": "알림을 클릭하면 이 컴퓨터에서 사진을 열거나 편집할 수 있어요",
+  "Link to Windows on %@ doesn't share photos with this computer.": "%@에 있는 Windows와 연결이 이 컴퓨터와 사진을 공유하지 않아요.",
+  "New Photos": "새 사진",
+  "Next Photo": "다음 사진",
+  "No app on this computer can open it.": "이 컴퓨터에는 이 항목을 열 수 있는 앱이 없어요.",
+  "No app on this computer opened it.": "이 컴퓨터에 있는 어떤 앱도 이 항목을 열지 못했어요.",
+  "Open on This Computer": "이 컴퓨터에서 열기",
+  "Photos Are Off on This Computer": "이 컴퓨터에서 사진이 꺼져 있어요",
+  "Previous Photo": "이전 사진",
+  "Show photos on this computer": "이 컴퓨터에서 사진 보기",
+  "Turn them on to open %@'s screen and apps on this computer.": "켜면 이 컴퓨터에서 %@ 화면과 앱을 열 수 있어요."
+}

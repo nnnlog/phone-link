@@ -1,7 +1,7 @@
 # `engine/` — the protocol core
 
 A Cargo workspace: the `phonelink-engine` package in this directory and the crates beneath it under
-`crates/` (*Crate map*, below). `phonelink-engine` builds the library that `gui/` links through `uniffi`
+`crates/` (*Crate map*, below). `phonelink-engine` builds the library that `gui/mac/` links through `uniffi`
 as one static library, with every crate beneath it, and the headless `phonelink` CLI. It holds the
 protocol layers and the features — notifications, media controls, clipboard, device status (with ring my
 phone), remote control, messaging, call history, contacts, photos, wallpaper, new-photo notifications (remote
@@ -22,7 +22,7 @@ compares them with a saved baseline (`just engine-bindings-baseline`).
 `<crate>FFI.h`, `<crate>FFI.modulemap`); the generated Swift (`target/uniffi/`) is build output, and it
 typechecks with the Command Line Tools' `swiftc -typecheck $(for m in *FFI.modulemap; do echo -Xcc
 -fmodule-map-file=$m; done) -I . *.swift`. The macOS app's build generates its own copy
-(`gui/scripts/build-engine.sh`, which joins the modulemaps into one and lists the crates the Xcode
+(`gui/mac/scripts/build-engine.sh`, which joins the modulemaps into one and lists the crates the Xcode
 project compiles), building the library in `target/app/`. The `phonelink-engine` package lists only
 the `lib` crate type, so `cargo build` and `cargo test` link no
 static library; the app's build and `just engine-bindings` ask for one with `cargo rustc -p
@@ -147,7 +147,7 @@ that feature's crate and the ones above it, not the layers below.
 | `app` | the App message layer |
 | `nano` | the Nano path to the phone, below the features that use it (screen mirroring, files, camera): `contract` (offer and answer JSON), `ice` (candidates and the session description, STUN and TURN messages, the controlling agent), `srtp`, `transport` (MTU probe, keepalive, rate-control handshake, the rate-control header, receiver, sender and URCPV2 rate, the mux and its sequencer), `channel` (Message, Blob, video target, input source, audio target), `connection` (the connect object and the open connection over UDP), `connect` (attempt races, `/nanohandshake`, the context-message exchange), `cloud_relay`, `device` (the device connection and its platform channels), `named_streams`, `metrics`, `netif`, `probe` (the `PHONELINK_NANO_PROBE` diagnostic run) |
 | `engine` | `EngineCore`: `wiring` (the identity stacks and the routes), the start sequence, `phones` (the selected phone), `cdeh` (the Cross Device identity's session), `install` (the features), `bridges` (device-list, account-removal and capability bridges), `system` (the Mac's lock / unlock / sleep / wake), and `events` (`CoreEvent` and the `CoreEvents` trait the `api` layer implements); the embedder's types (`FeatureEdges`, `StoreLocation`, `FetchMode`, `sign_out_stored`) |
-| `api` | the `uniffi` surface, which only translates: `engine` (the `Engine` object: start, stop, refresh, foreground, system events, notification responses, the feature objects), `events` (`EngineEvent`, the `EventSink` foreign trait and the bridge from the core's events), the feature objects `gui/` drives (`NotificationsApi`, `AudioApi`, `ClipboardApi`, `DeviceStatusApi`, `RemoteControlApi`, `MessagingApi`, `ContactsApi`, `PhotosApi`, `WallpaperApi`, `RemoteSnippingApi`, `HotspotApi`, `PhoneApi`, …), the FFI records and enums mirroring the features' views, `FeatureApiError`, `BluetoothError`, `RequestOutcome`, and each feature's typed change event |
+| `api` | the `uniffi` surface, which only translates: `engine` (the `Engine` object: start, stop, refresh, foreground, system events, notification responses, the feature objects), `events` (`EngineEvent`, the `EventSink` foreign trait and the bridge from the core's events), the feature objects `gui/mac/` drives (`NotificationsApi`, `AudioApi`, `ClipboardApi`, `DeviceStatusApi`, `RemoteControlApi`, `MessagingApi`, `ContactsApi`, `PhotosApi`, `WallpaperApi`, `RemoteSnippingApi`, `HotspotApi`, `PhoneApi`, …), the FFI records and enums mirroring the features' views, `FeatureApiError`, `BluetoothError`, `RequestOutcome`, and each feature's typed change event |
 | `features` | the features; `shared/` holds what several of them use: `db` (one SQLite store per phone and feature), `notifier` (the `SystemNotifier` OS edge, the routing of responses and the Copy action), `auth_code` (authentication codes in notification text and in a messages app's copy action), `peers` (the account's phones), `phone_switch` (the CDEH per-phone switch), `phone_number` (E.164 and the phone's country), `files_permission`, `launch_gates`, `nano_channels`; `installed` holds the installed set, `FeatureEdges` and the install order. Each feature's configuration is in `config::features` |
 | `features::notifications` | the `notifications` content processor, `/notifications` and `/settings` requests and their triggers, the persistent action queue, connect provider #11, the banner decision |
 | `features::audio` | media controls: the sessions made from the notification store's media-style items, the selection, the `/command/audio` request and its 20 s busy state, the per-phone audio-controls setting |

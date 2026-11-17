@@ -3,7 +3,7 @@
 # Xcode is installed but xcode-select may point at the Command Line Tools; switching it needs sudo.
 export DEVELOPER_DIR := env("DEVELOPER_DIR", "/Applications/Xcode.app/Contents/Developer")
 
-xcodebuild := "xcodebuild -project gui/PhoneLink.xcodeproj -scheme PhoneLink -derivedDataPath gui/build/DerivedData"
+xcodebuild := "xcodebuild -project gui/mac/PhoneLink.xcodeproj -scheme PhoneLink -derivedDataPath gui/mac/build/DerivedData"
 
 # List the recipes
 default:
@@ -57,30 +57,37 @@ engine-bindings:
     cd engine && cargo rustc -p phonelink-engine --lib --crate-type staticlib --target-dir target/app
     cd engine && cargo run -p phonelink-engine --target-dir target/bindgen --features bindgen-cli --bin uniffi-bindgen -- generate --library target/app/debug/libphonelink_engine.a --language swift --out-dir target/uniffi
 
-# Build the Linux app (linux/); cxx-qt finds Qt 6 through QMAKE
+# Build the Linux app (gui/linux/); cxx-qt finds Qt 6 through QMAKE
 linux-build:
-    cd linux && QMAKE="${QMAKE:-qmake6}" cargo build
+    cd gui/linux && QMAKE="${QMAKE:-qmake6}" cargo build
 
 # Run the Linux app
 linux-run:
-    cd linux && QMAKE="${QMAKE:-qmake6}" cargo run
+    cd gui/linux && QMAKE="${QMAKE:-qmake6}" cargo run
 
-# Install the Linux app for this user (~/.local), starting in the tray at login
+# The Linux app's lints (warnings as errors), formatting, tests, and its log calls' constant messages
+linux-check:
+    cd gui/linux && QMAKE="${QMAKE:-qmake6}" cargo clippy --all-targets -- -D warnings
+    cd gui/linux && cargo fmt --check
+    cd gui/linux && QMAKE="${QMAKE:-qmake6}" cargo test
+    python3 -I engine/scripts/log_calls.py gui/linux/src
+
+# Install the Linux app for this user (~/.local), starting in the tray at login; needs desktop-file-install
 linux-install:
-    cd linux && QMAKE="${QMAKE:-qmake6}" cargo install --path . --root ~/.local
-    desktop-file-install --dir="$HOME/.local/share/applications" --set-key=Exec --set-value="$HOME/.local/bin/phonelink-linux" linux/data/phonelink-linux.desktop
-    desktop-file-install --dir="$HOME/.config/autostart" --set-key=Exec --set-value="$HOME/.local/bin/phonelink-linux --background" linux/data/phonelink-linux-autostart.desktop
-    install -Dm644 linux/data/phonelink.png ~/.local/share/icons/hicolor/512x512/apps/phonelink.png
+    cd gui/linux && QMAKE="${QMAKE:-qmake6}" cargo install --locked --path . --root ~/.local
+    desktop-file-install --dir="$HOME/.local/share/applications" --set-key=Exec --set-value="$HOME/.local/bin/phonelink-linux" gui/linux/data/phonelink-linux.desktop
+    desktop-file-install --dir="$HOME/.config/autostart" --set-key=Exec --set-value="$HOME/.local/bin/phonelink-linux --background" gui/linux/data/phonelink-linux-autostart.desktop
+    install -Dm644 gui/linux/data/phonelink.png ~/.local/share/icons/hicolor/512x512/apps/phonelink.png
 
-# Build the Debian package (needs cargo-deb) into linux/target/debian/
+# Build the Debian package (needs cargo-deb) into gui/linux/target/debian/
 linux-deb:
-    cd linux && QMAKE="${QMAKE:-qmake6}" cargo deb
+    cd gui/linux && QMAKE="${QMAKE:-qmake6}" cargo deb
 
-# Build the RPM package (needs cargo-generate-rpm) into linux/target/generate-rpm/
+# Build the RPM package (needs cargo-generate-rpm) into gui/linux/target/generate-rpm/
 linux-rpm:
-    cd linux && QMAKE="${QMAKE:-qmake6}" cargo build --release
-    strip -s linux/target/release/phonelink-linux
-    cd linux && cargo generate-rpm
+    cd gui/linux && QMAKE="${QMAKE:-qmake6}" cargo build --release
+    strip -s gui/linux/target/release/phonelink-linux
+    cd gui/linux && cargo generate-rpm
 
 # Run the engine CLI, e.g. `just cli decode envelope @file`
 cli *args:
@@ -94,14 +101,14 @@ gui-build config="Debug":
 gui-test:
     {{xcodebuild}} -configuration Debug test
 
-# Build Debug and bring gui/PhoneLink/Localizable.xcstrings up to date with the strings the app and
+# Build Debug and bring gui/mac/PhoneLink/Localizable.xcstrings up to date with the strings the app and
 # PhoneLinkKit use (scripts/sync-strings.sh); translations are kept
 gui-strings: gui-build
-    gui/scripts/sync-strings.sh gui/build/DerivedData
+    gui/mac/scripts/sync-strings.sh gui/mac/build/DerivedData
 
 # Fail when a string catalog lacks a translation for a language in the project's knownRegions
 gui-strings-check:
-    gui/scripts/check-strings.sh
+    gui/mac/scripts/check-strings.sh
 
 # This Mac's build: signed as Signing.local.xcconfig names, for this Mac (and the team's registered
 # devices). `distribute` makes the build for other Macs.
@@ -109,50 +116,50 @@ gui-strings-check:
 # Build the Release app for this Mac
 build-release: (gui-build "Release")
 
-release_app := "gui/build/DerivedData/Build/Products/Release/PhoneLink.app"
+release_app := "gui/mac/build/DerivedData/Build/Products/Release/PhoneLink.app"
 
-# Build the Release app for this Mac and package it as gui/build/PhoneLink-<version>.dmg
+# Build the Release app for this Mac and package it as gui/mac/build/PhoneLink-<version>.dmg
 dmg: build-release
-    gui/scripts/make-dmg.sh {{release_app}} gui/build
+    gui/mac/scripts/make-dmg.sh {{release_app}} gui/mac/build
 
 # Install the dmg `just dmg` made for the current Release build over /Applications/PhoneLink.app, quitting
 # and relaunching a running copy; builds nothing
 install:
-    gui/scripts/install-dmg.sh "gui/build/PhoneLink-$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' {{release_app}}/Contents/Info.plist).dmg"
+    gui/mac/scripts/install-dmg.sh "gui/mac/build/PhoneLink-$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' {{release_app}}/Contents/Info.plist).dmg"
 
-release_archive := "gui/build/PhoneLink.xcarchive"
-distribution_dir := "gui/build/developer-id"
+release_archive := "gui/mac/build/PhoneLink.xcarchive"
+distribution_dir := "gui/mac/build/developer-id"
 distribution_app := distribution_dir / "PhoneLink.app"
 
 # The build for other Macs: archives the Release app (signed as for this Mac), has Xcode re-sign the archive
 # with the team's cloud-managed Developer ID certificate and a Developer ID profile it makes itself, and
 # packages that as a dmg. Needs Signing.local.xcconfig's team and an Xcode account on that team with
 # access to cloud-managed Developer ID certificates. Not notarized. Raise CURRENT_PROJECT_VERSION in
-# gui/Version.xcconfig for each one, or a Mac that has the camera extension keeps its older copy.
-# Archive, sign with Developer ID and package the app for other Macs as gui/build/developer-id/PhoneLink-<version>.dmg
+# gui/mac/Version.xcconfig for each one, or a Mac that has the camera extension keeps its older copy.
+# Archive, sign with Developer ID and package the app for other Macs as gui/mac/build/developer-id/PhoneLink-<version>.dmg
 distribute:
     {{xcodebuild}} -configuration Release archive -archivePath {{release_archive}}
     rm -rf {{distribution_dir}}
-    xcodebuild -exportArchive -archivePath {{release_archive}} -exportPath {{distribution_dir}} -exportOptionsPlist gui/ExportOptions-DeveloperID.plist -allowProvisioningUpdates
+    xcodebuild -exportArchive -archivePath {{release_archive}} -exportPath {{distribution_dir}} -exportOptionsPlist gui/mac/ExportOptions-DeveloperID.plist -allowProvisioningUpdates
     codesign --verify --deep --strict {{distribution_app}}
     codesign -dvv {{distribution_app}} 2>&1 | grep -q '^Authority=Developer ID Application: ' || { echo "error: {{distribution_app}} is not signed with a Developer ID certificate" >&2; exit 1; }
-    gui/scripts/make-dmg.sh {{distribution_app}} {{distribution_dir}}
+    gui/mac/scripts/make-dmg.sh {{distribution_app}} {{distribution_dir}}
 
-notarized_dir := "gui/build/notarized"
+notarized_dir := "gui/mac/build/notarized"
 
 # `distribute`, notarized: archives the Release app, has Xcode re-sign it with Developer ID and upload it to
 # Apple's notary service under the Xcode account, waits for the stapled app (minutes to an hour or more) and
 # packages that as a dmg (scripts/notarize.sh). Gatekeeper on other Macs opens it without asking to allow
 # it. Same needs and version rule as `distribute`.
-# Archive, notarize and package the app for other Macs as gui/build/notarized/PhoneLink-<version>.dmg
+# Archive, notarize and package the app for other Macs as gui/mac/build/notarized/PhoneLink-<version>.dmg
 distribute-notarized:
     {{xcodebuild}} -configuration Release archive -archivePath {{release_archive}}
-    gui/scripts/notarize.sh {{release_archive}} {{notarized_dir}}
-    gui/scripts/make-dmg.sh {{notarized_dir}}/PhoneLink.app {{notarized_dir}}
+    gui/mac/scripts/notarize.sh {{release_archive}} {{notarized_dir}}
+    gui/mac/scripts/make-dmg.sh {{notarized_dir}}/PhoneLink.app {{notarized_dir}}
 
 ictool := DEVELOPER_DIR / "../Applications/Icon Composer.app/Contents/Executables/ictool"
 
-# Regenerate the icons from gui/scripts/make_icons.py, and the README's Liquid Glass rendering of the app icon
+# Regenerate the icons from gui/mac/scripts/make_icons.py, and the README's Liquid Glass rendering of the app icon
 icons:
-    python3 -I gui/scripts/make_icons.py
-    "{{ictool}}" gui/PhoneLink/App/AppIcon.icon --export-image --output-file gui/Design/AppIcon.png --platform macOS --rendition Default --width 256 --height 256 --scale 2 >/dev/null
+    python3 -I gui/mac/scripts/make_icons.py
+    "{{ictool}}" gui/mac/PhoneLink/App/AppIcon.icon --export-image --output-file gui/mac/Design/AppIcon.png --platform macOS --rendition Default --width 256 --height 256 --scale 2 >/dev/null

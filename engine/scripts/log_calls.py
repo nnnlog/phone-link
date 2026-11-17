@@ -10,6 +10,10 @@ public list (`crates/core/src/logging/policy.rs`). That is only safe when the me
 - no field named `message`, which `tracing` would print as the message.
 
 The CLI (`src/bin/`), tests, and core's `logging/` (which renders the app's own lines) are not checked.
+
+Source folders given as arguments are checked instead of the engine's. `just linux-check` passes the
+Linux app's `gui/linux/src`: its crate, `phonelink_linux`, has the `phonelink_` prefix, so the log writes its
+messages as they are too, and they must be constants as well.
 """
 
 from __future__ import annotations
@@ -66,11 +70,19 @@ def arguments(text: str, open_paren: int) -> list[str]:
     raise SystemExit(f"unterminated macro call at offset {open_paren}")
 
 
-def check() -> list[str]:
+def check(roots: list[Path]) -> list[str]:
     violations = []
-    for root in ROOTS:
+    for root in roots:
         violations += check_root(root)
     return violations
+
+
+def shown(path: Path) -> Path:
+    """`path` relative to the engine, else to the folder that holds the engine, else as it is."""
+    for base in (ENGINE, ENGINE.parent):
+        if path.is_relative_to(base):
+            return path.relative_to(base)
+    return path
 
 
 def check_root(root: Path) -> list[str]:
@@ -81,7 +93,7 @@ def check_root(root: Path) -> list[str]:
         text = path.read_text()
         for m in MACRO.finditer(text):
             line = text.count("\n", 0, m.start()) + 1
-            where = f"{path.relative_to(ENGINE)}:{line}"
+            where = f"{shown(path)}:{line}"
             args = arguments(text, m.end() - 1)
             literal = next((k for k, a in enumerate(args) if a.startswith('"')), None)
             fields = args if literal is None else args[:literal]
@@ -99,7 +111,11 @@ def check_root(root: Path) -> list[str]:
 
 
 def main() -> int:
-    violations = check()
+    roots = [Path(arg).resolve() for arg in sys.argv[1:]] or ROOTS
+    for root in roots:
+        if not root.is_dir():
+            raise SystemExit(f"no source folder at {root}")
+    violations = check(roots)
     for v in violations:
         print(v)
     if violations:

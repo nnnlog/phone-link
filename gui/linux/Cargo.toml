@@ -1,0 +1,152 @@
+[package]
+name = "phonelink-linux"
+version = "0.4.1"
+edition = "2024"
+rust-version = "1.89"
+publish = false
+license = "MIT"
+description = "The Linux desktop app of the Phone Link port"
+repository = "https://github.com/nnnlog/phone-link"
+authors = ["alvin0319", "Chansol Park (nlog)"]
+
+[[bin]]
+name = "phonelink-linux"
+path = "src/main.rs"
+
+[dependencies]
+phonelink-engine = { path = "../../engine" }
+phonelink-bluetooth = { path = "../../engine/crates/bluetooth" }
+phonelink-clipboard = { path = "../../engine/crates/clipboard" }
+phonelink-core = { path = "../../engine/crates/core" }
+phonelink-connected-camera = { path = "../../engine/crates/connected-camera" }
+phonelink-device-status = { path = "../../engine/crates/device-status" }
+phonelink-features = { path = "../../engine/crates/features" }
+phonelink-hotspot = { path = "../../engine/crates/hotspot" }
+phonelink-messaging = { path = "../../engine/crates/messaging" }
+phonelink-phone-apps = { path = "../../engine/crates/phone-apps" }
+phonelink-remote-control = { path = "../../engine/crates/remote-control" }
+phonelink-screen-mirroring = { path = "../../engine/crates/screen-mirroring" }
+phonelink-wallpaper = { path = "../../engine/crates/wallpaper" }
+base64 = "0.22"
+cxx = "1.0.95"
+cxx-qt = "0.10"
+cxx-qt-lib = { version = "0.10", features = ["qt_full"] }
+image = { version = "0.25", default-features = false, features = ["png", "tiff", "jpeg", "gif", "webp", "bmp"] }
+jxl-oxide = { version = "0.12", default-features = false, features = ["image"] }
+moxcms = "0.7"
+resvg = { version = "0.50", default-features = false, features = ["svgz", "raster-images"] }
+roxmltree = "0.21"
+tiff = "0.10"
+qrcode = { version = "0.14", default-features = false, features = ["image"] }
+icu_collator = "2.1"
+icu_locale_core = "2.1"
+icu_normalizer = "2.1"
+libc = "0.2"
+openh264 = "0.9"
+secret-service = { version = "5.2", features = ["rt-async-io-crypto-rust"] }
+serde = "1"
+serde_json = "1"
+thiserror = "2"
+tokio = { version = "1", features = ["rt-multi-thread", "sync", "time", "signal"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+wayland-client = "0.31"
+wayland-protocols = { version = "0.32", features = ["client", "staging"] }
+x11rb = { version = "0.14", features = ["xfixes"] }
+zbus = { version = "5", default-features = false, features = ["blocking-api", "async-io"] }
+fuser = { version = "0.18.0", default-features = false }
+libpulse-binding = "2.30.1"
+libpulse-simple-binding = "2.29.0"
+opus = "0.4.0"
+ab_glyph = "0.2.32"
+wayland-protocols-wlr = { version = "0.3.12", features = ["client"] }
+tracing = "0.1"
+
+# The engine workspace's lint table (`../../engine/Cargo.toml`), which this crate, outside that workspace,
+# cannot inherit.
+[lints.rust]
+unsafe_code = "deny"
+unused_qualifications = "warn"
+missing_docs = "allow"                 # an internal item needs a doc only where its name is not enough
+
+[lints.clippy]
+# Function size and shape.
+too_many_lines = "warn"
+too_many_arguments = "warn"
+type_complexity = "warn"
+large_enum_variant = "warn"
+# Visibility.
+redundant_pub_crate = "allow"          # contradicts unreachable_pub
+# Errors and panics.
+map_err_ignore = "allow"               # a cause that says nothing may be dropped
+unwrap_used = "warn"
+expect_used = "allow"                  # `expect` states the invariant it relies on
+panic = "allow"                        # a bug panics with the values that broke it
+unreachable = "allow"                  # as `panic`
+todo = "deny"
+unimplemented = "deny"
+dbg_macro = "deny"
+# Locks and tasks.
+await_holding_lock = "warn"
+significant_drop_in_scrutinee = "allow" # narrowing a guard changes what other threads see
+mutex_atomic = "warn"
+mutex_integer = "warn"
+disallowed_methods = "deny"
+# Names and types.
+wrong_self_convention = "warn"
+should_implement_trait = "warn"
+new_without_default = "warn"
+inconsistent_struct_constructor = "warn"
+fn_params_excessive_bools = "warn"
+struct_excessive_bools = "allow"       # settings and status records hold independent switches
+enum_glob_use = "warn"
+wildcard_imports = "warn"
+# Docs.
+too_long_first_doc_paragraph = "warn"
+doc_markdown = "warn"
+
+[build-dependencies]
+cxx-qt-build = "0.10"
+serde_json = "1"
+
+[profile.dev.package.openh264]
+opt-level = 3
+
+[profile.dev.package.openh264-sys2]
+opt-level = 3
+
+[package.metadata.deb]
+name = "phonelink"
+maintainer = "alvin0319, Chansol Park (nlog)"
+section = "net"
+priority = "optional"
+extended-description = "Messages, calls, notifications, photos, screen mirroring, the phone's camera and files from an Android phone, on this computer."
+depends = "$auto, fuse3, qml6-module-qtcore, qml6-module-qt-labs-platform, qml6-module-qtquick, qml6-module-qtquick-controls, qml6-module-qtquick-dialogs, qml6-module-qtquick-effects, qml6-module-qtquick-layouts, qml6-module-qtquick-shapes, qml6-module-qtquick-window, qml6-module-qtwebengine"
+recommends = "bluez, network-manager, pipewire-pulse | pulseaudio, gnome-keyring | kwalletmanager | keepassxc"
+suggests = "v4l2loopback-dkms"
+assets = [
+    ["target/release/phonelink-linux", "usr/bin/", "755"],
+    ["data/phonelink-linux.desktop", "usr/share/applications/", "644"],
+    ["data/phonelink-linux-autostart.desktop", "etc/xdg/autostart/phonelink-linux.desktop", "644"],
+    ["data/phonelink.png", "usr/share/icons/hicolor/512x512/apps/", "644"],
+]
+
+[package.metadata.generate-rpm]
+name = "phonelink"
+assets = [
+    { source = "target/release/phonelink-linux", dest = "/usr/bin/phonelink-linux", mode = "755" },
+    { source = "data/phonelink-linux.desktop", dest = "/usr/share/applications/phonelink-linux.desktop", mode = "644" },
+    { source = "data/phonelink-linux-autostart.desktop", dest = "/etc/xdg/autostart/phonelink-linux.desktop", mode = "644", config = "noreplace" },
+    { source = "data/phonelink.png", dest = "/usr/share/icons/hicolor/512x512/apps/phonelink.png", mode = "644" },
+]
+
+[package.metadata.generate-rpm.requires]
+fuse3 = "*"
+qt6-qtdeclarative = "*"
+qt6-qtwebengine = "*"
+
+[package.metadata.generate-rpm.recommends]
+bluez = "*"
+NetworkManager = "*"
+
+[package.metadata.generate-rpm.suggests]
+v4l2loopback = "*"

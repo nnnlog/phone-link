@@ -1,0 +1,15 @@
+{
+  "Bluetooth is off. Turn it on to send messages from this computer.": "Bluetooth가 꺼져 있어요. 이 컴퓨터에서 메시지를 보내려면 Bluetooth를 켜 주세요.",
+  "Couldn't Save the Attachment": "첨부 파일을 저장하지 못했어요",
+  "Messages Are Off on This Computer": "이 컴퓨터에서 메시지가 꺼져 있어요",
+  "SIM": "SIM",
+  "Show messages on this computer": "이 컴퓨터에서 메시지 보기",
+  "This SIM sends to at most %lld people.": "이 SIM으로는 한 번에 %lld명까지 보낼 수 있어요.",
+  "This SIM sends to one person at a time.": "이 SIM으로는 한 번에 한 명에게만 보낼 수 있어요.",
+  "This computer doesn't have the attachment.": "이 컴퓨터에 첨부 파일이 없어요.",
+  "Turn on messages to read and send your phone's texts on this computer.": "이 컴퓨터에서 휴대폰 문자 메시지를 읽고 보내려면 메시지를 켜 주세요.",
+  "Turn on your phone's contacts on this computer to search them": "휴대폰 연락처를 검색하려면 이 컴퓨터에서 연락처를 켜 주세요",
+  "Your phone isn't connected to this computer over Bluetooth.": "휴대폰이 Bluetooth로 이 컴퓨터에 연결되어 있지 않아요.",
+  "Your phone isn't in Bluetooth range of this computer.": "휴대폰이 이 컴퓨터의 Bluetooth 범위 밖에 있어요.",
+  "Your phone isn't paired with this computer. Pair it in your system's Bluetooth settings to send messages.": "휴대폰이 이 컴퓨터와 페어링되어 있지 않아요. 메시지를 보내려면 시스템의 Bluetooth 설정에서 페어링해 주세요."
+}

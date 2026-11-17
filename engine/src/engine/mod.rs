@@ -1,5 +1,5 @@
 //! The engine: builds every layer, wires them, runs the start sequence, and exports the handle
-//! `gui/` holds through `uniffi`.
+//! `gui/mac/` holds through `uniffi`.
 //!
 //! Wiring: the relay hands packets to the fragment layer; the fragment layer opens the relay's hub
 //! connection before each fragment try and ack, allocates from the process's identifiers, hands

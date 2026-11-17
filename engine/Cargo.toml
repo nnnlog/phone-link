@@ -102,7 +102,7 @@ autotests = false
 
 [lib]
 name = "phonelink_engine"
-# The app links a static library, which gui/scripts/build-engine.sh asks for with `cargo rustc
+# The app links a static library, which gui/mac/scripts/build-engine.sh asks for with `cargo rustc
 # --crate-type staticlib`: a crate type listed here would be built on every `cargo test` and
 # `cargo build` as well.
 crate-type = ["lib"]

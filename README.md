@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="gui/Design/AppIcon.png" width="128" height="128" alt="Phone Link app icon">
+  <img src="gui/mac/Design/AppIcon.png" width="128" height="128" alt="Phone Link app icon">
 </p>
 
 <h1 align="center">Phone Link for macOS</h1>
@@ -9,6 +9,9 @@
 <p align="center"><img src="docs/images/hero.png" alt="The Phone Link window with the notification list, and its Settings window"></p>
 
 Connects through Microsoft's Link to Windows app on your phone.
+
+A Linux version, built on the same engine with a Qt window, is in [`gui/linux/`](gui/linux/README.md); its
+README says how it differs from the Mac app.
 
 Phone Link for macOS is an independent project and is neither affiliated with, nor authorized,
 sponsored, or approved by, Microsoft Corporation.
@@ -91,10 +94,10 @@ cd phone-link
 just dmg
 ```
 
-This builds `gui/build/PhoneLink-<version>.dmg`. Run `just` to list the other recipes.
+This builds `gui/mac/build/PhoneLink-<version>.dmg`. Run `just` to list the other recipes.
 
-To sign with your own team, set it in `gui/Signing.local.xcconfig` as
-[`gui/Signing.xcconfig`](gui/Signing.xcconfig) describes. Without a team the app is signed ad-hoc, and
+To sign with your own team, set it in `gui/mac/Signing.local.xcconfig` as
+[`gui/mac/Signing.xcconfig`](gui/mac/Signing.xcconfig) describes. Without a team the app is signed ad-hoc, and
 macOS asks for keychain access again after every build.
 
 The camera requires a paid Apple Developer account and a provisioning profile with the System
@@ -105,12 +108,14 @@ Builds for other Macs need a team with Developer ID certificates: `just distribu
 
 ## Development
 
-`just check` runs the lints and tests, all of which run offline.
+`just check` runs the engine's lints and tests and the Mac app's tests and translation check, all of
+which run offline. On Linux, `just linux-check` runs the Linux app's lints, tests and log-call check.
 
 | Directory | Contents |
 |---|---|
 | [`engine/`](engine/README.md) | The Rust core and the `phonelink` command-line tool |
-| [`gui/`](gui/README.md) | The SwiftUI app |
+| [`gui/mac/`](gui/mac/README.md) | The SwiftUI app |
+| [`gui/linux/`](gui/linux/README.md) | The Linux app (Rust and Qt/QML) |
 
 ## Disclaimer
 
