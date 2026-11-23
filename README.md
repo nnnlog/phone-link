@@ -2,22 +2,22 @@
   <img src="gui/mac/Design/AppIcon.png" width="128" height="128" alt="Phone Link app icon">
 </p>
 
-<h1 align="center">Phone Link for PC</h1>
+<h1 align="center">Phone Link for macOS / Linux</h1>
 
-<p align="center">Your Android phone, on your PC.</p>
+<p align="center">Your Android phone, on your macOS / Linux.</p>
 
 <p align="center"><img src="docs/images/hero.png" alt="The Phone Link window with the notification list, and its Settings window"></p>
 
 Connects through Microsoft's Link to Windows app on your phone. Runs on macOS and Linux.
 
-Phone Link for PC is an independent project and is neither affiliated with, nor authorized,
-sponsored, or approved by, Microsoft Corporation.
+Phone Link for macOS / Linux is an independent project and is neither affiliated with, nor
+authorized, sponsored, or approved by, Microsoft Corporation.
 
 ## Features
 
-- See your phone's notifications on your computer and reply to them. You choose which apps can send them.
+- See your phone's notifications on macOS / Linux and reply to them. You choose which apps can send them.
 - Read and send SMS, MMS and RCS messages.
-- See your phone's recent calls, and place, answer, decline and end calls from your computer over
+- See your phone's recent calls, and place, answer, decline and end calls from macOS / Linux over
   Bluetooth. The call itself stays on your phone: you talk on the phone or a headset connected to it.
   Turn it on in Settings › Calls.
 - Browse your phone's contacts and write to them.
@@ -64,7 +64,7 @@ Settings, are in [docs/screenshots.md](docs/screenshots.md).
 
 - You sign in to your Microsoft account in the app's own window.
 - Your phone can't wake your computer or start a connection to it.
-- Calls you place or answer on your computer stay on your phone. You talk and listen on the phone, not
+- Calls you place or answer on macOS / Linux stay on your phone. You talk and listen on the phone, not
   through the computer's microphone and speakers, because the app has no voice link to the phone over
   Bluetooth. So there is no mute, hold, keypad or moving a call to the computer.
 - Calls reach your computer only while Phone Link is open.
