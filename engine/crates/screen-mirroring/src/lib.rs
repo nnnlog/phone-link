@@ -444,6 +444,11 @@ impl ScreenMirroring {
         self.inner.with_input(id, |p| p.key(key_code, action, flags))
     }
 
+    /// A PC keyboard's key, as [`key`](Self::key) takes it, with Alt as Alt (`InputPipe::pc_key`).
+    pub fn pc_key(&self, id: &str, key_code: u16, action: KeyAction, flags: u64) -> Result<(), MirroringError> {
+        self.inner.with_input(id, |p| p.pc_key(key_code, action, flags))
+    }
+
     // Drag and drop.
 
     /// A drag of `files` entered window `id`.
@@ -513,7 +518,7 @@ pub use edge::{MirrorPresenter, NoPresenter};
 pub use errors::{ErrorAction, ErrorKind};
 pub use gates::{AppsFeatureType, PhoneValues};
 pub use input::{KeyAction, MouseButton, NavButton, TouchPhase};
-pub use keymap::{KeyMapping, mac_key};
+pub use keymap::{KeyMapping, KeyboardKind, mac_key};
 pub use link::MirrorConnector;
 pub use link::NanoMirrorConnector;
 pub use machine::{Details, PhoneState, WindowState};

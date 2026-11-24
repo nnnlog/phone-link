@@ -69,6 +69,11 @@ Settings, are in [docs/screenshots.md](docs/screenshots.md).
   over Bluetooth. So there is no mute, hold, keypad or moving a call to the Mac. On Linux, calls you
   place or answer use the computer's microphone and speakers, as on Windows.
 - Calls reach your computer only while Phone Link is open.
+- In a phone screen window your Mac's keys work as on the Mac: Command-C, -V, -X, -A and -Z, Command
+  and Option with the arrow keys and Delete, and Tab. Switching your Mac's input source (Caps Lock,
+  Control-Space or the Globe key) switches the phone's input language too. On Linux, the keys go as from
+  a Windows PC (Control-C copies, Alt is Alt), and Tab goes too.
+- On macOS, a link in a message or a notification opens only when it is a web or an e-mail address.
 
 ## Install
 

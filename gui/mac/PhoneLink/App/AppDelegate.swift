@@ -291,6 +291,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         edges.notifier.activate()
         observeSystemEvents()
         observeWindows()
+        showDockBadge()
         connectedCamera.activateExtension()
         controller.start()
         updates.start()
@@ -410,7 +411,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.contentMinSize = NSSize(width: 1000, height: 640)
         window.isReleasedWhenClosed = false
         window.setFrameAutosaveName("PhoneLinkMainWindow")
-        window.center()
+        // Where the user left it; centred only the first time.
+        if !window.setFrameUsingName("PhoneLinkMainWindow") {
+            window.center()
+        }
         return window
     }
 
@@ -641,6 +645,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private static func isAppWindow(_ window: NSWindow) -> Bool {
         window.styleMask.contains(.titled) && !(window is NSPanel)
+    }
+
+    /// The Dock icon's badge (`DockBadge`), set now and again whenever a count it is made of changes.
+    private func showDockBadge() {
+        let label = withObservationTracking {
+            DockBadge.label(DockBadge.Sections(
+                messages: messages.showsConversations ? messages.unreadCount : nil,
+                calls: calls.showsHistory ? calls.badgeCount : nil,
+                notifications: notifications.content == .list ? notifications.notifications.map(\.openTarget) : []
+            ))
+        } onChange: { [weak self] in
+            Task { @MainActor in
+                self?.showDockBadge()
+            }
+        }
+
+        NSApp.dockTile.badgeLabel = label
     }
 }
 

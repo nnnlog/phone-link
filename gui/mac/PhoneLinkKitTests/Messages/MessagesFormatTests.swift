@@ -1,6 +1,7 @@
 import Foundation
 import PhoneLinkEngine
 import Testing
+import UniformTypeIdentifiers
 @testable import PhoneLinkKit
 
 private let calendar: Calendar = {
@@ -239,6 +240,53 @@ private func message(
     #expect(MessagesFormat.bluetoothNotice(.phoneNotPaired)?.contains("isn't paired") == true)
     #expect(MessagesFormat.bluetoothNotice(.pairedPhoneUnavailable)?.contains("range") == true)
     #expect(MessagesFormat.bluetoothNotice(.notConnected)?.contains("isn't connected") == true)
+}
+
+@Test func aMessageIsCopiedAsItsSubjectAndBody() {
+    func message(subject: String, body: String) -> Message {
+        Message(
+            kind: .mms,
+            id: 1,
+            timestampMs: 0,
+            incoming: true,
+            mailbox: .inbox,
+            contact: person("+15550101", "Alex Kim"),
+            body: body,
+            subject: subject,
+            read: true,
+            subscriptionId: -1,
+            groupEvent: nil,
+            parts: [],
+            sendState: nil
+        )
+    }
+
+    #expect(MessagesFormat.copyText(of: message(subject: "", body: "See you at 7")) == "See you at 7")
+    #expect(MessagesFormat.copyText(of: message(subject: "Dinner", body: "See you at 7")) == "Dinner\nSee you at 7")
+    #expect(MessagesFormat.copyText(of: message(subject: "Dinner", body: "")) == "Dinner")
+}
+
+@Test func anAttachmentsFileHasItsNameAndItsTypesExtension() {
+    func part(_ name: String, _ contentType: String) -> MessagePart {
+        MessagePart(part: .mmsPart(id: 1), contentType: contentType, name: name, size: 4, state: .openable, hasBytes: true)
+    }
+
+    // (name, MIME type, file name)
+    let cases = [
+        ("report.pdf", "application/pdf", "report.pdf"),
+        ("IMG_0001", "image/jpeg", "IMG_0001.jpeg"),
+        ("", "image/png", "Attachment.png"),
+        ("", "application/x-unknown-type", "Attachment"),
+        ("../../etc/passwd", "text/plain", "passwd.txt"),
+        ("folder/", "audio/mpeg", "folder.mp3"),
+    ]
+    for (name, contentType, fileName) in cases {
+        #expect(MessagesFormat.attachmentFileName(part(name, contentType)) == fileName, "name “\(name)” of \(contentType)")
+    }
+
+    #expect(MessagesFormat.contentType(of: part("a.heic", "image/png")) == .png, "the MIME type decides")
+    #expect(MessagesFormat.contentType(of: part("a.pdf", "")) == .pdf, "else the name's extension")
+    #expect(MessagesFormat.contentType(of: part("", "")) == .data)
 }
 
 @Test func attachmentsAreNamedByType() {

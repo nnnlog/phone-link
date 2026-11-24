@@ -2809,7 +2809,7 @@ dependencies = [
 
 [[package]]
 name = "phonelink-app"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
  "async-trait",
  "form_urlencoded",
@@ -2829,7 +2829,7 @@ dependencies = [
 
 [[package]]
 name = "phonelink-audio"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
  "base64 0.22.1",
  "phonelink-app",
@@ -2845,7 +2845,7 @@ dependencies = [
 
 [[package]]
 name = "phonelink-bluetooth"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
  "async-trait",
  "phonelink-app",
@@ -2860,7 +2860,7 @@ dependencies = [
 
 [[package]]
 name = "phonelink-calling"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
  "async-trait",
  "phonelink-app",
@@ -2875,7 +2875,7 @@ dependencies = [
 
 [[package]]
 name = "phonelink-clipboard"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -2896,7 +2896,7 @@ dependencies = [
 
 [[package]]
 name = "phonelink-connected-camera"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
  "async-trait",
  "phonelink-core",
@@ -2917,7 +2917,7 @@ dependencies = [
 
 [[package]]
 name = "phonelink-contacts"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
  "async-trait",
  "phonelink-app",
@@ -2931,7 +2931,7 @@ dependencies = [
 
 [[package]]
 name = "phonelink-core"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -2956,7 +2956,7 @@ dependencies = [
 
 [[package]]
 name = "phonelink-device-status"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
  "async-trait",
  "phonelink-app",
@@ -2974,7 +2974,7 @@ dependencies = [
 
 [[package]]
 name = "phonelink-engine"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -3016,7 +3016,7 @@ dependencies = [
 
 [[package]]
 name = "phonelink-features"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
  "async-trait",
  "phonelink-app",
@@ -3036,7 +3036,7 @@ dependencies = [
 
 [[package]]
 name = "phonelink-file-transfer"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
  "async-trait",
  "phonelink-core",
@@ -3054,7 +3054,7 @@ dependencies = [
 
 [[package]]
 name = "phonelink-hotspot"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -3132,7 +3132,7 @@ dependencies = [
 
 [[package]]
 name = "phonelink-messaging"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
  "async-trait",
  "encoding_rs",
@@ -3151,7 +3151,7 @@ dependencies = [
 
 [[package]]
 name = "phonelink-nano"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
  "aes 0.8.4",
  "aes-gcm",
@@ -3179,7 +3179,7 @@ dependencies = [
 
 [[package]]
 name = "phonelink-notifications"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
  "async-trait",
  "phonelink-app",
@@ -3198,7 +3198,7 @@ dependencies = [
 
 [[package]]
 name = "phonelink-phone-apps"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
  "async-trait",
  "phonelink-app",
@@ -3214,7 +3214,7 @@ dependencies = [
 
 [[package]]
 name = "phonelink-phone-files"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
  "async-trait",
  "phonelink-core",
@@ -3233,7 +3233,7 @@ dependencies = [
 
 [[package]]
 name = "phonelink-photos"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
  "async-trait",
  "phonelink-app",
@@ -3248,7 +3248,7 @@ dependencies = [
 
 [[package]]
 name = "phonelink-proto"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
  "prost",
  "prost-build",
@@ -3258,7 +3258,7 @@ dependencies = [
 
 [[package]]
 name = "phonelink-remote-control"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
  "async-trait",
  "phonelink-app",
@@ -3275,7 +3275,7 @@ dependencies = [
 
 [[package]]
 name = "phonelink-remote-snipping"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
  "phonelink-core",
  "phonelink-features",
@@ -3291,7 +3291,7 @@ dependencies = [
 
 [[package]]
 name = "phonelink-screen-mirroring"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
  "async-trait",
  "futures-util",
@@ -3312,7 +3312,7 @@ dependencies = [
 
 [[package]]
 name = "phonelink-transport"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
  "aes 0.8.4",
  "async-trait",
@@ -3344,7 +3344,7 @@ dependencies = [
 
 [[package]]
 name = "phonelink-wallpaper"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
  "async-trait",
  "phonelink-app",

@@ -1,5 +1,7 @@
 //! The computer's keys as a mirrored window sends them: Linux key codes as the Mac virtual key codes
-//! the engine maps, the modifier flags held with them, and Caps Lock as the computer has it.
+//! the engine maps, the modifier flags held with them, and Caps Lock as the computer has it. They go as
+//! a PC keyboard's (`ScreenMirroringApi::pc_key`): Alt, sent as Option, is Alt with every key, and
+//! Control is the shortcut modifier, as from a Windows PC.
 
 use std::path::Path;
 

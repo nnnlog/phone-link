@@ -149,6 +149,33 @@ struct MirrorModifierKeysTests {
     }
 }
 
+struct MirrorInputSourceFollowerTests {
+    @Test func anInputSourceChangeSwitchesThePhonesLanguage() {
+        var follower = MirrorInputSourceFollower()
+        let first = follower.sourceChanged()
+        #expect(first, "a change before any key")
+
+        follower.keyDown(0x00)
+        let second = follower.sourceChanged()
+        let third = follower.sourceChanged()
+        #expect(second && third, "each change switches")
+    }
+
+    @Test func theChangeTheLanguageKeyMadeIsNotSentTwice() {
+        var follower = MirrorInputSourceFollower()
+        follower.keyDown(MirrorInputSourceFollower.languageKey)
+        let own = follower.sourceChanged()
+        let next = follower.sourceChanged()
+        #expect(!own, "the key sent the phone's language key itself")
+        #expect(next, "only the one change after it")
+
+        follower.keyDown(MirrorInputSourceFollower.languageKey)
+        follower.keyDown(0x00)
+        let afterAnotherKey = follower.sourceChanged()
+        #expect(afterAnotherKey, "another key since")
+    }
+}
+
 struct OpusPacketTests {
     @Test func theTocGivesThePacketsLength() {
         // CELT 20 ms (config 31), one frame.

@@ -552,6 +552,21 @@ private let kakao = notification(
 )
 private let gmail = notification("gmail", appName: "Gmail", body: "Here is this week's summary.")
 
+@MainActor
+@Test func aNotificationIsCopiedAsItsAppTitleAndText() {
+    #expect(NotificationsModel.copyText(of: gmail) == "Gmail Title\nHere is this week's summary.")
+
+    let chat = notification(
+        "chat",
+        appName: "Chat",
+        body: "ignored",
+        conversation: [.sender(name: "Alex"), .message(text: "Hi"), .message(text: "Lunch?")]
+    )
+    #expect(NotificationsModel.copyText(of: chat) == "Chat Title\nHi\nLunch?", "a conversation's messages, without its senders")
+
+    #expect(NotificationsModel.copyText(of: notification("bare", body: "")) == "com.example.bare Title")
+}
+
 private func notification(
     _ key: String,
     appName: String? = nil,

@@ -107,6 +107,14 @@ public final class CallsModel {
         return state.access != .unsupported
     }
 
+    /// Calls shows the phone's call history, or would once the phone sent some.
+    public var showsHistory: Bool {
+        switch content {
+        case .updating, .empty, .list: true
+        case .nothing, .turnedOff, .updateRequired, .needsNotifications, .needsPhoneAccess: false
+        }
+    }
+
     /// The sidebar's badge: missed calls not yet seen here.
     public var badgeCount: Int {
         Int(state?.unseenMissed ?? 0)

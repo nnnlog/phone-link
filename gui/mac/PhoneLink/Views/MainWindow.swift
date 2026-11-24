@@ -72,7 +72,7 @@ struct MainWindow: View {
 
 /// The sidebar: the phone (its status and controls) on top, whatever section is selected; the
 /// sections below; and at the bottom what is happening now (a transfer, what plays on the phone).
-/// The phone's wallpaper shows behind it while the user keeps it on.
+/// The phone's wallpaper shows behind it while the user keeps it on. Its toolbar has the Settings button.
 private struct Sidebar: View {
     @Binding var selection: AppSection
     @Environment(MessagesModel.self) private var messages
@@ -110,6 +110,7 @@ private struct Sidebar: View {
         }
         .phoneWallpaperBackground()
         .navigationSplitViewColumnWidth(min: 320, ideal: 320, max: 380)
+        .modifier(SettingsToolbarButton())
         .onChange(of: phoneApps.isViewVisible) { _, visible in
             if !visible && selection == .apps {
                 selection = .messages
@@ -134,6 +135,34 @@ private struct Sidebar: View {
         case .calls: calls.badgeCount
         case .contacts, .photos, .apps: 0
         }
+    }
+}
+
+/// The sidebar's Settings button, at the trailing end of the sidebar's part of the toolbar. Before
+/// macOS 26 a toolbar has no flexible space, so there the button follows the window controls.
+private struct SettingsToolbarButton: ViewModifier {
+    @Environment(\.openSettings) private var openSettings
+
+    func body(content: Content) -> some View {
+        if #available(macOS 26.0, *) {
+            content.toolbar {
+                ToolbarSpacer(.flexible)
+                ToolbarItem { button }
+            }
+        } else {
+            content.toolbar {
+                ToolbarItem { button }
+            }
+        }
+    }
+
+    private var button: some View {
+        Button {
+            openSettings()
+        } label: {
+            Label("Settings", systemImage: "gearshape")
+        }
+        .help("Settings")
     }
 }
 

@@ -1261,6 +1261,16 @@
         }
       }
     },
+    "Attachment Not Copied" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "첨부 파일을 복사하지 못했어요"
+          }
+        }
+      }
+    },
     "Attachment Not Downloaded" : {
       "localizations" : {
         "ko" : {
@@ -1277,6 +1287,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "첨부 파일을 열지 못했어요"
+          }
+        }
+      }
+    },
+    "Attachment Not Saved" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "첨부 파일을 저장하지 못했어요"
+          }
+        }
+      }
+    },
+    "Attachment Not Shared" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "첨부 파일을 공유하지 못했어요"
           }
         }
       }
@@ -2400,6 +2430,17 @@
         }
       }
     },
+    "Copy %@" : {
+      "comment" : "Menu item; the placeholder is a link's address",
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 복사"
+          }
+        }
+      }
+    },
     "Copy %lld Photos" : {
       "localizations" : {
         "en" : {
@@ -2434,6 +2475,16 @@
         }
       }
     },
+    "Copy Link" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "링크 복사"
+          }
+        }
+      }
+    },
     "Copy Number" : {
       "localizations" : {
         "ko" : {
@@ -2450,6 +2501,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "암호 복사"
+          }
+        }
+      }
+    },
+    "Copy Text from Picture" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "사진에서 텍스트 복사"
           }
         }
       }
@@ -4996,6 +5057,16 @@
         }
       }
     },
+    "No text was found in the picture." : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "사진에서 텍스트를 찾지 못했어요."
+          }
+        }
+      }
+    },
     "Not Delivered" : {
       "localizations" : {
         "ko" : {
@@ -7000,6 +7071,16 @@
         }
       }
     },
+    "Select All" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "모두 선택"
+          }
+        }
+      }
+    },
     "Send" : {
       "localizations" : {
         "ko" : {
@@ -7152,6 +7233,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "먼저 휴대폰 핫스팟 암호를 설정해 주세요."
+          }
+        }
+      }
+    },
+    "Settings" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "설정"
           }
         }
       }
@@ -7881,6 +7972,16 @@
         }
       }
     },
+    "Text Not Copied" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "텍스트를 복사하지 못했어요"
+          }
+        }
+      }
+    },
     "Text and images you copy on one device can be pasted on the other." : {
       "localizations" : {
         "ko" : {
@@ -7977,6 +8078,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "카메라가 멈췄어요"
+          }
+        }
+      }
+    },
+    "The clipboard didn't accept the attachment." : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "클립보드에 첨부 파일을 넣지 못했어요."
           }
         }
       }

@@ -87,7 +87,7 @@ impl EngineBridge {
                             (true, true) => MirrorKeyAction::Repeat,
                             (true, false) => MirrorKeyAction::Down,
                         };
-                        api.key(id, key, action, flags)
+                        api.pc_key(id, key, action, flags)
                     }
                     None => Ok(()),
                 }

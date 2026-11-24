@@ -143,6 +143,11 @@ public final class MessagesModel {
 
     // MARK: - What the views show
 
+    /// Messages shows its conversations: not the off or the permission state in their place.
+    public var showsConversations: Bool {
+        gate == nil
+    }
+
     /// The sidebar badge: unread messages of the listed conversations; none while the list is replaced
     /// by the off or permission state.
     public var unreadCount: Int {
@@ -1024,6 +1029,26 @@ public final class MessagesModel {
     /// A part's bytes, read off the main actor (to open an attachment in its app).
     public func partData(_ part: MessagePartRef) async throws -> Data? {
         try await readNow { [api] in try api.partBytes(part: part) }.get()
+    }
+
+    /// An attachment as a file, for what takes one (its app, Quick Look, a share, a drag): a copy
+    /// under its file name in the temporary folder, written off the main actor. `nil` when this Mac
+    /// has none of its bytes.
+    public func partFile(_ part: MessagePart) async throws -> URL? {
+        guard let bytes = try await partData(part.part) else { return nil }
+        return try await Self.write(bytes, named: MessagesFormat.attachmentFileName(part), in: Self.attachmentFolder)
+    }
+
+    private static let attachmentFolder = FileManager.default.temporaryDirectory
+        .appendingPathComponent("Message Attachments", isDirectory: true)
+
+    @concurrent
+    nonisolated private static func write(_ bytes: Data, named name: String, in folder: URL) async throws -> URL {
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+
+        let url = folder.appendingPathComponent(name)
+        try bytes.write(to: url)
+        return url
     }
 
     private func keep(_ result: Result<CGImage?, any Error>, key: String) -> NSImage? {

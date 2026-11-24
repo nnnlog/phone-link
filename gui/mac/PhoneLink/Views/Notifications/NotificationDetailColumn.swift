@@ -32,7 +32,8 @@ private struct NotificationDetail: View {
     @Environment(NotificationsModel.self) private var model
     @Environment(ScreenMirroringModel.self) private var mirroring
     @State private var replyText = ""
-    @FocusState private var replyFocused: Bool
+    /// Raised to put the insertion point in the reply field.
+    @State private var replyFocusRequest = 0
 
     /// The text's widest line: longer lines read poorly in a wide window.
     private static let textWidth: CGFloat = 560
@@ -64,7 +65,7 @@ private struct NotificationDetail: View {
         }
         .task(id: model.replyFocusRequest) {
             guard model.replyFocusRequest == notification.key else { return }
-            replyFocused = true
+            replyFocusRequest += 1
             model.replyFocusRequest = nil
         }
     }
@@ -99,12 +100,11 @@ private struct NotificationDetail: View {
             }
             if notification.conversation.isEmpty {
                 if !notification.body.isEmpty {
-                    Text(notification.body)
-                        .textSelection(.enabled)
+                    LinkedText(text: notification.body, copyText: NotificationsModel.copyText(of: notification))
                         .padding(.top, 4)
                 }
             } else {
-                NotificationConversation(lines: notification.conversation)
+                NotificationConversation(lines: notification.conversation, copyText: NotificationsModel.copyText(of: notification))
                     .padding(.top, 4)
             }
         }
@@ -129,13 +129,20 @@ private struct NotificationDetail: View {
         }
     }
 
-    /// The reply field, shaped like the Messages composer's: Return sends, as does its button.
+    /// The reply field, the Messages composer's: Return sends, as does its button, and Shift-Return
+    /// starts a new line.
     private func replyField(placeholder: String) -> some View {
-        HStack(spacing: 6) {
-            TextField(placeholder, text: $replyText)
-                .textFieldStyle(.plain)
-                .focused($replyFocused)
-                .onSubmit(send)
+        HStack(alignment: .bottom, spacing: 6) {
+            MessagesComposerField(
+                text: replyText,
+                placeholder: placeholder,
+                isEditable: true,
+                onChange: { replyText = $0 },
+                onSubmit: send,
+                onEscape: nil,
+                onPasteImages: nil,
+                focusRequest: replyFocusRequest
+            )
             Button(action: send) {
                 Label("Send", systemImage: "arrow.up.circle.fill")
             }
@@ -144,10 +151,11 @@ private struct NotificationDetail: View {
             .font(.title3)
             .help("Send")
             .disabled(!NotificationsModel.canSend(replyText))
+            .padding(.bottom, 2)
         }
-        .padding(.leading, 14)
+        .padding(.leading, 10)
         .padding(.trailing, 6)
-        .padding(.vertical, 6)
+        .padding(.vertical, 2)
         .modifier(ReplyFieldBackground())
         .padding(14)
     }
@@ -173,13 +181,16 @@ private struct NotificationDetail: View {
     }
 }
 
-/// The reply field's capsule: Liquid Glass where the system has it, else an outline.
+/// The reply field's outline, a capsule while the reply is one line: Liquid Glass where the system
+/// has it, else a stroke.
 private struct ReplyFieldBackground: ViewModifier {
+    private static let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
+
     func body(content: Content) -> some View {
         if #available(macOS 26, *) {
-            content.glassEffect(.regular, in: Capsule())
+            content.glassEffect(.regular, in: Self.shape)
         } else {
-            content.background(Capsule().strokeBorder(.separator))
+            content.background(Self.shape.strokeBorder(.separator))
         }
     }
 }
@@ -226,9 +237,12 @@ private struct NotificationCommands: ViewModifier {
     }
 }
 
-/// A messaging-style notification: each sender in bold beside their messages.
+/// A messaging-style notification: each sender in bold beside their messages, whose web and e-mail
+/// addresses are links.
 private struct NotificationConversation: View {
     let lines: [NotificationLine]
+    /// What a message's Copy takes while nothing in it is selected: the whole notification.
+    let copyText: String
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -237,16 +251,16 @@ private struct NotificationConversation: View {
                     if let sender = run.sender {
                         Text(sender)
                             .fontWeight(.semibold)
+                            .textSelection(.enabled)
                     }
                     VStack(alignment: .leading, spacing: 2) {
                         ForEach(Array(run.messages.enumerated()), id: \.offset) { _, message in
-                            Text(message)
+                            LinkedText(text: message, copyText: copyText)
                         }
                     }
                 }
             }
         }
-        .textSelection(.enabled)
     }
 
     /// The lines as sender runs. A run may have no sender: the engine drops the first heading when it

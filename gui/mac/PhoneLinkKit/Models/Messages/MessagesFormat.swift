@@ -203,6 +203,32 @@ public enum MessagesFormat {
         }
     }
 
+    /// What copying a message's text puts on the pasteboard: its subject, when it has one, over its body.
+    public static func copyText(of message: Message) -> String {
+        [message.subject, message.body].filter { !$0.isEmpty }.joined(separator: "\n")
+    }
+
+    /// An attachment's type: its MIME type's, else its name's extension's, else plain data.
+    public static func contentType(of part: MessagePart) -> UTType {
+        UTType(mimeType: part.contentType)
+            ?? UTType(filenameExtension: (part.name as NSString).pathExtension)
+            ?? .data
+    }
+
+    /// The file name an attachment is opened, saved and dragged under: its own name without any
+    /// folder, "Attachment" when it has none, with its type's extension when the name lacks one.
+    public static func attachmentFileName(_ part: MessagePart) -> String {
+        var name = (part.name as NSString).lastPathComponent
+        if name.isEmpty || name == "/" {
+            name = String(localized: "Attachment", comment: "File name of a message attachment that has none")
+        }
+
+        if (name as NSString).pathExtension.isEmpty, let ext = UTType(mimeType: part.contentType)?.preferredFilenameExtension {
+            name = (name as NSString).appendingPathExtension(ext) ?? name
+        }
+        return name
+    }
+
     /// An attachment's row: its kind and, when known, its size ("Image · 1.4 MB").
     public static func attachmentTitle(_ part: MessagePart) -> String {
         let kind = MessagesAttachmentKind(contentType: part.contentType).title

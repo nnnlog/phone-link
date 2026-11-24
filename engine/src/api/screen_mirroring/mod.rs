@@ -218,6 +218,19 @@ impl ScreenMirroringApi {
         let core = core_of(&self.engine)?;
         Ok(features_of(&core)?.screen_mirroring.clone())
     }
+
+    /// A PC keyboard's key (the Linux app's), as [`key`](Self::key) takes it: Alt, which arrives as
+    /// Option, goes with every key, as from a Windows PC, instead of making a Mac's chords. Not exported:
+    /// the macOS app's keys are a Mac's.
+    pub fn pc_key(
+        &self,
+        session_id: String,
+        key_code: u16,
+        action: MirrorKeyAction,
+        flags: u64,
+    ) -> Result<(), FeatureApiError> {
+        Ok(self.feature()?.pc_key(&session_id, key_code, action.into(), flags)?)
+    }
 }
 
 #[uniffi::export(async_runtime = "tokio")]

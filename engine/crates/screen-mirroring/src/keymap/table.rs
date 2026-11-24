@@ -46,7 +46,7 @@ pub(super) static MAC_KEYS: [(u16, KeyMapping); 116] = [
     (0x24, Usage(0x28)), // Return
     (0x35, Usage(0x29)), // Escape
     (0x33, Usage(0x2A)), // Delete (backspace)
-    (0x30, NotSent),     // Tab
+    (0x30, Usage(usage::TAB)),
     (0x31, Usage(0x2C)), // Space
     (0x1B, Usage(0x2D)), // - _
     (0x18, Usage(0x2E)), // = +

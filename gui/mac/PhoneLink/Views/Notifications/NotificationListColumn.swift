@@ -268,6 +268,10 @@ private struct NotificationContextMenu: View {
             Button(action.name) { model.press(action, on: notification) }
         }
         Button(notification.pinned ? "Unpin" : "Pin") { model.setPinned(notification, !notification.pinned) }
+        Button("Copy") {
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(NotificationsModel.copyText(of: notification), forType: .string)
+        }
 
         if model.appCommandsAvailable {
             Divider()
