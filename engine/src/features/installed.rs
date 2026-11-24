@@ -13,6 +13,7 @@ use std::sync::Arc;
 use super::audio::Audio;
 use super::bluetooth::{Bluetooth, PhoneBluetooth};
 use super::calling::Calling;
+use super::calling::control::voice::PhoneVoice;
 use super::clipboard::{Clipboard, ClipboardImageCodec, ClipboardPasteboard};
 use super::connected_camera::{CameraChannels, ConnectedCamera, PhoneCamera};
 use super::contacts::Contacts;
@@ -47,6 +48,8 @@ pub struct FeatureEdges {
     pub pc_power: Arc<dyn PcPowerControl>,
     pub pc_wallpaper: Arc<dyn PcWallpaperSource>,
     pub phone_bluetooth: Arc<dyn PhoneBluetooth>,
+    /// The voice link of a call; a computer that carries none uses `NoVoice`.
+    pub phone_voice: Arc<dyn PhoneVoice>,
     pub hotspot_wifi: Arc<dyn HotspotWifi>,
     pub phone_camera: Arc<dyn PhoneCamera>,
     pub phone_apps_host: Arc<dyn PhoneAppsHost>,
@@ -57,7 +60,7 @@ impl FeatureEdges {
     /// The in-memory stand-ins every feature tests with, stores at `stores`, and `notifier`: an
     /// empty pasteboard that never changes, a fake image codec, a desktop PC on Ethernet, image
     /// attachments sent as they are, fixed file types, no Bluetooth proximity, no desktop picture, PC
-    /// power actions that are only recorded, no phone Bluetooth, no Wi-Fi for instant hotspot, no
+    /// power actions that are only recorded, no phone Bluetooth, no voice link, no Wi-Fi for instant hotspot, no
     /// camera, no application that opens a recent app's document,
     /// nothing to present mirroring on.
     pub fn stand_ins(stores: StoreLocation, notifier: Arc<dyn SystemNotifier>) -> Self {
@@ -81,6 +84,7 @@ impl FeatureEdges {
             pc_power: RecordingPowerControl::new(),
             pc_wallpaper: FixedPcWallpaper::new(PcWallpaper::NotSet),
             phone_bluetooth: Arc::new(super::bluetooth::NoBluetooth),
+            phone_voice: Arc::new(super::calling::control::voice::standins::NoVoice),
             hotspot_wifi: Arc::new(super::hotspot::NoWifi),
             phone_camera: Arc::new(super::connected_camera::NoCamera),
             phone_apps_host: Arc::new(super::phone_apps::PlainAppsHost),
@@ -167,7 +171,13 @@ impl Features {
         let contacts = Contacts::install(env, config.contacts.clone())?;
         let messaging = install_messaging(env, config, edges, &contacts)?;
         let bluetooth = Bluetooth::install(env, config.bluetooth.clone(), edges.phone_bluetooth.clone())?;
-        let calling = Calling::install(env, config.calling.clone(), Some(contacts.directory()), bluetooth.clone())?;
+        let calling = Calling::install(
+            env,
+            config.calling.clone(),
+            Some(contacts.directory()),
+            bluetooth.clone(),
+            edges.phone_voice.clone(),
+        )?;
         let phone_apps = PhoneApps::install(env, config.phone_apps.clone(), edges.phone_apps_host.clone())?;
         let notifications = super::notifications::install(env, config.notifications.clone(), Some(messaging.alerts()))?;
         // The notification list and banners name and picture an app from the phone's app list.

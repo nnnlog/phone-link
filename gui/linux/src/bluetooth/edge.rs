@@ -46,6 +46,11 @@ impl BluezBluetooth {
             .map_err(|e| zbus::Error::InputOutput(Arc::new(e)))?;
         Ok(Self { bluez })
     }
+
+    /// The address of the adapter in use, as `BlueZ` writes it (`XX:XX:XX:XX:XX:XX`).
+    pub(crate) fn adapter_address(&self) -> Option<String> {
+        self.bluez.adapter_address()
+    }
 }
 
 impl PhoneBluetooth for BluezBluetooth {

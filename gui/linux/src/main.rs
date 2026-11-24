@@ -18,6 +18,7 @@ mod engine_bridge;
 mod image_io;
 mod images;
 mod l10n;
+mod links;
 mod messaging_edges;
 mod mirror;
 mod mirror_video;
@@ -31,6 +32,7 @@ mod single_instance;
 mod system;
 mod user_text;
 mod views;
+mod voice;
 mod wifi;
 
 use cxx_qt_lib::{QQmlApplicationEngine, QUrl};
@@ -38,8 +40,13 @@ use cxx_qt_lib::{QQmlApplicationEngine, QUrl};
 fn main() {
     app_log::install();
 
-    let single_instance::Claim::First(_instance) = single_instance::claim() else { return };
+    // A `tel:` link the app was started with goes to the copy that runs, this one or an earlier one.
+    let link = std::env::args().skip(1).find(|argument| links::is_link(argument));
+    let single_instance::Claim::First(_instance) = single_instance::claim(link.as_deref()) else { return };
     app_log::launched();
+    if let Some(link) = link {
+        single_instance::open_link(link);
+    }
 
     application::create_application(&std::env::args().collect());
     let mut engine = QQmlApplicationEngine::new();

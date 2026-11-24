@@ -5,7 +5,8 @@
 //! with the ids it wants, stores the item messages that follow, asks for a sync with `/calling` and
 //! for the call-log permission with `/permission` 256, and contributes to the connect message. Sync
 //! is one-way, phone → PC: the computer never changes or deletes the phone's calls. Placing, answering and
-//! ending calls runs over Bluetooth Hands-Free, with every call's audio on the phone ([`control`]).
+//! ending calls runs over Bluetooth Hands-Free ([`control`]); a call's audio is on the computer where it
+//! carries the voice link, and on the phone otherwise.
 //!
 //! | Module | Implements |
 //! |---|---|
@@ -48,6 +49,8 @@ use phonelink_core::edge::Clock;
 use phonelink_core::types::{DcgClient, TraceContext};
 use phonelink_features::shared::db::{FeatureDb, PhoneStores, StoreError};
 use phonelink_features::{ContactDirectory, ContactMatch, FeatureEnv, FeatureError};
+
+use control::voice::PhoneVoice;
 
 pub use control::CallControl;
 pub use store::CallRow;
@@ -266,13 +269,14 @@ impl std::fmt::Debug for Calling {
 impl Calling {
     /// Registers the `callLogs` processor factory and the `Calling` connect provider, and watches the
     /// App layer's events for the gates. `contacts` names the history's and the current calls'
-    /// numbers and is synced after each refresh; call control reaches the phone through `bluetooth`.
-    /// Must run inside a tokio runtime.
+    /// numbers and is synced after each refresh; call control reaches the phone through `bluetooth`,
+    /// and a call's voice runs on `voice`. Must run inside a tokio runtime.
     pub fn install(
         env: &FeatureEnv,
         config: CallingConfig,
         contacts: Option<Arc<dyn ContactDirectory>>,
         bluetooth: Arc<Bluetooth>,
+        voice: Arc<dyn PhoneVoice>,
     ) -> Result<Arc<Self>, FeatureError> {
         let runtime = Handle::try_current()
             .map_err(|_| FeatureError::Programming("calling must be installed inside a tokio runtime".into()))?;
@@ -295,7 +299,7 @@ impl Calling {
             Arc::new(connect::Contributor { shared: shared.clone() }),
         )?;
         spawn_record_watch(&runtime, &shared, &env.app);
-        let control = CallControl::install(shared.clone(), bluetooth);
+        let control = CallControl::install(shared.clone(), bluetooth, voice);
         Ok(Arc::new(Self { shared, control }))
     }
 

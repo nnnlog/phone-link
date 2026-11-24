@@ -64,9 +64,10 @@ Settings, are in [docs/screenshots.md](docs/screenshots.md).
 
 - You sign in to your Microsoft account in the app's own window.
 - Your phone can't wake your computer or start a connection to it.
-- Calls you place or answer on macOS / Linux stay on your phone. You talk and listen on the phone, not
-  through the computer's microphone and speakers, because the app has no voice link to the phone over
-  Bluetooth. So there is no mute, hold, keypad or moving a call to the computer.
+- On macOS, calls you place or answer stay on your phone. You talk and listen on the phone, not
+  through the Mac's microphone and speakers, because macOS gives the app no voice link to the phone
+  over Bluetooth. So there is no mute, hold, keypad or moving a call to the Mac. On Linux, calls you
+  place or answer use the computer's microphone and speakers, as on Windows.
 - Calls reach your computer only while Phone Link is open.
 
 ## Install

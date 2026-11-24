@@ -31,9 +31,10 @@ async fn the_service_level_connection_runs_in_order_and_names_the_indicators() {
     let ag = FakeAg::new();
     let (link, _events) = open(&ag, Duration::from_secs(1)).await;
 
-    let indicators = service_level_connection(&link).await.expect("the connection is established");
+    let connection = service_level_connection(&link, &[]).await.expect("the connection is established");
 
-    assert_eq!(indicators, ["call", "callsetup", "service", "signal", "roam", "battchg", "callheld"]);
+    assert_eq!(connection.indicators, ["call", "callsetup", "service", "signal", "roam", "battchg", "callheld"]);
+    assert_eq!(connection.ag_features, 4079);
     assert_eq!(
         ag.commands(),
         ["AT+BRSF=102", "AT+CIND=?", "AT+CIND?", "AT+CMER=3,0,0,1", "AT+CHLD=?", "AT+CLIP=1", "AT+CCWA=1"]
@@ -42,12 +43,30 @@ async fn the_service_level_connection_runs_in_order_and_names_the_indicators() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+async fn a_computer_that_codes_wide_band_voice_announces_codec_negotiation_and_its_codecs() {
+    let ag = FakeAg::new();
+    let (link, _events) = open(&ag, Duration::from_secs(1)).await;
+
+    service_level_connection(&link, &[VoiceCodec::Msbc, VoiceCodec::Cvsd]).await.expect("the connection");
+    assert_eq!(ag.commands()[..3], ["AT+BRSF=230", "AT+BAC=1,2", "AT+CIND=?"]);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn a_computer_with_narrow_band_voice_only_announces_what_one_without_voice_does() {
+    let ag = FakeAg::new();
+    let (link, _events) = open(&ag, Duration::from_secs(1)).await;
+
+    service_level_connection(&link, &[VoiceCodec::Cvsd]).await.expect("the connection");
+    assert_eq!(ag.commands()[..2], ["AT+BRSF=102", "AT+CIND=?"]);
+}
+
+#[tokio::test(flavor = "multi_thread")]
 async fn a_refused_step_fails_the_connection() {
     let ag = FakeAg::new();
     ag.refuse("AT+CMER");
     let (link, _events) = open(&ag, Duration::from_secs(1)).await;
 
-    let e = service_level_connection(&link).await.unwrap_err();
+    let e = service_level_connection(&link, &[]).await.unwrap_err();
     assert_eq!(e, SlcError::Refused { step: "AT+CMER", result: Final::Error });
 }
 

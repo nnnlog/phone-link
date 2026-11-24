@@ -99,6 +99,16 @@ impl CallBook {
         self.expecting_dialed = Some(self.next_id);
     }
 
+    /// The call window's main call.
+    pub(crate) fn primary(&self) -> Option<u64> {
+        self.primary
+    }
+
+    /// A call dialed from the computer has not shown in the phone's list yet.
+    pub(crate) fn awaits_dialed(&self) -> bool {
+        self.expecting_dialed.is_some()
+    }
+
     /// Every call ended with the channel.
     pub(crate) fn clear(&mut self) {
         self.calls.clear();

@@ -6,11 +6,12 @@ use cxx_qt_build::{CxxQtBuilder, QmlFile, QmlModule};
 use serde_json::Value;
 
 const QML_DIR: &str = "qml";
-const QML_SINGLETONS: [&str; 10] = [
+const QML_SINGLETONS: [&str; 11] = [
     "qml/Theme.qml",
     "qml/Dates.qml",
     "qml/Preferences.qml",
     "qml/ShellPreferences.qml",
+    "qml/CallPreferences.qml",
     "qml/IconsMessages.qml",
     "qml/IconsNotifications.qml",
     "qml/IconsCalls.qml",

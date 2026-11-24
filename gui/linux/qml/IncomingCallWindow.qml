@@ -16,6 +16,8 @@ Window {
     property var calls: []
     // The phone lets this computer send messages, for *Message*.
     property bool canMessage: false
+    // A call answered here is heard here; otherwise the window says it is heard on the phone.
+    property bool canTakeAudio: false
 
     readonly property string phoneName: EngineBridge.phoneName
 
@@ -72,8 +74,8 @@ Window {
         Repeater {
             model: cardModel
 
-            // One ringing call: who, on which phone it rings, that the call stays on the phone, and
-            // *Decline*, *Message* and *Answer*.
+            // One ringing call: who, on which phone it rings, that it is heard on the phone when this
+            // computer cannot take its audio, and *Decline*, *Message* and *Answer*.
             Rectangle {
                 id: card
 
@@ -155,8 +157,10 @@ Window {
                         }
                     }
 
+                    // Only where this computer cannot take the call's audio.
                     RowLayout {
                         Layout.fillWidth: true
+                        visible: !window.canTakeAudio
                         spacing: 8
 
                         Icon {

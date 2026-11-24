@@ -133,7 +133,7 @@ fn addresses_use_the_engine_form() {
 fn the_gateway_is_reached_through_a_hands_free_registration_naming_its_features() {
     let (uuid, options) = registration_for(HANDSFREE_AUDIO_GATEWAY);
     assert_eq!(uuid, HANDSFREE);
-    assert_eq!(options.get("Features"), Some(&Value::from(0x0006u16)));
+    assert_eq!(options.get("Features"), Some(&Value::from(0x0026u16)));
     assert_eq!(options.get("Role"), None);
 
     let (uuid, options) = registration_for(SIDE_CHANNEL);

@@ -17,6 +17,10 @@ pub struct CallingConfig {
     pub control_read_poll: Duration,
     /// How long ending a held call waits for it to resume first (3 s).
     pub control_end_held_wait: Duration,
+    /// How long a transfer to the computer waits for the phone's voice link (10 s).
+    pub control_voice_wait: Duration,
+    /// How long ending every call waits between the first call and the second (2 s).
+    pub control_end_all_pause: Duration,
 }
 
 impl Default for CallingConfig {
@@ -27,6 +31,8 @@ impl Default for CallingConfig {
             control_command_timeout: Duration::from_secs(10),
             control_read_poll: Duration::from_secs(1),
             control_end_held_wait: Duration::from_secs(3),
+            control_voice_wait: Duration::from_secs(10),
+            control_end_all_pause: Duration::from_secs(2),
         }
     }
 }

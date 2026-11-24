@@ -119,6 +119,15 @@ SettingsPane {
             text: L10n.t("Turn on call history to make and answer calls on this computer.")
         }
 
+        // A call placed or answered on the phone is told about, with the offer to transfer it here.
+        MacSwitch {
+            Layout.fillWidth: true
+            visible: pane.control.enabled === true && pane.hasHistory
+            text: L10n.t("Notify me about calls I take on my phone")
+            checked: CallPreferences.phoneCallNotices
+            onToggled: CallPreferences.phoneCallNotices = checked
+        }
+
         RowLayout {
             Layout.fillWidth: true
             visible: pane.control.enabled === true && pane.hasHistory
@@ -157,13 +166,13 @@ SettingsPane {
 
             Icon {
                 Layout.alignment: Qt.AlignTop
-                name: "handset"
+                name: "microphone"
                 size: 14
                 color: Theme.secondaryText
             }
 
             SettingsNote {
-                text: L10n.t("Calls stay on your phone. This computer places, answers and ends them over Bluetooth, and you talk on your phone or on a headset connected to it.")
+                text: L10n.t("Calls you place or answer here use this computer's microphone and speakers. You can transfer a call to your phone at any time.")
             }
         }
 

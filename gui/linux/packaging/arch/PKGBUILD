@@ -8,7 +8,7 @@ pkgdesc="Use an Android phone from this computer: messages, calls, notifications
 arch=('x86_64' 'aarch64')
 url="https://github.com/nnnlog/phone-link"
 license=('MIT')
-depends=('qt6-base' 'qt6-declarative' 'qt6-webengine' 'fuse3' 'libpulse' 'opus')
+depends=('qt6-base' 'qt6-declarative' 'qt6-webengine' 'fuse3' 'libpulse' 'opus' 'sbc')
 makedepends=('git' 'cargo' 'cmake')
 optdepends=(
     'bluez: calls and the instant hotspot'

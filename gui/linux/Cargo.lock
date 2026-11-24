@@ -3099,6 +3099,7 @@ dependencies = [
  "openh264",
  "opus",
  "phonelink-bluetooth",
+ "phonelink-calling",
  "phonelink-clipboard",
  "phonelink-connected-camera",
  "phonelink-core",

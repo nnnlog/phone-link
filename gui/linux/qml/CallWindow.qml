@@ -4,21 +4,39 @@ import QtQuick.Layouts
 import QtQuick.Window
 import PhoneLink
 
-// The call window: who the call placed or answered on this computer is with, its state and how long it
-// has run, with *End* (Ctrl+Shift+H), and the other call below it, which a click swaps in. The call's
-// audio is on the phone, so there is no mute, hold, keypad or audio output here. Closing the window
-// hides it; the calls go on on the phone. Call-control failures show here while it is open.
+// The call window: who the call placed or answered on this computer is with, where it is heard, its
+// state and how long it has run, and the other call below it, which a click swaps in. Its controls
+// are *Mute*, *Keypad* and *Hold*, which act while the call is heard on this computer, the transfer
+// of the audio to the phone or back, and *End* (Ctrl+Shift+H); Ctrl+Shift+M mutes and unmutes. Closing
+// the window asks whether to end the calls. Call-control failures show here while it is open.
 Window {
     id: window
 
     // The main call and the other call (query "callControl" `primary` and `secondary`).
     property var primary: null
     property var secondary: null
+    // Whether this computer has a microphone and a sound output (query "callControl").
+    property bool hasMicrophone: true
+    property bool hasOutput: true
     property double now: Date.now()
 
     readonly property var shownPrimary: primary || { id: 0, name: null, number: "", photo: null, status: "talking", talkingSinceMs: null }
+    readonly property bool onComputer: shownPrimary.onComputer === true
+    // The keypad shows in place of the call's picture and name.
+    property bool keypadShown: false
+    readonly property var keys: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"]
 
-    title: L10n.t("Phone Call")
+    function perform(action) {
+        if (primary !== null)
+            EngineBridge.perform(action, String(primary.id))
+    }
+
+    onPrimaryChanged: {
+        if (primary === null || primary.canUseKeypad !== true)
+            keypadShown = false
+    }
+
+    title: onComputer ? L10n.t("Call on This Computer") : L10n.t("Call on Phone")
     flags: Qt.Window | Qt.WindowStaysOnTopHint
     // Its own window, not the main window's: it shows while the main window is hidden or minimized.
     transientParent: null
@@ -46,9 +64,10 @@ Window {
     palette.toolTipBase: Theme.toolTipBackground
     palette.toolTipText: Theme.text
 
+    // The window closes with its calls: closing it asks whether to end them.
     onClosing: close => {
-        close.accepted = true
-        EngineBridge.perform("calls.closeCallWindow", "")
+        close.accepted = false
+        endQuestion.open()
     }
 
     CallsFormat {
@@ -67,6 +86,12 @@ Window {
         sequence: "Ctrl+Shift+H"
         enabled: window.primary !== null
         onActivated: EngineBridge.perform("calls.end", String(window.primary.id))
+    }
+
+    Shortcut {
+        sequence: "Ctrl+Shift+M"
+        enabled: window.shownPrimary.canMute === true
+        onActivated: window.perform("calls.toggleMute")
     }
 
     Connections {
@@ -98,9 +123,51 @@ Window {
 
             Avatar {
                 Layout.alignment: Qt.AlignHCenter
+                visible: !window.keypadShown
                 name: window.shownPrimary.name || ""
                 photo: window.shownPrimary.photo || ""
                 size: 72
+            }
+
+            // The keypad: each key is sent into the call, and its tone plays here.
+            GridLayout {
+                Layout.alignment: Qt.AlignHCenter
+                visible: window.keypadShown
+                columns: 3
+                columnSpacing: 10
+                rowSpacing: 8
+
+                Repeater {
+                    model: window.keys
+
+                    AbstractButton {
+                        id: key
+
+                        required property string modelData
+
+                        implicitWidth: 56
+                        implicitHeight: 40
+                        hoverEnabled: true
+                        enabled: window.shownPrimary.canUseKeypad === true
+                        Accessible.role: Accessible.Button
+                        Accessible.name: modelData
+                        onClicked: EngineBridge.perform("calls.key", JSON.stringify({ id: window.shownPrimary.id, key: modelData }))
+
+                        background: Rectangle {
+                            radius: 10
+                            color: key.down ? Theme.selection : key.hovered ? Theme.controlHover : Theme.controlBackground
+                            border.color: key.visualFocus ? Theme.accent : "transparent"
+                        }
+
+                        contentItem: Text {
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            text: key.modelData
+                            color: Theme.text
+                            font.pixelSize: 20
+                        }
+                    }
+                }
             }
 
             Text {
@@ -136,7 +203,9 @@ Window {
                         case "dialing": return L10n.t("Calling...")
                         case "held": return L10n.t("On hold")
                         case "incoming": return L10n.t("Incoming Call")
-                        default: return L10n.t("On phone")
+                        default:
+                            return window.shownPrimary.muted === true ? L10n.t("Muted")
+                                 : window.onComputer ? L10n.t("On this computer") : L10n.t("On phone")
                         }
                     }
                     color: Theme.secondaryText
@@ -151,6 +220,44 @@ Window {
                     color: Theme.secondaryText
                     font.pixelSize: Theme.bodySize + 1
                     font.features: { "tnum": 1 }
+                }
+            }
+
+            RowLayout {
+                Layout.alignment: Qt.AlignHCenter
+                Layout.topMargin: 8
+                spacing: 4
+
+                CallControlButton {
+                    iconName: window.shownPrimary.muted === true ? "microphoneSlash" : "microphone"
+                    text: window.shownPrimary.muted === true ? L10n.t("Unmute") : L10n.t("Mute")
+                    active: window.shownPrimary.muted === true
+                    enabled: window.shownPrimary.canMute === true
+                    onClicked: window.perform("calls.toggleMute")
+                }
+
+                CallControlButton {
+                    iconName: "keypad"
+                    text: L10n.t("Keypad")
+                    active: window.keypadShown
+                    enabled: window.shownPrimary.canUseKeypad === true
+                    onClicked: window.keypadShown = !window.keypadShown
+                }
+
+                CallControlButton {
+                    iconName: window.shownPrimary.status === "held" ? "play" : "pause"
+                    text: window.shownPrimary.status === "held" ? L10n.t("Resume") : L10n.t("Hold")
+                    active: window.shownPrimary.status === "held"
+                    enabled: window.shownPrimary.canHold === true
+                    onClicked: window.perform("calls.toggleHold")
+                }
+
+                CallControlButton {
+                    iconName: window.onComputer ? "handset" : "computer"
+                    text: window.onComputer ? L10n.t("To Phone") : L10n.t("To Computer")
+                    help: window.onComputer ? L10n.t("Transfer to Phone") : L10n.t("Transfer to Computer")
+                    enabled: window.shownPrimary.canTransfer === true
+                    onClicked: window.perform("calls.transfer")
                 }
             }
 
@@ -234,12 +341,15 @@ Window {
 
         Rectangle {
             Layout.fillWidth: true
+            visible: !window.onComputer
             implicitHeight: 1
             color: Theme.separator
         }
 
+        // While the call is heard on the phone.
         RowLayout {
             Layout.fillWidth: true
+            visible: !window.onComputer
             spacing: 8
 
             Icon {
@@ -251,10 +361,77 @@ Window {
 
             Text {
                 Layout.fillWidth: true
-                text: L10n.t("Talk on your phone. This computer only controls the call.")
+                text: !window.hasMicrophone ? L10n.t("Talk on your phone. This computer has no microphone.")
+                    : !window.hasOutput ? L10n.t("Talk on your phone. This computer has no sound output.")
+                    : L10n.t("Talk on your phone. This computer only controls the call.")
                 color: Theme.secondaryText
                 font.pixelSize: Theme.bodySize
                 wrapMode: Text.Wrap
+            }
+        }
+    }
+
+    // The question a close of the window asks: ending the calls, or keeping the window.
+    Dialog {
+        id: endQuestion
+
+        readonly property bool several: window.secondary !== null
+
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        width: parent ? parent.width - 32 : 288
+        modal: true
+        focus: true
+        padding: 18
+
+        background: Rectangle {
+            radius: Theme.moduleRadius
+            color: Theme.raisedBackground
+            border.color: Theme.separator
+        }
+
+        contentItem: ColumnLayout {
+            spacing: 10
+
+            Text {
+                Layout.fillWidth: true
+                text: endQuestion.several ? L10n.t("Are you sure you want to end all calls?")
+                                          : L10n.t("Are you sure you want to end the call?")
+                color: Theme.text
+                font.pixelSize: Theme.headlineSize - 2
+                font.weight: Font.DemiBold
+                wrapMode: Text.Wrap
+            }
+
+            Text {
+                Layout.fillWidth: true
+                text: L10n.t("You can minimize the window instead.")
+                color: Theme.secondaryText
+                font.pixelSize: Theme.bodySize
+                wrapMode: Text.Wrap
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.topMargin: 4
+
+                PillButton {
+                    text: L10n.t("Cancel")
+                    onClicked: endQuestion.close()
+                }
+
+                Item {
+                    Layout.fillWidth: true
+                }
+
+                PillButton {
+                    prominent: true
+                    text: endQuestion.several ? L10n.t("End All Calls") : L10n.t("End Call")
+                    onClicked: {
+                        endQuestion.close()
+                        EngineBridge.perform("calls.endAll", "")
+                    }
+                }
             }
         }
     }

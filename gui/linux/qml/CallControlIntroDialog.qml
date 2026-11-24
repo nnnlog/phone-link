@@ -4,8 +4,9 @@ import QtQuick.Layouts
 import QtCore
 import PhoneLink
 
-// The explanation shown the first time call control is switched on on this computer: the user talks on
-// the phone, not through this computer. *Turn On* switches it on; Return does too, Escape cancels.
+// The explanation shown the first time call control is switched on on this computer: calls placed or
+// answered here use its microphone and speakers. *Turn On* switches it on; Return does too, Escape
+// cancels.
 Dialog {
     id: dialog
 
@@ -55,7 +56,7 @@ Dialog {
         Text {
             Layout.fillWidth: true
             horizontalAlignment: Text.AlignHCenter
-            text: L10n.t("Calls Stay on Your Phone")
+            text: L10n.t("Calls on This Computer")
             color: Theme.text
             font.pixelSize: Theme.titleSize - 2
             font.weight: Font.DemiBold
@@ -72,7 +73,7 @@ Dialog {
 
         Text {
             Layout.fillWidth: true
-            text: L10n.t("You talk on your phone or on a headset connected to it. This computer's microphone and speakers aren't used for calls.")
+            text: L10n.t("Calls you place or answer here use this computer's microphone and speakers.")
             color: Theme.text
             font.pixelSize: Theme.bodySize
             font.weight: Font.Medium

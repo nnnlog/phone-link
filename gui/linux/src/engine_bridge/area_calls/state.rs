@@ -19,6 +19,11 @@ pub(in crate::engine_bridge) struct State {
     pub(super) connecting: bool,
     /// A dial runs.
     pub(super) dialing: bool,
+    /// The number of a `tel:` link, until the Calls section's keypad took it.
+    pub(super) keypad_number: Option<String>,
+    /// The user turned off the notices of calls taken on the phone (they are on until the window's
+    /// preferences say otherwise).
+    pub(super) phone_call_notices_off: bool,
     /// The call history permission request of the Calls section.
     pub(super) history_request: PhoneRequest,
     /// The call history access request of Settings runs.

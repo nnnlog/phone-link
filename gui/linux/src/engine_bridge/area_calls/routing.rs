@@ -24,6 +24,12 @@ pub(super) fn pairing_answer(arg: &str) -> Option<bool> {
     }
 }
 
+/// The call window's keypad key: `{"id": <call>, "key": "<0-9, * or #>"}`.
+pub(super) fn key_of(arg: &str) -> Option<(u64, String)> {
+    let value: Value = serde_json::from_str(arg).ok()?;
+    Some((value.get("id")?.as_u64()?, value.get("key")?.as_str()?.to_owned()))
+}
+
 /// The incoming-call window's *Message* reply: `{"id": <call>, "number": "…", "text": "…"}`.
 pub(super) fn reply_of(arg: &str) -> Option<(u64, String, String)> {
     let value: Value = serde_json::from_str(arg).ok()?;
@@ -120,6 +126,25 @@ impl EngineBridge {
             "calls.swap" => {
                 self.control_operation(engine, "Couldn't Swap Calls", |calling| async move { calling.swap().await })
             }
+            "calls.toggleMute" | "calls.toggleHold" | "calls.transfer" => match arg.parse::<u64>() {
+                Ok(id) => self.in_call_operation(engine, name, id),
+                Err(e) => warn!(action = name, %arg, error = %e, "the action takes a call id"),
+            },
+            "calls.key" => match key_of(arg) {
+                Some((id, key)) => self.control_operation(engine, "Couldn't Send Key", move |calling| async move {
+                    calling.send_call_key(id, key).await
+                }),
+                None => warn!(%arg, "calls.key takes {{id, key}}"),
+            },
+            "calls.endAll" => self
+                .control_operation(engine, "Couldn't End Call", |calling| async move { calling.end_all_calls().await }),
+            "calls.keypadNumberTaken" => {
+                self.as_mut().rust_mut().areas.calls.keypad_number = None;
+                self.bump(Revision::Calls);
+            }
+            "calls.phoneCallNotices" => {
+                self.as_mut().rust_mut().areas.calls.phone_call_notices_off = !flag;
+            }
             "calls.hidePopup" => match arg.parse::<u64>() {
                 Ok(id) => {
                     self.as_mut().rust_mut().areas.calls.presentation.hidden.insert(id);
@@ -132,10 +157,6 @@ impl EngineBridge {
                 Some((id, number, text)) => self.reply_to_call(engine, id, number, text),
                 None => warn!(%arg, "calls.reply takes {{id, number, text}}"),
             },
-            "calls.closeCallWindow" => {
-                self.as_mut().rust_mut().areas.calls.presentation.window_open = false;
-                self.bump(Revision::Calls);
-            }
             "calls.bluetoothPairingAnswer" => match pairing_answer(arg) {
                 Some(confirmed) => crate::bluetooth::answer_pairing_question(confirmed),
                 None => warn!(%arg, "calls.bluetoothPairingAnswer takes true or false"),

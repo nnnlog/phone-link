@@ -9,9 +9,10 @@ use serde_json::{Value, json};
 use super::calls_json::{active_call_json, calls_state_json, connection_notice};
 use super::contacts_json::{card_json, contact_item_json, contacts_state_json, label};
 use super::control::bluetooth_settings;
+use super::phone_call_notice::{notice_id, notice_title};
 use super::presentation::{Presentation, PresentationChange};
 use super::ringer::{RING_PERIOD_MS, RING_RATE, ring_period};
-use super::routing::{pairing_answer, reply_of};
+use super::routing::{key_of, pairing_answer, reply_of};
 use super::state::PhoneRequest;
 use super::sync_wait::SyncWait;
 use crate::system::Desktop;
@@ -28,64 +29,174 @@ fn call(id: u64, status: ActiveCallStatus, role: ActiveCallRole) -> ActiveCall {
         waiting: false,
         talking_since_ms: None,
         role,
+        on_computer: false,
+        muted: false,
+        can_mute: false,
+        can_hold: false,
+        can_use_keypad: false,
+        can_transfer: false,
     }
+}
+
+/// A call the user placed or answered on the phone, which this computer could take.
+fn on_phone(id: u64, status: ActiveCallStatus) -> ActiveCall {
+    ActiveCall { can_transfer: true, ..call(id, status, ActiveCallRole::Untracked) }
 }
 
 #[test]
 fn a_ringing_call_shows_rings_and_gets_a_lifetime() {
     let mut presentation = Presentation::default();
     let calls = [call(7, ActiveCallStatus::Incoming, ActiveCallRole::Untracked)];
-    let change = presentation.update(&calls);
-    assert_eq!(change, PresentationChange { lifetimes: vec![(7, 0)], ring: Some(true), window: false });
+    let change = presentation.update(&calls, true, &mut || false);
+    assert_eq!(
+        change,
+        PresentationChange { lifetimes: vec![(7, 0)], ring: Some(true), ..PresentationChange::default() }
+    );
     assert_eq!(presentation.popup(&calls).map(|c| c.id).collect::<Vec<_>>(), [7]);
 
     // The same call again starts nothing new.
-    assert_eq!(presentation.update(&calls), PresentationChange::default());
+    assert_eq!(presentation.update(&calls, true, &mut || false), PresentationChange::default());
 }
 
 #[test]
 fn a_closed_or_expired_popup_stops_the_ring_and_stays_closed() {
     let mut presentation = Presentation::default();
     let calls = [call(7, ActiveCallStatus::Incoming, ActiveCallRole::Untracked)];
-    presentation.update(&calls);
+    presentation.update(&calls, true, &mut || false);
 
     assert!(!presentation.expire(7, 5), "another token does not expire it");
     assert!(presentation.expire(7, 0));
-    assert_eq!(presentation.update(&calls).ring, Some(false));
+    assert_eq!(presentation.update(&calls, true, &mut || false).ring, Some(false));
     assert_eq!(presentation.popup(&calls).count(), 0);
     assert!(!presentation.expire(7, 0), "a hidden call expires once");
 }
 
 #[test]
+fn a_call_that_rings_while_the_desktop_is_not_to_be_disturbed_is_never_shown() {
+    let mut presentation = Presentation::default();
+    let ringing = [call(7, ActiveCallStatus::Incoming, ActiveCallRole::Untracked)];
+    let mut asked = 0;
+    let mut undisturbed = || {
+        asked += 1;
+        true
+    };
+
+    assert_eq!(presentation.update(&ringing, true, &mut undisturbed), PresentationChange::default());
+    assert_eq!(presentation.popup(&ringing).count(), 0);
+    // It stays hidden when the desktop may be disturbed again, and is asked about once.
+    assert_eq!(presentation.update(&ringing, true, &mut || false), PresentationChange::default());
+    presentation.update(&[call(1, ActiveCallStatus::Talking, ActiveCallRole::Primary)], true, &mut undisturbed);
+    assert_eq!(asked, 1, "only a call that starts ringing asks");
+}
+
+#[test]
 fn an_ended_call_is_forgotten() {
     let mut presentation = Presentation::default();
-    presentation.update(&[call(7, ActiveCallStatus::Incoming, ActiveCallRole::Untracked)]);
+    presentation.update(&[call(7, ActiveCallStatus::Incoming, ActiveCallRole::Untracked)], true, &mut || false);
     presentation.hidden.insert(7);
-    presentation.update(&[]);
+    presentation.update(&[], true, &mut || false);
     assert!(presentation.hidden.is_empty());
     assert!(!presentation.expire(7, 0), "the ended call's timer does nothing");
 }
 
 #[test]
-fn a_new_main_call_opens_the_call_window_again() {
+fn the_call_window_shows_while_a_main_call_goes_on() {
     let mut presentation = Presentation::default();
-    let first = [call(1, ActiveCallStatus::Talking, ActiveCallRole::Primary)];
-    assert!(presentation.update(&first).window);
-    assert!(presentation.window_open);
-
-    // The user closes it: the same call does not open it again.
-    presentation.window_open = false;
-    assert_eq!(presentation.update(&first), PresentationChange::default());
-    assert!(!presentation.window_open);
     assert!(!presentation.window_shows_failures());
 
-    presentation.update(&[call(2, ActiveCallStatus::Dialing, ActiveCallRole::Primary)]);
-    assert!(presentation.window_open);
+    let first = [call(1, ActiveCallStatus::Talking, ActiveCallRole::Primary)];
+    assert!(presentation.update(&first, true, &mut || false).window);
+    assert_eq!(presentation.update(&first, true, &mut || false), PresentationChange::default());
     assert!(presentation.window_shows_failures());
 
-    presentation.update(&[]);
-    assert!(!presentation.window_open);
+    assert!(
+        presentation.update(&[call(2, ActiveCallStatus::Dialing, ActiveCallRole::Primary)], true, &mut || false).window
+    );
+    assert_eq!(presentation.window_call, Some(2));
+
+    assert!(presentation.update(&[], true, &mut || false).window);
     assert_eq!(presentation.window_call, None);
+}
+
+#[test]
+fn a_call_taken_on_the_phone_is_told_once_and_its_notice_taken_back_when_it_no_longer_applies() {
+    let mut presentation = Presentation::default();
+    let talking = [on_phone(3, ActiveCallStatus::Talking)];
+
+    assert_eq!(presentation.update(&talking, true, &mut || false).notices, [3]);
+    assert_eq!(presentation.update(&talking, true, &mut || false), PresentationChange::default(), "told once");
+
+    // Transferred to this computer: it is the call window's now.
+    let transferred = [ActiveCall { on_computer: true, ..call(3, ActiveCallStatus::Talking, ActiveCallRole::Primary) }];
+    assert_eq!(presentation.update(&transferred, true, &mut || false).withdrawn, [3]);
+    assert!(!presentation.notice_over(3), "the notice is gone already");
+
+    // A notice that ran out is taken back once, and the call's end takes nothing more back.
+    assert_eq!(presentation.update(&[on_phone(4, ActiveCallStatus::Dialing)], true, &mut || false).notices, [4]);
+    assert!(presentation.notice_over(4));
+    assert!(!presentation.notice_over(4));
+    assert!(presentation.update(&[], true, &mut || false).withdrawn.is_empty());
+}
+
+#[test]
+fn a_call_on_the_phone_gets_no_notice_when_it_should_not() {
+    // (the call, the other calls, notices allowed)
+    let ringing = call(5, ActiveCallStatus::Incoming, ActiveCallRole::Untracked);
+    let cannot_take = call(5, ActiveCallStatus::Talking, ActiveCallRole::Untracked);
+    let window = call(1, ActiveCallStatus::Talking, ActiveCallRole::Primary);
+    let cases = [
+        (on_phone(5, ActiveCallStatus::Talking), None, false),
+        (on_phone(5, ActiveCallStatus::Talking), Some(window), true),
+        (ActiveCall { can_transfer: true, ..ringing }, None, true),
+        (cannot_take, None, true),
+    ];
+
+    for (subject, other, allowed) in cases {
+        let mut presentation = Presentation::default();
+        let calls: Vec<ActiveCall> = other.into_iter().chain([subject.clone()]).collect();
+        assert!(presentation.update(&calls, allowed, &mut || false).notices.is_empty(), "no notice for {subject:?}");
+    }
+
+    // A call seen while notices were off gets none when they are turned on.
+    let mut presentation = Presentation::default();
+    let talking = [on_phone(5, ActiveCallStatus::Talking)];
+    presentation.update(&talking, false, &mut || false);
+    assert!(presentation.update(&talking, true, &mut || false).notices.is_empty());
+}
+
+#[test]
+fn a_notice_names_the_contact_then_the_number() {
+    let named = ActiveCall { name: Some("Ada".to_owned()), ..on_phone(6, ActiveCallStatus::Talking) };
+    assert_eq!(notice_title(&named), "Ada");
+    assert_eq!(notice_title(&on_phone(6, ActiveCallStatus::Talking)), "+82100000006");
+    assert_eq!(notice_id(6), "calls/onPhone/6");
+}
+
+#[test]
+fn a_keypad_key_reads_its_call_and_key() {
+    assert_eq!(key_of(r##"{"id": 4, "key": "#"}"##), Some((4, "#".to_owned())));
+    assert_eq!(key_of(r#"{"id": 4}"#), None);
+    assert_eq!(key_of("4"), None);
+}
+
+#[test]
+fn a_call_tells_the_window_where_it_is_heard_and_what_acts_on_it() {
+    let heard_here = ActiveCall {
+        on_computer: true,
+        muted: true,
+        can_mute: true,
+        can_hold: true,
+        can_use_keypad: true,
+        can_transfer: true,
+        ..call(1, ActiveCallStatus::Talking, ActiveCallRole::Primary)
+    };
+    let json = active_call_json(&heard_here, None);
+    for key in ["onComputer", "muted", "canMute", "canHold", "canUseKeypad", "canTransfer"] {
+        assert_eq!(json[key], true, "{key}");
+    }
+
+    let on_phone = active_call_json(&call(1, ActiveCallStatus::Talking, ActiveCallRole::Primary), None);
+    assert_eq!((&on_phone["onComputer"], &on_phone["canTransfer"]), (&json!(false), &json!(false)));
 }
 
 #[test]
@@ -141,8 +252,13 @@ fn calls_show_as_updating_until_the_wait_is_over() {
 
 #[test]
 fn the_connection_notice_needs_both_switches_on() {
-    let state =
-        CallControlState { offered: true, pc_consent: true, enabled: true, status: CallControlStatus::NotPaired };
+    let state = CallControlState {
+        offered: true,
+        pc_consent: true,
+        enabled: true,
+        status: CallControlStatus::NotPaired,
+        can_take_audio: true,
+    };
     assert_eq!(connection_notice(&state), Some("notPaired"));
     assert_eq!(connection_notice(&CallControlState { enabled: false, ..state }), None);
     assert_eq!(connection_notice(&CallControlState { pc_consent: false, ..state }), None);

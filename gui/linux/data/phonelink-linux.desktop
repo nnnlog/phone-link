@@ -2,7 +2,8 @@
 Type=Application
 Name=Phone Link
 Comment=Use your Android phone from this computer
-Exec=phonelink-linux
+Exec=phonelink-linux %u
 Icon=phonelink
 Terminal=false
 Categories=Network;Utility;
+MimeType=x-scheme-handler/tel;

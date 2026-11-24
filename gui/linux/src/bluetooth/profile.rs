@@ -22,8 +22,9 @@ use super::rfcomm::{Channels, rfcomm_err};
 pub(super) const HANDSFREE: &str = "0000111e-0000-1000-8000-00805f9b34fb";
 pub(super) const HANDSFREE_AUDIO_GATEWAY: &str = "0000111f-0000-1000-8000-00805f9b34fb";
 /// The Hands-Free features the published record names: three-way calling (0x02) and caller ID
-/// presentation (0x04), the features the engine announces in `AT+BRSF` that the record has bits for.
-const HANDSFREE_RECORD_FEATURES: u16 = 0x0006;
+/// presentation (0x04), the features the engine announces in `AT+BRSF` that the record has bits for,
+/// and wide band speech (0x20), which the voice link carries.
+const HANDSFREE_RECORD_FEATURES: u16 = 0x0026;
 
 /// Whom an incoming RFCOMM connection is for: the device's object path and the service on it
 /// (lowercase UUID) that an `rfcomm_open` asked for.

@@ -14,6 +14,9 @@ use phonelink_engine::config::features::{BluetoothConfig, CallingConfig};
 use phonelink_engine::features::bluetooth::Bluetooth;
 use phonelink_engine::features::calling::Calling;
 use phonelink_engine::features::calling::control::testing::FakeAg;
+use phonelink_engine::features::calling::control::voice::PhoneVoice;
+use phonelink_engine::features::calling::control::voice::standins::NoVoice;
+use phonelink_engine::features::calling::control::voice::testing::FakeVoice;
 use phonelink_engine::types::TransportMessage;
 
 use crate::support::app_world::{Harness, phone, phone_content, trace};
@@ -27,6 +30,8 @@ pub struct World {
     pub contacts: Arc<FakeContacts>,
     /// The phone's Bluetooth radio and Audio Gateway call control reaches.
     pub ag: Arc<FakeAg>,
+    /// The computer's voice edge, in a world whose computer carries a call's voice.
+    pub voice: Option<Arc<FakeVoice>>,
 }
 
 /// A connected harness whose Android phone has both calling capabilities and contacts
@@ -36,19 +41,35 @@ pub fn world() -> World {
     world_with(CallingConfig::default())
 }
 
+/// As [`world`], on a computer that carries a call's voice; the phone opens its voice links to it.
+pub fn voice_world() -> World {
+    build(CallingConfig::default(), Some(FakeVoice::new()))
+}
+
 pub fn world_with(config: CallingConfig) -> World {
+    build(config, None)
+}
+
+fn build(config: CallingConfig, voice: Option<Arc<FakeVoice>>) -> World {
     let h = Harness::new();
     let w = feature_world(&h);
     let contacts = FakeContacts::with(&[("+15550100", "Ada")]);
     let ag = FakeAg::new();
     let bluetooth = Bluetooth::install(&w.env, BluetoothConfig::default(), ag.clone()).expect("bluetooth install");
-    let calling = Calling::install(&w.env, config, Some(contacts.clone()), bluetooth).expect("calling install");
+    let edge: Arc<dyn PhoneVoice> = match &voice {
+        Some(voice) => {
+            ag.carry_voice(voice.clone());
+            voice.clone()
+        }
+        None => Arc::new(NoVoice),
+    };
+    let calling = Calling::install(&w.env, config, Some(contacts.clone()), bluetooth, edge).expect("calling install");
     h.app.update_record_for(&phone(), |r| {
         r.platform = platform::ANDROID;
         r.capability_bits |= capability::CALLS | capability::CALL_LOGS;
         r.contacts_capabilities = Some(1);
     });
-    World { h, w, calling, contacts, ag }
+    World { h, w, calling, contacts, ag, voice }
 }
 
 impl World {

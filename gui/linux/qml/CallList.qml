@@ -36,6 +36,19 @@ Rectangle {
     readonly property string phoneName: EngineBridge.phoneName.length > 0 ? EngineBridge.phoneName : L10n.t("your phone")
     readonly property var rows: format.rows(calls, search.text)
     readonly property string notice: control.dialNotice || control.connectionNotice || ""
+    // The number of a `tel:` link, which the keypad takes.
+    readonly property string keypadNumber: control.keypadNumber || ""
+
+    function takeKeypadNumber() {
+        if (keypadNumber.length === 0)
+            return
+        const number = keypadNumber
+        EngineBridge.perform("calls.keypadNumberTaken", "")
+        if (control.enabled === true)
+            dialPad.openWith(number)
+    }
+
+    onKeypadNumberChanged: takeKeypadNumber()
 
     function tellDetail() {
         EngineBridge.areaEvent("calls", "listShown", JSON.stringify({ content: content, selectedId: selectedId }))
@@ -73,6 +86,7 @@ Rectangle {
             notificationHelp.close()
     }
     Component.onCompleted: {
+        Qt.callLater(takeKeypadNumber)
         rowModel.sync(rows, row => row.key)
         // After the detail column exists.
         Qt.callLater(tellDetail)

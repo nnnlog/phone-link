@@ -117,7 +117,11 @@ impl EngineBridge {
             "popup": calls.presentation.popup(&calls.calls).map(call).collect::<Vec<_>>(),
             "primary": with_role(ActiveCallRole::Primary),
             "secondary": with_role(ActiveCallRole::Secondary),
-            "callWindowOpen": calls.presentation.window_open,
+            "callWindowOpen": calls.presentation.window_call.is_some(),
+            "canTakeAudio": control.is_some_and(|state| state.can_take_audio),
+            "hasMicrophone": crate::audio::has_microphone(),
+            "hasOutput": crate::audio::has_output(),
+            "keypadNumber": calls.keypad_number,
             "canMessage": can_message,
         })
     }

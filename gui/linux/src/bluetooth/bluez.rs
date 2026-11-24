@@ -76,6 +76,12 @@ impl Bluez {
         }
     }
 
+    /// The address of the adapter in use, as `BlueZ` writes it; `None` without an adapter or an answer.
+    pub(super) fn adapter_address(&self) -> Option<String> {
+        let objects = self.objects().inspect_err(|e| info!(error = %e, "BlueZ did not answer")).ok()?;
+        chosen_adapter(&objects).and_then(|(_, adapter)| string_of(adapter, "Address"))
+    }
+
     /// The address of the paired phone named one of `names`, in the engine's form.
     pub(super) fn paired_phone(&self, names: &[String]) -> Option<String> {
         let objects = self.objects().inspect_err(|e| info!(error = %e, "BlueZ did not answer")).ok()?;

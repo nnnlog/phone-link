@@ -85,6 +85,12 @@ impl FreedesktopNotifier {
         Proxy::new(&self.bus, NOTIFICATIONS, NOTIFICATIONS_PATH, NOTIFICATIONS)
     }
 
+    /// Whether the server says notifications are inhibited (the desktop's do not disturb), read from it
+    /// now. A server that does not say, or none, counts as not inhibited.
+    pub(crate) fn inhibited(&self) -> bool {
+        self.proxy().and_then(|proxy| proxy.get_property::<bool>("Inhibited")).unwrap_or(false)
+    }
+
     /// The running server's capabilities, read from it the first time they are needed; fails when no
     /// server answers.
     pub(super) fn capabilities(&self) -> Result<Vec<String>, EdgeError> {

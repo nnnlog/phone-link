@@ -12,7 +12,8 @@ use crate::l10n::translate;
 
 /// The ring of an incoming call on this computer.
 ///
-/// The phone's own ringtone cannot play here: the call's audio stays on the phone.
+/// The phone's own ringtone does not play here: the phone's voice link is not taken while a call
+/// rings.
 #[derive(Default)]
 pub(super) struct Ringer {
     /// Dropping it stops the ring.

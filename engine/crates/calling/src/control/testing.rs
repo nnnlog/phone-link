@@ -1,5 +1,9 @@
-//! A scripted phone for call-control tests: its Bluetooth radio and paired device, and an HFP Audio
-//! Gateway on one RFCOMM channel that answers the computer's AT commands from a call list the test drives.
+//! A scripted phone for call-control tests.
+//!
+//! It has a Bluetooth radio and paired device, and an HFP Audio Gateway on one RFCOMM channel that
+//! answers the computer's AT commands from a call list the test drives. Given a scripted voice edge, it
+//! also opens the voice link as a phone does: for a call answered or placed from the computer, and when
+//! the computer asks for it.
 
 use std::collections::{HashSet, VecDeque};
 use std::sync::{Arc, Condvar, Mutex};
@@ -7,6 +11,9 @@ use std::time::{Duration, Instant};
 
 use phonelink_bluetooth::{PairingError, PhoneBluetooth, RfcommError};
 use phonelink_core::sync::MutexExt;
+
+use super::voice::VoiceCodec;
+use super::voice::testing::FakeVoice;
 
 /// The paired phone's address.
 pub const ADDRESS: &str = "aa-bb-cc-dd-ee-ff";
@@ -39,6 +46,10 @@ struct State {
     refused: HashSet<String>,
     silent: HashSet<String>,
     pending: String,
+    /// The codec ids of the computer's last `AT+BAC`; empty when it sent none.
+    hf_codecs: Vec<u8>,
+    /// The computer's voice edge, which the phone's voice links go to.
+    voice: Option<Arc<FakeVoice>>,
 }
 
 /// The scripted phone.
@@ -52,6 +63,11 @@ impl FakeAg {
     pub fn new() -> Arc<Self> {
         let state = State { radio: true, paired: Some(ADDRESS.into()), ..State::default() };
         Arc::new(Self { state: Mutex::new(state), readable: Condvar::new() })
+    }
+
+    /// The phone opens its voice links to `voice`.
+    pub fn carry_voice(&self, voice: Arc<FakeVoice>) {
+        self.state.lock_or_panic().voice = Some(voice);
     }
 
     pub fn set_radio(&self, on: bool) {
@@ -115,6 +131,16 @@ impl FakeAg {
         self.readable.notify_all();
     }
 
+    /// The user answered the ringing call on the phone itself.
+    pub fn answered_on_the_phone(&self) {
+        let mut s = self.state.lock_or_panic();
+        for c in s.calls.iter_mut().filter(|c| c.status == 4) {
+            c.status = 0;
+        }
+        send(&mut s, &["+CIEV: 1,1", "+CIEV: 2,0"]);
+        self.readable.notify_all();
+    }
+
     /// The other party of call `index` hung up.
     pub fn remote_hangs_up(&self, index: u32) {
         let mut s = self.state.lock_or_panic();
@@ -152,6 +178,23 @@ impl FakeAg {
                 let names: Vec<String> = INDICATORS.iter().map(|n| format!("(\"{n}\",(0,1))")).collect();
                 send(s, &[&format!("+CIND: {}", names.join(",")), "OK"]);
             }
+            c if c.starts_with("AT+BAC=") => {
+                s.hf_codecs = c.trim_start_matches("AT+BAC=").split(',').filter_map(|id| id.parse().ok()).collect();
+                send(s, &["OK"]);
+            }
+            "AT+BCC" if s.hf_codecs.is_empty() => send(s, &["ERROR"]),
+            "AT+BCC" => {
+                send(s, &["OK"]);
+                open_voice(s);
+            }
+            c if c.starts_with("AT+BCS=") => {
+                send(s, &["OK"]);
+                let codec = c.trim_start_matches("AT+BCS=").parse().ok().and_then(VoiceCodec::from_id);
+                if let (Some(voice), Some(codec)) = (&s.voice, codec) {
+                    voice.phone_opens(codec);
+                }
+            }
+            c if c.starts_with("AT+VTS=") => send(s, &["OK"]),
             "AT+CIND?" => send(s, &["+CIND: 0,0,1,4,0,3,0", "OK"]),
             "AT+CMER=3,0,0,1" | "AT+CLIP=1" | "AT+CCWA=1" => send(s, &["OK"]),
             "AT+CHLD=?" => send(s, &["+CHLD: (0,1,1x,2,2x,3,4)", "OK"]),
@@ -172,12 +215,14 @@ impl FakeAg {
                     c.status = 0;
                 }
                 send(s, &["OK", "+CIEV: 1,1", "+CIEV: 2,0"]);
+                open_voice(s);
             }
             c if c.starts_with("ATD") => {
                 let number = c.trim_start_matches("ATD").trim_end_matches(';').to_string();
                 let index = next_index(&s.calls);
                 s.calls.push(AgCall { index, incoming: false, status: 2, number });
                 send(s, &["OK", "+CIEV: 2,2"]);
+                open_voice(s);
             }
             "AT+CHUP" => {
                 let target = s
@@ -212,6 +257,20 @@ impl FakeAg {
 
 fn next_index(calls: &[AgCall]) -> u32 {
     (1..).find(|i| calls.iter().all(|c| c.index != *i)).expect("a free index")
+}
+
+/// The phone sets up its voice link: it selects the best codec the computer listed and opens the link
+/// once the computer confirmed it, or, for a computer that listed none, opens a narrow-band link.
+fn open_voice(s: &mut State) {
+    if s.hf_codecs.is_empty() {
+        if let Some(voice) = &s.voice {
+            voice.phone_opens(VoiceCodec::Cvsd);
+        }
+        return;
+    }
+
+    let id = s.hf_codecs.iter().copied().max().unwrap_or(1);
+    send(s, &[&format!("+BCS: {id}")]);
 }
 
 fn send(s: &mut State, lines: &[&str]) {

@@ -25,6 +25,10 @@ impl EngineBridge {
         crate::single_instance::on_show(move || {
             let _ = thread.queue(|bridge| bridge.show_section(QString::default()));
         });
+        let thread = self.qt_thread();
+        crate::single_instance::on_open(move |link| {
+            let _ = thread.queue(move |bridge| bridge.open_link(&link));
+        });
 
         let engine = match self.engine.clone() {
             Some(engine) => engine,

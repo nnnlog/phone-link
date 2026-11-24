@@ -1,11 +1,13 @@
-//! The engine, built with this computer's edges (desktop notifications, the clipboard, `BlueZ`,
-//! `NetworkManager`, the camera, the mirroring presenter), and the folder it keeps the phone's data in.
+//! The engine, built with this computer's edges (desktop notifications, the clipboard, `BlueZ`, a
+//! call's voice, `NetworkManager`, the camera, the mirroring presenter), and the folder it keeps the
+//! phone's data in.
 
 use std::path::PathBuf;
 use std::sync::Arc;
 
 use cxx_qt::CxxQtThread;
 use phonelink_bluetooth::PhoneBluetooth;
+use phonelink_calling::control::voice::PhoneVoice;
 use phonelink_engine::api::engine::Engine;
 use phonelink_engine::api::events::EventSink;
 use phonelink_engine::engine::{FeatureEdges, StoreLocation, SystemNotifier};
@@ -24,6 +26,7 @@ use crate::notifier::FreedesktopNotifier;
 use crate::pc_status::DesktopPcStatus;
 use crate::pc_wallpaper::DesktopWallpaper;
 use crate::system::{Desktop, DesktopLock, DesktopPowerControl, NetworkManagerReachability, watch_system_events};
+use crate::voice::BluezVoice;
 use crate::wifi::NetworkManagerWifi;
 
 /// The user's data folder: `$XDG_DATA_HOME`, else `~/.local/share`.
@@ -67,7 +70,7 @@ pub(super) fn build_engine(
     };
 
     let FeatureEdges {
-        stores: _,
+        stores,
         notifier,
         pasteboard: memory_pasteboard,
         image_codec: _,
@@ -78,11 +81,12 @@ pub(super) fn build_engine(
         pc_power: _,
         pc_wallpaper: _,
         phone_bluetooth: no_bluetooth,
+        phone_voice: no_voice,
         hotspot_wifi: _,
         phone_camera: _,
         phone_apps_host: _,
         mirror_presenter: _,
-    } = FeatureEdges::stand_ins(StoreLocation::Directory(PathBuf::from(&data_dir)), notifier);
+    } = FeatureEdges::stand_ins(StoreLocation::Directory(PathBuf::from(data_dir)), notifier);
     let pasteboard = system_pasteboard().unwrap_or_else(|e| {
         warn!(error = %e, "no system clipboard; clipboard sharing stays local");
         memory_pasteboard
@@ -95,17 +99,20 @@ pub(super) fn build_engine(
     let pc_power = Arc::new(DesktopPowerControl::new(desktop));
     let pc_status = Arc::new(DesktopPcStatus::new());
     let pc_wallpaper = Arc::new(DesktopWallpaper::detect());
-    let (phone_bluetooth, proximity): (Arc<dyn PhoneBluetooth>, Arc<dyn PhoneProximity>) =
-        match BluezBluetooth::connect() {
-            Ok(bluez) => {
-                let bluez = Arc::new(bluez);
-                (bluez.clone(), bluez)
-            }
-            Err(e) => {
-                warn!(error = %e, "no BlueZ; calls, instant hotspot and the messages' Bluetooth check are unavailable");
-                (no_bluetooth, Arc::new(NoBluetoothProximity))
-            }
-        };
+    let (phone_bluetooth, proximity, phone_voice): (
+        Arc<dyn PhoneBluetooth>,
+        Arc<dyn PhoneProximity>,
+        Arc<dyn PhoneVoice>,
+    ) = match BluezBluetooth::connect() {
+        Ok(bluez) => {
+            let bluez = Arc::new(bluez);
+            (bluez.clone(), bluez.clone(), Arc::new(BluezVoice::new(bluez)))
+        }
+        Err(e) => {
+            warn!(error = %e, "no BlueZ; calls, instant hotspot and the messages' Bluetooth check are unavailable");
+            (no_bluetooth, Arc::new(NoBluetoothProximity), no_voice)
+        }
+    };
 
     let hotspot_wifi = Arc::new(NetworkManagerWifi::new());
     // The hotspot's "joined" is read again when the computer's Wi-Fi network changes.
@@ -117,12 +124,8 @@ pub(super) fn build_engine(
         let _ = thread.queue(move |bridge| bridge.bluetooth_pairing_question(code));
     });
 
-    let engine = Engine::new(
-        Arc::new(SecretServiceStore::default()),
-        Arc::new(DesktopLock::new(desktop)),
-        Arc::new(LinuxHost),
-        Arc::new(NetworkManagerReachability::new()),
-        events,
+    let feature_edges = FeatureEdges {
+        stores,
         notifier,
         pasteboard,
         image_codec,
@@ -133,11 +136,19 @@ pub(super) fn build_engine(
         pc_power,
         pc_wallpaper,
         phone_bluetooth,
+        phone_voice,
         hotspot_wifi,
-        camera().clone(),
-        Arc::new(crate::apps_host::LinuxAppsHost::for_session()),
-        presenter().clone(),
-        data_dir,
+        phone_camera: camera().clone(),
+        phone_apps_host: Arc::new(crate::apps_host::LinuxAppsHost::for_session()),
+        mirror_presenter: presenter().clone(),
+    };
+    let engine = Engine::production(
+        Arc::new(SecretServiceStore::default()),
+        Arc::new(DesktopLock::new(desktop)),
+        Arc::new(LinuxHost),
+        Arc::new(NetworkManagerReachability::new()),
+        events,
+        feature_edges,
     );
     if let Some(desktop) = &desktop_notifier {
         desktop.deliver_responses_to(&engine);

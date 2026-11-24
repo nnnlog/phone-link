@@ -164,6 +164,8 @@ EngineConfig {
             control_command_timeout: 10s,
             control_read_poll: 1s,
             control_end_held_wait: 3s,
+            control_voice_wait: 10s,
+            control_end_all_pause: 2s,
         },
         clipboard: ClipboardConfig {
             poll_interval: 250ms,
@@ -503,6 +505,8 @@ EngineConfig {
             control_command_timeout: 10s,
             control_read_poll: 1s,
             control_end_held_wait: 3s,
+            control_voice_wait: 10s,
+            control_end_all_pause: 2s,
         },
         clipboard: ClipboardConfig {
             poll_interval: 250ms,

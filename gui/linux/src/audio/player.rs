@@ -6,6 +6,7 @@ use std::sync::mpsc::{Receiver, Sender, channel};
 
 use phonelink_screen_mirroring::edge::AudioStreamFormat;
 
+use super::decoding::CODEC_PCM;
 use super::playback::Playback;
 
 /// What a player and its playing thread share.
@@ -46,6 +47,20 @@ impl Player {
         let (app, thread_handoff) = (app.to_owned(), handoff.clone());
         std::thread::spawn(move || play_frames(app, format, received, thread_handoff));
         Self { frames, handoff }
+    }
+
+    /// Starts playing 16-bit mono voice at `sample_rate`, handed over in frames about `frame_ms` long,
+    /// as the stream `name`.
+    pub fn start_voice(name: &str, sample_rate: u32, frame_ms: u32) -> Self {
+        let format = AudioStreamFormat {
+            channels: 1,
+            sample_rate,
+            codec: CODEC_PCM,
+            bytes_per_sample: 2,
+            is_float: false,
+            frame_length_ms: frame_ms,
+        };
+        Self::start(name, format)
     }
 
     /// Hands one frame to the player's thread.

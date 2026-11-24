@@ -30,6 +30,7 @@ use crate::config::EngineConfig;
 use crate::edge::{Edges, HostInfo, Reachability, SecureStore, SessionLock, SystemClock};
 use crate::engine::{EngineCore, EngineError, SystemEvent, build_broker, sign_out_stored};
 use crate::features::bluetooth::PhoneBluetooth;
+use crate::features::calling::control::voice::standins::NoVoice;
 use crate::features::clipboard::{ClipboardImageCodec, ClipboardPasteboard};
 use crate::features::connected_camera::PhoneCamera;
 use crate::features::device_status::PcStatusSource;
@@ -104,6 +105,25 @@ impl Engine {
         })
     }
 
+    /// The production engine over `feature_edges`, for a Rust embedder that supplies an edge the
+    /// `uniffi` constructor has no parameter for. The web sign-in runs through `events`, as with that
+    /// constructor.
+    pub fn production(
+        store: Arc<dyn SecureStore>,
+        lock: Arc<dyn SessionLock>,
+        host: Arc<dyn HostInfo>,
+        reachability: Arc<dyn Reachability>,
+        events: Arc<dyn EventSink>,
+        feature_edges: FeatureEdges,
+    ) -> Arc<Self> {
+        let pending = Arc::new(WebSignInPending::new());
+        let web_sign_in = Arc::new(EventWebSignIn::new(events.clone(), pending.clone()));
+        let edges =
+            Edges { store, lock, host, reachability, clock: Arc::new(SystemClock), web_sign_in, token_transport: None };
+
+        Self::with_config_pending(EngineConfig::production(), edges, feature_edges, events, pending)
+    }
+
     /// The current core, once a start has built one (Rust embedders, tests; not exported).
     pub fn current_core(&self) -> Option<Arc<EngineCore>> {
         self.core.lock_or_recover().clone()
@@ -152,11 +172,6 @@ impl Engine {
         mirror_presenter: Arc<dyn MirrorPresenter>,
         data_dir: String,
     ) -> Arc<Self> {
-        let pending = Arc::new(WebSignInPending::new());
-        let web_sign_in = Arc::new(EventWebSignIn::new(events.clone(), pending.clone()));
-        let edges =
-            Edges { store, lock, host, reachability, clock: Arc::new(SystemClock), web_sign_in, token_transport: None };
-
         let feature_edges = FeatureEdges {
             stores: StoreLocation::Directory(data_dir.into()),
             notifier,
@@ -169,13 +184,15 @@ impl Engine {
             pc_power,
             pc_wallpaper,
             phone_bluetooth,
+            // The app this constructor serves carries no voice link.
+            phone_voice: Arc::new(NoVoice),
             hotspot_wifi,
             phone_camera,
             phone_apps_host,
             mirror_presenter,
         };
 
-        Self::with_config_pending(EngineConfig::production(), edges, feature_edges, events, pending)
+        Self::production(store, lock, host, reachability, events, feature_edges)
     }
 
     /// The UI's answer to a [`EngineEvent::WebSignInRequested`]: the JSON the sign-in page posted.

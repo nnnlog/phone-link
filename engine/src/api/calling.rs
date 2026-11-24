@@ -4,8 +4,9 @@
 //! its access state (the prompt that stands in for the history), the sync state and the missed-call
 //! badge; it switches "use calls on this computer", asks the phone for its call log, and runs the
 //! empty-history refresh. Call control's state, the phone's current calls and the operations on them
-//! (dial, answer, decline, end, swap) go through the same object; every call's audio stays on the
-//! phone.
+//! (dial, answer, decline, end, swap) go through the same object. A call is heard on this computer
+//! where it can take a call's audio, and on the phone otherwise; what acts on a call heard here is
+//! not exported.
 
 use std::sync::Arc;
 
@@ -239,11 +240,21 @@ pub struct CallControlState {
     /// "Make and answer calls on this computer" (default off).
     pub enabled: bool,
     pub status: CallControlStatus,
+    /// A call can be heard and spoken on this computer: it carries a call's voice and has a sound
+    /// output and a microphone. Otherwise every call's audio stays on the phone.
+    #[uniffi(default = false)]
+    pub can_take_audio: bool,
 }
 
 impl From<ControlState> for CallControlState {
     fn from(s: ControlState) -> Self {
-        Self { offered: s.offered, pc_consent: s.pc_consent, enabled: s.enabled, status: s.status.into() }
+        Self {
+            offered: s.offered,
+            pc_consent: s.pc_consent,
+            enabled: s.enabled,
+            status: s.status.into(),
+            can_take_audio: s.can_take_audio,
+        }
     }
 }
 
@@ -307,12 +318,37 @@ pub struct ActiveCall {
     /// When the computer first saw the call talking, Unix ms.
     pub talking_since_ms: Option<i64>,
     pub role: ActiveCallRole,
+    /// The call is heard and spoken on this computer; otherwise on the phone.
+    #[uniffi(default = false)]
+    pub on_computer: bool,
+    /// The computer sends silence in place of its microphone.
+    #[uniffi(default = false)]
+    pub muted: bool,
+    /// Mute and unmute act on the call now.
+    #[uniffi(default = false)]
+    pub can_mute: bool,
+    /// Hold and resume act on the call now.
+    #[uniffi(default = false)]
+    pub can_hold: bool,
+    /// The keypad's keys act on the call now.
+    #[uniffi(default = false)]
+    pub can_use_keypad: bool,
+    /// The call's audio can move to the other side now: to the phone while it is on this computer,
+    /// to this computer otherwise.
+    #[uniffi(default = false)]
+    pub can_transfer: bool,
 }
 
 impl From<CallView> for ActiveCall {
     fn from(v: CallView) -> Self {
-        let CallView { call, contact } = v;
+        let CallView { call, contact, on_computer, muted, controls } = v;
         Self {
+            on_computer,
+            muted,
+            can_mute: controls.mute,
+            can_hold: controls.hold,
+            can_use_keypad: controls.keypad,
+            can_transfer: controls.transfer,
             id: call.id,
             name: contact.as_ref().and_then(|c| c.display_name.clone()),
             contact_id: contact.as_ref().map(|c| c.contact_id),
@@ -496,12 +532,14 @@ impl CallingApi {
         self.control(|c| async move { c.pair().await }).await.map(Into::into)
     }
 
-    /// Dials `number` on the phone; the call's audio stays on the phone.
+    /// Dials `number` on the phone. The call is heard on this computer when it can take a call's
+    /// audio, and on the phone otherwise.
     pub async fn dial(&self, number: String) -> Result<(), CallControlError> {
         self.control(|c| async move { c.dial(&number).await }).await
     }
 
-    /// Answers incoming call `id` on the phone.
+    /// Answers incoming call `id`. The call is heard on this computer when it can take a call's
+    /// audio, and on the phone otherwise.
     pub async fn answer(&self, id: u64) -> Result<(), CallControlError> {
         self.control(|c| async move { c.answer(id).await }).await
     }
@@ -519,5 +557,51 @@ impl CallingApi {
     /// Resumes the call window's held call and holds the other.
     pub async fn swap(&self) -> Result<(), CallControlError> {
         self.control(|c| async move { c.swap().await }).await
+    }
+}
+
+/// What acts on a call heard on this computer, and what moves a call's audio there.
+///
+/// Not exported: only an app on a computer that carries a call's voice calls these, from Rust.
+impl CallingApi {
+    /// Puts call `id` on hold. Fails with `InvalidState` unless the call's `can_hold` is set.
+    pub async fn hold_call(&self, id: u64) -> Result<(), CallControlError> {
+        self.control(|c| async move { c.hold(id).await }).await
+    }
+
+    /// Resumes held call `id`. Fails with `InvalidState` unless the call's `can_hold` is set.
+    pub async fn resume_call(&self, id: u64) -> Result<(), CallControlError> {
+        self.control(|c| async move { c.resume(id).await }).await
+    }
+
+    /// Mutes or unmutes call `id`. Fails with `InvalidState` unless the call's `can_mute` is set.
+    pub async fn set_call_muted(&self, id: u64, muted: bool) -> Result<(), CallControlError> {
+        self.control(|c| async move { c.set_muted(id, muted) }).await
+    }
+
+    /// Sends a keypad key (`0`–`9`, `*`, `#`) into call `id` and plays its tone.
+    ///
+    /// Fails with `InvalidState` for another character or unless the call's `can_use_keypad` is set.
+    pub async fn send_call_key(&self, id: u64, key: String) -> Result<(), CallControlError> {
+        let mut chars = key.chars();
+        let (Some(key), None) = (chars.next(), chars.next()) else { return Err(CallControlError::InvalidState) };
+        self.control(|c| async move { c.send_key(id, key).await }).await
+    }
+
+    /// Moves the audio of call `id` to this computer; a call placed or answered on the phone joins the
+    /// call window. Fails with `InvalidState` unless the call's `can_transfer` is set, and with
+    /// `Refused` when the phone's voice link does not open.
+    pub async fn transfer_call_to_computer(&self, id: u64) -> Result<(), CallControlError> {
+        self.control(|c| async move { c.transfer_to_computer(id).await }).await
+    }
+
+    /// Moves the audio of call `id` to the phone.
+    pub async fn transfer_call_to_phone(&self, id: u64) -> Result<(), CallControlError> {
+        self.control(|c| async move { c.transfer_to_phone(id) }).await
+    }
+
+    /// Ends the call window's calls: its main call, then the other one.
+    pub async fn end_all_calls(&self) -> Result<(), CallControlError> {
+        self.control(|c| async move { c.end_all().await }).await
     }
 }

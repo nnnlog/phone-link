@@ -1,10 +1,11 @@
 //! Call control: placing, answering, declining and ending the phone's calls from the computer over
-//! Bluetooth Hands-Free (HFP), with every call's audio on the phone.
+//! Bluetooth Hands-Free (HFP), and, on a computer that carries a call's voice, talking on the computer.
 //!
 //! The computer takes the HF role itself over an RFCOMM channel to the phone's HFP Audio Gateway service;
-//! the phone's side is Android's own Bluetooth stack. No voice link is opened: the user talks on the
-//! phone, so the controls that act on the computer's audio (mute, hold, the in-call keypad, moving the
-//! audio) do not exist here.
+//! the phone's side is Android's own Bluetooth stack. A call's voice runs on a separate link the
+//! [`voice`] edge serves. With an edge that carries none, no voice link is opened: the user talks on the
+//! phone, and the controls that act on the computer's audio (mute, hold, the in-call keypad, moving the
+//! audio) never act.
 //!
 //! | Module | Implements |
 //! |---|---|
@@ -12,6 +13,8 @@
 //! | `link` | the channel, its reader, one outstanding command at a time |
 //! | `calls` | the calls from the phone's call list, and the call window's two tracked calls |
 //! | `number` | the dialed number's normalization |
+//! | [`voice`] | the voice link's edge |
+//! | `audio` | where the calls' audio is, the codec, and the operations that need the audio on the computer |
 //! | `testing` | a scripted phone and Audio Gateway for tests |
 //! | this module | the gates, the connection state and its triggers, the operations |
 //!
@@ -21,11 +24,13 @@
 //! phone completes. Nothing retries on a timer.
 
 pub mod at;
+mod audio;
 mod calls;
 mod link;
 mod number;
 #[cfg(any(test, feature = "test-support"))]
 pub mod testing;
+pub mod voice;
 
 use std::sync::{Arc, Mutex, Weak};
 use std::time::Duration;
@@ -42,10 +47,13 @@ use phonelink_core::types::DcgClient;
 use phonelink_features::{ContactMatch, FeatureError};
 
 use self::at::{ClccEntry, Final, Line, command};
+use self::audio::VoiceState;
 use self::calls::{CallBook, FollowUp};
 use self::link::{Link, LinkEvent, Response};
+use self::voice::{PhoneVoice, VoiceCodec};
 use super::{CallingEvent, Shared, gates, store};
 
+pub use self::audio::CallControls;
 pub use self::calls::{Call, CallRole, CallStatus};
 pub use self::number::normalize_dialable;
 
@@ -91,6 +99,9 @@ pub struct ControlState {
     /// "Make and answer calls on this computer".
     pub enabled: bool,
     pub status: ControlStatus,
+    /// A call can be heard and spoken on the computer: it carries voice and has an output and a
+    /// microphone.
+    pub can_take_audio: bool,
 }
 
 /// Why a dial failed, as the calls view words it.
@@ -134,6 +145,11 @@ impl From<FeatureError> for ControlError {
 pub struct CallView {
     pub call: Call,
     pub contact: Option<ContactMatch>,
+    /// The call's audio is on the computer; otherwise on the phone.
+    pub on_computer: bool,
+    /// The computer sends silence in place of the microphone.
+    pub muted: bool,
+    pub controls: CallControls,
 }
 
 /// What runs a setup.
@@ -155,13 +171,19 @@ struct Inner {
     generation: u64,
     /// The indicator names in `+CIND` order.
     indicators: Vec<String>,
+    /// The AG's feature bits (`+BRSF`).
+    ag_features: u32,
     book: CallBook,
+    voice: VoiceState,
 }
 
 /// Call control's handle.
 pub struct CallControl {
     shared: Arc<Shared>,
     bluetooth: Arc<Bluetooth>,
+    voice: Arc<dyn PhoneVoice>,
+    /// The codecs the computer carries; none when it carries no voice.
+    codecs: Vec<VoiceCodec>,
     inner: Mutex<Inner>,
     /// One setup at a time.
     setup: tokio::sync::Mutex<()>,
@@ -178,10 +200,13 @@ impl std::fmt::Debug for CallControl {
 }
 
 impl CallControl {
-    pub(crate) fn install(shared: Arc<Shared>, bluetooth: Arc<Bluetooth>) -> Arc<Self> {
+    pub(crate) fn install(shared: Arc<Shared>, bluetooth: Arc<Bluetooth>, voice: Arc<dyn PhoneVoice>) -> Arc<Self> {
+        let codecs = voice.codecs();
         let control = Arc::new(Self {
             shared,
             bluetooth,
+            voice,
+            codecs,
             inner: Mutex::new(Inner::default()),
             setup: tokio::sync::Mutex::new(()),
             list: tokio::sync::Mutex::new(()),
@@ -207,24 +232,43 @@ impl CallControl {
             Some(status) if ours => status,
             _ => ControlStatus::Off,
         };
-        Ok(ControlState { offered, pc_consent: switches.pc_consent, enabled: switches.call_control, status })
+        drop(inner);
+
+        Ok(ControlState {
+            offered,
+            pc_consent: switches.pc_consent,
+            enabled: switches.call_control,
+            status,
+            can_take_audio: self.can_take_audio(),
+        })
     }
 
     /// `phone`'s calls, ordered by the phone's index, each with the contact its number resolves to.
     pub fn calls(&self, phone: &DcgClient) -> Vec<CallView> {
-        let calls = {
+        let (calls, voice, three_way) = {
             let inner = self.inner.lock_or_recover();
             if !inner.phone.as_ref().is_some_and(|p| p.is_same_client(phone)) {
                 return Vec::new();
             }
-            inner.book.calls()
+            (inner.book.calls(), inner.voice.clone(), inner.ag_features & at::AG_THREE_WAY != 0)
         };
 
         let lookup = |number: &str| {
             let contacts = self.shared.contacts.as_ref()?;
             (!number.is_empty()).then(|| contacts.lookup(phone, number, None)).flatten()
         };
-        calls.into_iter().map(|call| CallView { contact: lookup(&call.number), call }).collect()
+        let can_take = self.can_take_audio();
+        let tracked = calls.iter().filter(|c| c.role != CallRole::Untracked).count();
+        calls
+            .into_iter()
+            .map(|call| CallView {
+                contact: lookup(&call.number),
+                on_computer: voice.open,
+                muted: voice.open && voice.muted && call.role == CallRole::Primary,
+                controls: audio::controls(&call, tracked, voice.open, can_take, three_way),
+                call,
+            })
+            .collect()
     }
 
     /// "Make and answer calls on this computer" for `phone`. Switched on, the connection is set up (not
@@ -281,6 +325,7 @@ impl CallControl {
         }
 
         self.inner.lock_or_recover().book.expect_dialed();
+        self.take_audio();
         self.refresh_calls(&link).await;
         Ok(())
     }
@@ -295,7 +340,9 @@ impl CallControl {
 
         let answer = if call.waiting { command::HOLD_AND_ACCEPT_OTHER } else { command::ANSWER };
         self.send(&link, answer).await?;
+        // Tracked first: the computer gives the audio back while no call is in the call window.
         let follow = self.inner.lock_or_recover().book.track(id);
+        self.take_audio();
         self.shared_calls_changed();
         self.follow_up(&link, follow.into_iter().collect()).await;
         self.refresh_calls(&link).await;
@@ -353,6 +400,28 @@ impl CallControl {
         self.shared_calls_changed();
         self.refresh_calls(&link).await;
         Ok(())
+    }
+
+    /// Ends the call window's calls: the primary call, and after a pause the other one.
+    pub async fn end_all(&self) -> Result<(), ControlError> {
+        self.ready_link()?;
+        let tracked = |role: CallRole| {
+            let inner = self.inner.lock_or_recover();
+            inner.book.calls().into_iter().find(|c| c.role == role).map(|c| c.id)
+        };
+        let (Some(primary), secondary) = (tracked(CallRole::Primary), tracked(CallRole::Secondary)) else {
+            return Err(ControlError::NoSuchCall);
+        };
+
+        self.end(primary).await?;
+        let Some(secondary) = secondary else { return Ok(()) };
+
+        tokio::time::sleep(self.shared.config.control_end_all_pause).await;
+        match self.end(secondary).await {
+            // The other party hung up during the pause.
+            Err(ControlError::NoSuchCall) => Ok(()),
+            other => other,
+        }
     }
 
     // MARK: - Setup
@@ -422,8 +491,8 @@ impl CallControl {
             }
         };
 
-        let indicators = match service_level_connection(&link).await {
-            Ok(indicators) => indicators,
+        let connection = match service_level_connection(&link, &self.codecs).await {
+            Ok(connection) => connection,
             Err(e) => {
                 warn!(error = %e, "the hands-free service-level connection failed");
                 link.close();
@@ -435,11 +504,14 @@ impl CallControl {
             let mut inner = self.inner.lock_or_recover();
             inner.generation += 1;
             inner.link = Some(link.clone());
-            inner.indicators = indicators;
+            inner.indicators = connection.indicators;
+            inner.ag_features = connection.ag_features;
             inner.book.clear();
+            inner.voice = VoiceState::for_connection(&self.codecs, connection.ag_features);
             inner.generation
         };
         spawn_link_events(self, phone.clone(), link.clone(), events, generation);
+        self.attach_voice(address, generation);
         self.set_status(phone, ControlStatus::Ready);
         self.refresh_calls(&link).await;
         ControlStatus::Ready
@@ -487,9 +559,11 @@ impl CallControl {
             }
             inner.generation += 1;
             inner.book.clear();
+            inner.voice = VoiceState::default();
             inner.status = Some(ControlStatus::Off);
             (inner.link.take(), inner.phone.clone())
         };
+        self.detach_voice();
 
         if let Some(link) = link {
             info!(reason = why, "hands-free connection closed");
@@ -523,7 +597,9 @@ impl CallControl {
             }
             inner.link = None;
             inner.book.clear();
+            inner.voice = VoiceState::default();
         }
+        self.detach_voice();
 
         self.set_status(phone, ControlStatus::NotConnected);
         self.shared_calls_changed();
@@ -661,6 +737,7 @@ impl CallControl {
     }
 
     fn shared_calls_changed(&self) {
+        self.settle_audio();
         let phone = self.inner.lock_or_recover().phone.clone();
         if let Some(phone) = phone {
             self.shared.emit(CallingEvent::ActiveCalls { phone });
@@ -707,12 +784,27 @@ enum SlcError {
     Missing(&'static str),
 }
 
-/// The service-level connection; returns the indicator names in order.
-async fn service_level_connection(link: &Link) -> Result<Vec<String>, SlcError> {
-    let ag_features = match ok(link, &command::brsf(), Some("+BRSF"), "AT+BRSF").await?.as_slice() {
+/// What the service-level connection established.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ServiceLevel {
+    /// The indicator names in `+CIND` order.
+    indicators: Vec<String>,
+    ag_features: u32,
+}
+
+/// The service-level connection of a computer that carries `codecs`. One that codes wide-band voice
+/// announces codec negotiation and, to a phone that negotiates too, its codecs.
+async fn service_level_connection(link: &Link, codecs: &[VoiceCodec]) -> Result<ServiceLevel, SlcError> {
+    let negotiates = codecs.contains(&VoiceCodec::Msbc);
+    let hf_features = if negotiates { at::HF_FEATURES | at::HF_CODEC_NEGOTIATION } else { at::HF_FEATURES };
+    let ag_features = match ok(link, &command::brsf(hf_features), Some("+BRSF"), "AT+BRSF").await?.as_slice() {
         [Line::Brsf(features), ..] => *features,
         _ => return Err(SlcError::Missing("AT+BRSF")),
     };
+    if negotiates && ag_features & at::AG_CODEC_NEGOTIATION != 0 {
+        ok(link, &command::available_codecs(&audio::codec_ids(codecs)), None, "AT+BAC").await?;
+    }
+
     let indicators = match ok(link, command::CIND_TEST, Some("+CIND"), "AT+CIND=?").await?.as_slice() {
         [Line::CindNames(names), ..] => names.clone(),
         _ => return Err(SlcError::Missing("AT+CIND=?")),
@@ -730,7 +822,7 @@ async fn service_level_connection(link: &Link) -> Result<Vec<String>, SlcError> 
     }
 
     info!(feature_state = ag_features, has_three_way = three_way, "hands-free service-level connection established");
-    Ok(indicators)
+    Ok(ServiceLevel { indicators, ag_features })
 }
 
 async fn ok(
@@ -761,8 +853,10 @@ fn spawn_link_events(
             let Some(c) = control.upgrade() else { break };
             let mut read = false;
             let mut closed = false;
+            let mut selected = None;
             for event in std::iter::once(event).chain(std::iter::from_fn(|| events.try_recv().ok())) {
                 match event {
+                    LinkEvent::Unsolicited(Line::Bcs(id)) => selected = Some(id),
                     LinkEvent::Unsolicited(line) => read |= c.unsolicited(generation, line),
                     LinkEvent::Closed => closed = true,
                 }
@@ -771,6 +865,9 @@ fn spawn_link_events(
             if closed {
                 c.link_closed(&phone, generation);
                 break;
+            }
+            if let Some(id) = selected {
+                c.codec_selected(&link, generation, id).await;
             }
             if read {
                 c.refresh_calls(&link).await;

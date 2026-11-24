@@ -1,13 +1,14 @@
 //! Call control over Bluetooth.
 //!
-//! The connection it needs and its pairing question; dialing, answering, declining, ending, swapping and
-//! declining with a text; and where its failures show.
+//! The connection it needs and its pairing question; dialing, answering, declining, ending, swapping,
+//! declining with a text, and what acts on a call heard on this computer; and where its failures show.
 
 use std::pin::Pin;
 use std::sync::Arc;
 
 use cxx_qt::{CxxQtType, Threading};
-use phonelink_engine::api::calling::{CallControlError, CallControlStatus, CallingApi};
+use cxx_qt_lib::QString;
+use phonelink_engine::api::calling::{ActiveCallStatus, CallControlError, CallControlStatus, CallingApi};
 use phonelink_engine::api::engine::Engine;
 use phonelink_engine::api::messaging::MessageTarget;
 use serde_json::json;
@@ -165,6 +166,70 @@ impl EngineBridge {
                 )
             }
         }
+    }
+
+    /// Mutes or unmutes, holds or resumes call `id`, or transfers its audio to the other side, by what
+    /// the call is now.
+    pub(super) fn in_call_operation(self: Pin<&mut Self>, engine: Arc<Engine>, action: &str, id: u64) {
+        let Some(call) = self.areas.calls.calls.iter().find(|call| call.id == id) else {
+            info!(action, "the call ended before the action");
+            return;
+        };
+        let (muted, held, on_computer) = (call.muted, call.status == ActiveCallStatus::Held, call.on_computer);
+
+        match (action, muted, held, on_computer) {
+            ("calls.toggleMute", true, _, _) => {
+                self.control_operation(engine, "Couldn't Unmute Call", move |calling| async move {
+                    calling.set_call_muted(id, false).await
+                });
+            }
+            ("calls.toggleMute", false, _, _) => {
+                self.control_operation(engine, "Couldn't Mute Call", move |calling| async move {
+                    calling.set_call_muted(id, true).await
+                });
+            }
+            ("calls.toggleHold", _, true, _) => {
+                self.control_operation(engine, "Couldn't Resume Call", move |calling| async move {
+                    calling.resume_call(id).await
+                });
+            }
+            ("calls.toggleHold", _, false, _) => {
+                self.control_operation(engine, "Couldn't Hold Call", move |calling| async move {
+                    calling.hold_call(id).await
+                });
+            }
+            (_, _, _, true) => {
+                self.control_operation(engine, "Couldn't Transfer Call", move |calling| async move {
+                    calling.transfer_call_to_phone(id).await
+                });
+            }
+            (_, _, _, false) => self.transfer_to_computer(engine, id),
+        }
+    }
+
+    /// Moves the audio of call `id` to this computer.
+    pub(super) fn transfer_to_computer(self: Pin<&mut Self>, engine: Arc<Engine>, id: u64) {
+        self.control_operation(engine, "Couldn't Transfer Call", move |calling| async move {
+            calling.transfer_call_to_computer(id).await
+        });
+    }
+
+    /// Opens a link another program handed the app: a `tel:` link shows the Calls section, whose
+    /// keypad takes the link's number while call control is on for the selected phone.
+    pub(in crate::engine_bridge) fn open_link(mut self: Pin<&mut Self>, link: &str) {
+        let Some(number) = crate::links::tel_number(link) else {
+            warn!("a link the app does not open was dropped");
+            return;
+        };
+
+        let enabled =
+            self.engine.clone().is_some_and(|engine| engine.calling().control_state().is_ok_and(|s| s.enabled));
+        info!(is_enabled = enabled, "a tel link was opened");
+        if enabled {
+            self.as_mut().rust_mut().areas.calls.keypad_number = Some(number);
+            self.as_mut().bump(Revision::Calls);
+        }
+        self.show_section(QString::from("calls"));
     }
 
     /// Declines ringing call `id` and texts `text` to its `number`.

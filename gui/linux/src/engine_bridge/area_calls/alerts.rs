@@ -1,7 +1,8 @@
 //! What shows the phone's calls, kept current.
 //!
 //! The engine's calls and contacts events read the current calls again, with the incoming-call window,
-//! its ring and the call window that show them, and the waits for calls and contacts to come up to date.
+//! its ring, the call window and the notices that show them, and the waits for calls and contacts to
+//! come up to date.
 
 use std::pin::Pin;
 use std::sync::Arc;
@@ -13,7 +14,7 @@ use phonelink_engine::api::contacts::ContactsChange;
 use phonelink_engine::api::engine::Engine;
 use tracing::warn;
 
-use super::presentation::{POPUP_LIFETIME, PresentationChange};
+use super::presentation::{NOTICE_LIFETIME, POPUP_LIFETIME, PresentationChange};
 use super::queries::read;
 use super::state::State;
 use super::sync_wait::{SYNC_WAIT, Synced};
@@ -22,7 +23,7 @@ use crate::engine_bridge::features::Revision;
 use crate::images;
 
 /// Runs `then` on the GUI thread after `delay`.
-fn after(
+pub(super) fn after(
     thread: CxxQtThread<EngineBridge>,
     delay: Duration,
     then: impl FnOnce(Pin<&mut EngineBridge>) + Send + 'static,
@@ -95,13 +96,16 @@ impl EngineBridge {
 
     /// Opens or closes the incoming-call window and the call window for the current calls.
     ///
-    /// It rings while the incoming-call window shows, and starts each newly shown ringing call's
-    /// lifetime; whether any of that changed.
+    /// It rings while the incoming-call window shows, starts each newly shown ringing call's
+    /// lifetime, and posts or takes back the notices of calls taken on the phone; whether any of that
+    /// changed.
     pub(super) fn present_calls(mut self: Pin<&mut Self>) -> bool {
+        let notifier = self.notifier.clone();
+        let mut undisturbed = || notifier.as_ref().is_some_and(|notifier| notifier.inhibited());
         let change = {
             let mut rust = self.as_mut().rust_mut();
-            let State { presentation, ringer, calls, .. } = &mut rust.areas.calls;
-            let change = presentation.update(calls);
+            let State { presentation, ringer, calls, dialing, phone_call_notices_off, .. } = &mut rust.areas.calls;
+            let change = presentation.update(calls, !*phone_call_notices_off && !*dialing, &mut undisturbed);
             match change.ring {
                 Some(true) => ringer.start(),
                 Some(false) => ringer.stop(),
@@ -114,6 +118,12 @@ impl EngineBridge {
             let (id, token) = (*id, *token);
             after(self.qt_thread(), POPUP_LIFETIME, move |bridge| bridge.popup_expired(id, token));
         }
+        for id in &change.notices {
+            let id = *id;
+            self.as_mut().post_phone_call_notice(id);
+            after(self.qt_thread(), NOTICE_LIFETIME, move |bridge| bridge.phone_call_notice_over(id));
+        }
+        self.as_mut().withdraw_phone_call_notices(&change.withdrawn);
         change != PresentationChange::default()
     }
 

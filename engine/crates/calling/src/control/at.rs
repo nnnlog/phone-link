@@ -4,15 +4,21 @@
 //! Every parser takes one line without its `\r\n`. A line the parsers do not know is
 //! [`Line::Other`]; nothing here fails on the phone's bytes.
 
-/// The HF features the computer announces in `AT+BRSF`.
+/// The HF features the computer announces in `AT+BRSF` whether or not it carries a call's voice.
 ///
 /// Three-way calling (`0x02`), CLI presentation (`0x04`), enhanced call status (`0x20`) and enhanced
-/// call control (`0x40`). Echo cancellation, voice recognition, remote volume and codec negotiation
-/// are left out: each needs a voice link.
+/// call control (`0x40`). Echo cancellation, voice recognition and remote volume are left out: the
+/// phone keeps its own echo cancellation, and the computer's sound settings set the volume.
 pub const HF_FEATURES: u32 = 0x66;
+
+/// The HF feature bit for codec negotiation, announced by a computer that codes wide-band voice.
+pub const HF_CODEC_NEGOTIATION: u32 = 0x80;
 
 /// The AG feature bit for three-way calling.
 pub const AG_THREE_WAY: u32 = 0x1;
+
+/// The AG feature bit for codec negotiation.
+pub const AG_CODEC_NEGOTIATION: u32 = 0x200;
 
 /// The final result that completes a command.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -69,6 +75,8 @@ pub enum Line {
     Clip(Option<String>),
     /// `+CCWA: "<number>",…`.
     Ccwa(Option<String>),
+    /// `+BCS: <codec id>`: the codec the AG selected for the next voice link.
+    Bcs(u8),
     Other(String),
 }
 
@@ -111,6 +119,7 @@ pub fn parse(line: &str) -> Line {
         "+CIEV" => ciev(rest),
         "+CLIP" => Some(Line::Clip(first_number(rest))),
         "+CCWA" => Some(Line::Ccwa(first_number(rest))),
+        "+BCS" => rest.parse().ok().map(Line::Bcs),
         _ => None,
     };
     parsed.unwrap_or_else(|| Line::Other(line.to_string()))
@@ -238,10 +247,24 @@ impl LineSplitter {
 
 /// The commands the computer sends, each without its terminating `\r`.
 pub mod command {
-    use super::HF_FEATURES;
-
-    pub fn brsf() -> String {
-        format!("AT+BRSF={HF_FEATURES}")
+    /// `AT+BRSF=<features>`, the HF's feature bits in decimal.
+    pub fn brsf(features: u32) -> String {
+        format!("AT+BRSF={features}")
+    }
+    /// `AT+BAC=<id>,…`: the voice codecs the HF has, by their ids.
+    pub fn available_codecs(ids: &[u8]) -> String {
+        let ids: Vec<String> = ids.iter().map(u8::to_string).collect();
+        format!("AT+BAC={}", ids.join(","))
+    }
+    /// `AT+BCS=<id>`: confirms the codec the AG selected.
+    pub fn confirm_codec(id: u8) -> String {
+        format!("AT+BCS={id}")
+    }
+    /// Asks the AG to set up the voice link with the codec it selects.
+    pub const CODEC_CONNECTION: &str = "AT+BCC";
+    /// `AT+VTS=<key>`: sends one DTMF key into the call.
+    pub fn key(key: char) -> String {
+        format!("AT+VTS={key}")
     }
     pub const CIND_TEST: &str = "AT+CIND=?";
     pub const CIND_READ: &str = "AT+CIND?";

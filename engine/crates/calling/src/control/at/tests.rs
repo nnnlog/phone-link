@@ -48,6 +48,8 @@ fn unsolicited() {
     assert_eq!(parse(r#"+CLIP: "",128"#), Line::Clip(None));
     assert_eq!(parse(r#"+CCWA: "5550101",129,1"#), Line::Ccwa(Some("5550101".into())));
     assert_eq!(parse("+BSIR: 0"), Line::Other("+BSIR: 0".into()));
+    assert_eq!(parse("+BCS: 2"), Line::Bcs(2));
+    assert_eq!(parse("+BCS: x"), Line::Other("+BCS: x".into()));
     assert_eq!(parse("+CNMI: (3),(1),(0),(0),(0)"), Line::Other("+CNMI: (3),(1),(0),(0),(0)".into()));
     assert_eq!(parse("+CIEV: x,1"), Line::Other("+CIEV: x,1".into()));
 }
@@ -62,7 +64,12 @@ fn splitter_joins_pieces_and_drops_empty_lines() {
 
 #[test]
 fn commands() {
-    assert_eq!(command::brsf(), "AT+BRSF=102");
+    assert_eq!(command::brsf(HF_FEATURES), "AT+BRSF=102");
+    assert_eq!(command::brsf(HF_FEATURES | HF_CODEC_NEGOTIATION), "AT+BRSF=230");
+    assert_eq!(command::available_codecs(&[1, 2]), "AT+BAC=1,2");
+    assert_eq!(command::available_codecs(&[1]), "AT+BAC=1");
+    assert_eq!(command::confirm_codec(2), "AT+BCS=2");
+    assert_eq!(command::key('#'), "AT+VTS=#");
     assert_eq!(command::dial("+15550100"), "ATD+15550100;");
 }
 

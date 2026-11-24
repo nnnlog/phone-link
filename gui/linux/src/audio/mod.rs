@@ -1,6 +1,7 @@
 //! The audio of mirrored apps: each app's stream played on the default output of `PulseAudio` (or
 //! `PipeWire`'s `PulseAudio` server), and the outputs followed so that the engine knows whether one
-//! exists.
+//! exists. A call's far end plays through a player too, and the default input is followed with the
+//! outputs, for whether a call can be taken on this computer.
 //!
 //! Each app's player decodes its frames in order on a thread of its own and writes them to a stream that
 //! asks the server for about two frames of latency (`buffer_attr`). What waits to play — the frames not
@@ -15,7 +16,7 @@ mod playback;
 mod player;
 mod queue;
 
-pub use outputs::{has_output, on_outputs_changed, watch_outputs};
+pub use outputs::{has_microphone, has_output, on_devices_changed, on_outputs_changed, watch_outputs};
 pub use player::Player;
 
 #[cfg(test)]

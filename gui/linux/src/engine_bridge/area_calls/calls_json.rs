@@ -132,5 +132,11 @@ pub(super) fn active_call_json(call: &ActiveCall, photo: Option<String>) -> Valu
         "waiting": call.waiting,
         "talkingSinceMs": call.talking_since_ms,
         "role": role,
+        "onComputer": call.on_computer,
+        "muted": call.muted,
+        "canMute": call.can_mute,
+        "canHold": call.can_hold,
+        "canUseKeypad": call.can_use_keypad,
+        "canTransfer": call.can_transfer,
     })
 }

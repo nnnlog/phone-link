@@ -16,6 +16,7 @@ path = "src/main.rs"
 [dependencies]
 phonelink-engine = { path = "../../engine" }
 phonelink-bluetooth = { path = "../../engine/crates/bluetooth" }
+phonelink-calling = { path = "../../engine/crates/calling" }
 phonelink-clipboard = { path = "../../engine/crates/clipboard" }
 phonelink-core = { path = "../../engine/crates/core" }
 phonelink-connected-camera = { path = "../../engine/crates/connected-camera" }

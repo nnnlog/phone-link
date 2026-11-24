@@ -3,7 +3,8 @@ import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import PhoneLink
 
-// The Calls list's keypad: a number typed or tapped in, and *Call*, which places the call on the phone.
+// The Calls list's keypad: a number typed or tapped in, or taken from a `tel:` link, and *Call*, which
+// places the call on the phone.
 // The number clears once the phone placed the call; it stays after a failure.
 Popup {
     id: pad
@@ -16,6 +17,12 @@ Popup {
     readonly property bool canCall: field.text.length > 0 && control.canDial === true
     readonly property var keys: [["1", ""], ["2", "ABC"], ["3", "DEF"], ["4", "GHI"], ["5", "JKL"], ["6", "MNO"],
                                  ["7", "PQRS"], ["8", "TUV"], ["9", "WXYZ"], ["*", ""], ["0", "+"], ["#", ""]]
+
+    // Opens the keypad with `number` in its field, for the user to call.
+    function openWith(number) {
+        open()
+        field.text = number
+    }
 
     function call() {
         if (!canCall)

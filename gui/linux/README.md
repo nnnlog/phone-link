@@ -21,8 +21,8 @@ The same as the macOS app, except:
 - Qt 6 with its QML modules and QtWebEngine (tested with Qt 6.10 and 6.11)
 - FUSE 3, for the phone's files in `~/PhoneLink`
 - A Secret Service provider (GNOME Keyring, KWallet or KeePassXC), running and unlocked, to keep the sign-in
-- PipeWire or PulseAudio, for the audio of mirrored apps
-- BlueZ, for call control and the instant hotspot
+- PipeWire or PulseAudio, for the audio of mirrored apps and of calls
+- BlueZ, for calls and the instant hotspot
 - NetworkManager (1.16 or later), for joining the instant hotspot and for the network type and Wi-Fi
   signal the phone shows for this computer
 - power-profiles-daemon or tuned-ppd (optional), to tell the phone when the computer saves power; the
@@ -37,7 +37,7 @@ With other loopback devices next to it (such as OBS's virtual camera), give each
 `devices=2 card_label="Phone Link","OBS Virtual Camera" exclusive_caps=1,1`. With a single unlabeled
 loopback device, Phone Link uses that one.
 
-Call control needs the Bluetooth hands-free profile, which PipeWire's WirePlumber takes by default. To give it to Phone Link, turn off WirePlumber's hands-free backend:
+Calls need the Bluetooth hands-free profile, which PipeWire's WirePlumber takes by default. To give it to Phone Link, turn off WirePlumber's hands-free backend:
 
 ```bash
 mkdir -p ~/.config/wireplumber/wireplumber.conf.d
@@ -77,7 +77,14 @@ Settings › General). Without a tray (GNOME without the AppIndicator extension)
 - **Pairing a phone**: with no phone on your account yet, Phone Link shows a QR code to scan with Link to
   Windows on the phone. Pair another phone from Settings › Account › Pair a New Phone…
 - **Calls**: an incoming call opens a small window with Answer and Decline, and this computer rings while
-  it shows. A call you place or answer here opens a call window to end it.
+  it shows. A call you place or answer here uses this computer's microphone and speakers, and opens a
+  call window to mute it, put it on hold, use the keypad, transfer it to your phone and back, or end it;
+  closing that window asks whether to end the call. A call you place or answer on your phone stays
+  there: a notification offers to transfer it (turn it off in Settings › Calls). Without a microphone
+  or a sound output on this computer, calls you answer here are heard on your phone. While the desktop's Do
+  Not Disturb is on, an incoming call shows nothing here and rings on your phone only; this works where
+  the notification server says so (KDE Plasma does). A `tel:` link, such as a phone number on a web
+  page, opens the Calls keypad with the number once Phone Link is the handler for phone links.
 - **Sending files**: Send Files to Phone… in the tray menu, or Send Files in the sidebar, opens a window
   to choose files; files dropped on the phone in the sidebar are sent from that window too. Settings ›
   Files sets the folder for files the phone sends.
@@ -140,10 +147,10 @@ Sign out in Settings first, then remove the package (`sudo apt remove phonelink`
 
 Build from a clone of the whole repository: the app uses the engine in `engine/` and the macOS app's translations in `gui/mac/`.
 
-You need Rust 1.89 or later, a C++ compiler, CMake, and the development files of Qt 6 (`qmake6`, Qt Quick, Qt Widgets and QtWebEngine) and of PulseAudio. On Ubuntu:
+You need Rust 1.89 or later, a C++ compiler, CMake, and the development files of Qt 6 (`qmake6`, Qt Quick, Qt Widgets and QtWebEngine), of PulseAudio and of the SBC codec library (`libsbc`). On Ubuntu:
 
 ```bash
-sudo apt install build-essential cmake qt6-base-dev qt6-declarative-dev qt6-webengine-dev libpulse-dev
+sudo apt install build-essential cmake qt6-base-dev qt6-declarative-dev qt6-webengine-dev libpulse-dev libsbc-dev
 ```
 
 From the repository root:
@@ -174,7 +181,8 @@ The rule is lost on reboot. Alternatively, stop accepting subnet routes with `su
 
 ## Current limitations
 
-- Call audio stays on the phone; the app places, answers and ends calls only.
+- Calls on this computer have no echo cancellation of their own; with speakers, the other party may hear
+  an echo. A headset avoids it.
 - A mirrored app's window doesn't keep the app's shape while you resize it: the picture is letterboxed.
   On Wayland, mirrored apps' windows and the call windows open where the desktop places them.
 - Unfolding a foldable phone stops screen mirroring.
