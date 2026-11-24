@@ -66,6 +66,10 @@ More screenshots, including Settings, are in [docs/screenshots.md](docs/screensh
   the Mac's microphone and speakers, because macOS gives apps no voice link to a phone over Bluetooth.
   So there is no mute, hold, keypad or moving a call to the Mac.
 - Calls reach your Mac only while Phone Link is open.
+- In a phone screen window your Mac's keys work as on the Mac: Command-C, -V, -X, -A and -Z, Command
+  and Option with the arrow keys and Delete, and Tab. Switching your Mac's input source (Caps Lock,
+  Control-Space or the Globe key) switches the phone's input language too.
+- A link in a message or a notification opens only when it is a web or an e-mail address.
 
 ## Install
 

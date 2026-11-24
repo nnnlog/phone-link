@@ -5,10 +5,11 @@ import UniformTypeIdentifiers
 
 private let log = AppLog(category: "messages")
 
-/// The composer's text field. It is an `NSTextView` because a SwiftUI `TextField` cannot take a pasted
-/// image: its field editor owns Paste. Return sends, Option-Return starts a new line, Escape goes to
-/// `onEscape` when there is one, and the field grows to five lines before it scrolls. Dropped files are
-/// left to the conversation's drop destination, which attaches images.
+/// The text field of the Messages composer and of a notification's reply. It is an `NSTextView`
+/// because a SwiftUI `TextField` cannot take a pasted image (its field editor owns Paste) and cannot
+/// tell Shift-Return from Return. Return sends and Shift-Return starts a new line (`MessagesReturnKey`),
+/// Escape goes to `onEscape` when there is one, and the field grows to five lines before it scrolls.
+/// Dropped files are left to the conversation's drop destination, which attaches images.
 ///
 /// One text view serves every draft, so its undo is `MessagesComposerUndo`'s: a stack of its own,
 /// cleared whenever the text is replaced in code.
@@ -22,6 +23,8 @@ struct MessagesComposerField: NSViewRepresentable {
     let onEscape: (() -> Bool)?
     /// Takes pasted images; `nil` where images are not offered (Paste then pastes text only).
     let onPasteImages: (([MessagesAttachment]) -> Void)?
+    /// Each new value puts the insertion point in the field.
+    var focusRequest = 0
 
     private static let maxLines = 5
     private static let idealWidth: CGFloat = 240
@@ -77,6 +80,11 @@ struct MessagesComposerField: NSViewRepresentable {
         textView.placeholder = placeholder
         textView.setAccessibilityPlaceholderValue(placeholder)
         textView.onPasteImages = onPasteImages
+
+        if context.coordinator.focusRequest != focusRequest {
+            context.coordinator.focusRequest = focusRequest
+            textView.window?.makeFirstResponder(textView)
+        }
     }
 
     /// As wide as offered; one line high, growing with `text` up to `maxLines`. The text is measured in
@@ -117,9 +125,11 @@ struct MessagesComposerField: NSViewRepresentable {
     final class Coordinator: NSObject, NSTextViewDelegate {
         var parent: MessagesComposerField
         let undo = MessagesComposerUndo()
+        var focusRequest: Int
 
         init(parent: MessagesComposerField) {
             self.parent = parent
+            focusRequest = parent.focusRequest
         }
 
         func undoManager(for view: NSTextView) -> UndoManager? {
@@ -135,8 +145,15 @@ struct MessagesComposerField: NSViewRepresentable {
             // Return or Escape while an input method composes goes to the composition.
             guard !textView.hasMarkedText() else { return false }
             switch selector {
-            case #selector(NSResponder.insertNewline(_:)):
-                parent.onSubmit()
+            // Return, alone or with Shift or Command, and Control-Return, which would otherwise
+            // insert a line separator character. Option-Return starts its new line by itself.
+            case #selector(NSResponder.insertNewline(_:)), #selector(NSResponder.insertLineBreak(_:)):
+                switch MessagesReturnKey(modifiers: NSApp.currentEvent?.modifierFlags ?? []) {
+                case .send:
+                    parent.onSubmit()
+                case .newLine:
+                    textView.insertNewlineIgnoringFieldEditor(nil)
+                }
                 return true
             case #selector(NSResponder.cancelOperation(_:)):
                 return parent.onEscape?() ?? false

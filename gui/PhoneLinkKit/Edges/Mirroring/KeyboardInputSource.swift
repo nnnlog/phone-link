@@ -1,4 +1,5 @@
 import Carbon
+import Foundation
 import PhoneLinkEngine
 
 /// The kind of the Mac's current keyboard input source: a keyboard layout or an input method.
@@ -6,6 +7,9 @@ import PhoneLinkEngine
 /// Read on the main thread only: with an input method selected and a window focused, the Text Input
 /// Sources calls stop the app (a main-queue assertion) when made from any other thread.
 public enum KeyboardInputSource {
+    /// Posted to the distributed notification centre when the Mac's selected input source changes.
+    public static let changed = Notification.Name(kTISNotifySelectedKeyboardInputSourceChanged as String)
+
     @MainActor
     public static func current() -> MirrorInputSource {
         guard let source = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue(),

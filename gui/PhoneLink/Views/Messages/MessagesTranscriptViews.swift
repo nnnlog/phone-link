@@ -1,10 +1,8 @@
 import AppKit
 import PhoneLinkEngine
 import PhoneLinkKit
+import QuickLook
 import SwiftUI
-import UniformTypeIdentifiers
-
-private let log = AppLog(category: "messages")
 
 /// Messages oldest first, opened at the newest and following the ones that arrive.
 struct MessagesTranscriptList: View {
@@ -123,16 +121,25 @@ private struct MessagesBubbleRow: View {
         }
     }
 
+    /// The subject over the body. The body's web and e-mail addresses are links, and its menu copies
+    /// the message's text or a link's address.
     private var textBubble: some View {
         VStack(alignment: .leading, spacing: 2) {
             if !message.subject.isEmpty {
-                Text(message.subject).bold()
+                Text(message.subject)
+                    .bold()
+                    .textSelection(.enabled)
             }
             if !message.body.isEmpty {
-                Text(message.body)
+                LinkedText(
+                    text: message.body,
+                    color: outgoing ? .white : .labelColor,
+                    linkColor: outgoing ? .white : .linkColor,
+                    selectionColor: outgoing ? NSColor.white.withAlphaComponent(0.3) : nil,
+                    copyText: MessagesFormat.copyText(of: message)
+                )
             }
         }
-        .textSelection(.enabled)
         .foregroundStyle(outgoing ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
         .padding(.horizontal, 12)
         .padding(.vertical, 7)
@@ -167,10 +174,12 @@ private struct MessagesBubbleRow: View {
 }
 
 /// One attachment of a message: an image inline (decoded off the main actor; its row until then), or a
-/// row saying what it is with what can be done.
+/// row saying what it is with what can be done. One this Mac has the bytes of can be dragged out as a
+/// file and has a menu (`MessagesAttachmentMenu`); a click on an image shows it in Quick Look.
 private struct MessagesPartView: View {
     let part: MessagePart
     @Environment(MessagesModel.self) private var model
+    @State private var preview: URL?
 
     var body: some View {
         switch part.state {
@@ -183,10 +192,14 @@ private struct MessagesPartView: View {
                         .frame(maxWidth: 240, maxHeight: 320)
                         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                         .accessibilityLabel("Image")
+                        .accessibilityAddTraits(.isButton)
+                        .onTapGesture(perform: showPreview)
                 } else {
                     MessagesAttachmentRow(part: part) { EmptyView() }
                 }
             }
+            .quickLookPreview($preview)
+            .modifier(MessagesAttachmentFile(part: part, model: model))
         case .downloadable:
             MessagesAttachmentRow(part: part) {
                 if model.downloading.contains(part.part) {
@@ -201,9 +214,10 @@ private struct MessagesPartView: View {
             }
         case .playable, .openable:
             MessagesAttachmentRow(part: part) {
-                Button("Open", action: open)
+                Button("Open") { MessagesAttachmentActions.open(part, model: model) }
                     .controlSize(.small)
             }
+            .modifier(MessagesAttachmentFile(part: part, model: model))
         case .unsupported:
             Text("Attachment not supported")
                 .font(.callout)
@@ -214,46 +228,22 @@ private struct MessagesPartView: View {
         }
     }
 
-    /// Opens audio, video or a document in its app, from a copy in the temporary folder; the bytes are
-    /// read and written off the main actor.
-    private func open() {
-        let part = part
+    private func showPreview() {
         Task {
-            do {
-                guard let bytes = try await model.partData(part.part) else {
-                    log.notice("attachment not opened; this Mac has none of its bytes")
-                    model.alert = MessagesAlert(title: String(localized: "Attachment Not Opened"), message: String(localized: "This Mac doesn't have the attachment."))
-                    return
-                }
-
-                let file = try await Self.write(bytes, of: part)
-                if !NSWorkspace.shared.open(file) {
-                    log.error("attachment not opened; no app opened it")
-                }
-            } catch {
-                log.error("attachment not opened: \(error: error)")
-                model.alert = MessagesAlert(title: String(localized: "Attachment Not Opened"), message: UserText.describe(error))
-            }
+            preview = await MessagesAttachmentActions.file(of: part, model: model, failure: String(localized: "Attachment Not Opened"))
         }
     }
+}
 
-    @concurrent
-    nonisolated private static func write(_ bytes: Data, of part: MessagePart) async throws -> URL {
-        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("Message Attachments", isDirectory: true)
-        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+/// What an attachment with its bytes on this Mac offers as a file: its menu and a drag out of the window.
+private struct MessagesAttachmentFile: ViewModifier {
+    let part: MessagePart
+    let model: MessagesModel
 
-        var name = (part.name as NSString).lastPathComponent
-        if name.isEmpty {
-            name = String(localized: "Attachment", comment: "File name of a message attachment that has none")
-        }
-
-        var url = folder.appendingPathComponent(name)
-        if url.pathExtension.isEmpty, let ext = UTType(mimeType: part.contentType)?.preferredFilenameExtension {
-            url.appendPathExtension(ext)
-        }
-
-        try bytes.write(to: url)
-        return url
+    func body(content: Content) -> some View {
+        content
+            .contextMenu { MessagesAttachmentMenu(part: part, model: model) }
+            .onDrag { MessagesAttachmentActions.dragProvider(part, model: model) }
     }
 }
 

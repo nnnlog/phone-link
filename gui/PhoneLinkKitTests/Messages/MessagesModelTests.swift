@@ -1167,6 +1167,21 @@ private let unknown = person("1588-0000")
 }
 
 @MainActor
+@Test func anAttachmentBecomesAFileUnderItsName() async throws {
+    let world = World.started()
+    let ref = MessagePartRef.mmsPart(id: 6)
+    let part = MessagePart(part: ref, contentType: "image/png", name: "photos/holiday", size: 4, state: .image, hasBytes: true)
+
+    #expect(try await world.model.partFile(part) == nil, "this Mac has none of its bytes")
+
+    world.messaging.data.with { $0.partBytes[ref] = pngData }
+    let file = try #require(try await world.model.partFile(part))
+    defer { try? FileManager.default.removeItem(at: file) }
+    #expect(file.lastPathComponent == "holiday.png")
+    #expect(try Data(contentsOf: file) == pngData)
+}
+
+@MainActor
 @Test func aConversationWhoseMessagesCannotBeReadOffersTryAgain() {
     let world = World.started(conversations: [conversation(1, [alex]), conversation(2, [minji])])
     world.messaging.data.with {

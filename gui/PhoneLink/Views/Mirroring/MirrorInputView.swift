@@ -16,10 +16,13 @@ import UniformTypeIdentifiers
 /// phone's resolution and decides what goes (a point outside the video only while a press that began
 /// inside it is held). Keys go as Mac key codes with the
 /// event's modifier flags, which the engine maps to what the phone receives. A key pressed with Command
-/// is the Mac's: neither it nor its release is sent, so the Mac's own shortcuts (⌘W, ⌘Q) keep working
-/// (Phone Link on Windows sends keys pressed while the Windows key is held). Releases are always
-/// passed on, so a press the phone got is released even after the window stopped taking input; the
-/// engine drops a release whose press it did not send.
+/// is the Mac's when one of its menus takes it (⌘W, ⌘Q, ⌘,) and when it switches windows (⌘`); any
+/// other goes to the phone, where the engine sends it with Control, so ⌘C copies there. Releases are
+/// always passed on, so a press the phone got is released even after the window stopped taking input;
+/// the engine drops a release whose press it did not send.
+///
+/// The Mac's input source changing while the view takes the keys switches the phone's input language
+/// too, with the key the Hangul/Kana key sends (`MirrorInputSourceFollower`).
 ///
 /// Files dragged from the Mac onto the view go to the phone app under the drop, while the window is
 /// connected and not telling the user of a drop over the limits (other drags are refused, and one in
@@ -58,6 +61,7 @@ final class MirrorInputView: NSView {
     }
 
     private var scroll = MirrorScrollAccumulator()
+    private var inputSource = MirrorInputSourceFollower()
     /// Where the tablet pen last was.
     private var penPoint = CGPoint.zero
     private var trackingArea: NSTrackingArea?
@@ -84,6 +88,15 @@ final class MirrorInputView: NSView {
         layer?.masksToBounds = true
         layer?.addSublayer(video.layer)
         registerForDraggedTypes([.fileURL])
+
+        // Changes made while another app is in front are dropped: they are not this window's.
+        DistributedNotificationCenter.default().addObserver(
+            self,
+            selector: #selector(inputSourceChanged),
+            name: KeyboardInputSource.changed,
+            object: nil,
+            suspensionBehavior: .drop
+        )
     }
 
     @available(*, unavailable)
@@ -407,6 +420,25 @@ final class MirrorInputView: NSView {
 
     // MARK: - Keyboard
 
+    /// The key above Tab (`kVK_ANSI_Grave`): with Command, the Mac's switch between an app's windows.
+    private static let windowSwitchKey: UInt16 = 0x32
+
+    /// A key pressed with Command, before the menus see it. The Mac's menus come first, so its own
+    /// shortcuts keep working; what they leave goes to the phone. The Edit menu's commands reach the
+    /// phone too, through the actions below, which the menu sends this view.
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        guard event.type == .keyDown, event.modifierFlags.contains(.command), event.keyCode != Self.windowSwitchKey,
+              inputEnabled, let model, window?.firstResponder === self
+        else { return super.performKeyEquivalent(with: event) }
+
+        if NSApp.mainMenu?.performKeyEquivalent(with: event) == true {
+            return true
+        }
+
+        send(event, to: model)
+        return true
+    }
+
     override func keyDown(with event: NSEvent) {
         guard inputEnabled, let model else {
             // A takeover's buttons answer Return and Escape.
@@ -414,10 +446,60 @@ final class MirrorInputView: NSView {
             return
         }
 
-        // Command shortcuts are the Mac's: a key pressed with Command is not sent (its release then
-        // finds no press in the engine and is dropped).
+        // A key pressed with Command that reaches here was left to the Mac (`performKeyEquivalent`).
         guard !event.modifierFlags.contains(.command) else { return }
+        send(event, to: model)
+    }
+
+    private func send(_ event: NSEvent, to model: ScreenMirroringModel) {
+        inputSource.keyDown(event.keyCode)
         model.key(sessionId, keyCode: event.keyCode, event.isARepeat ? .repeat : .down, flags: event.modifierFlags.rawValue)
+    }
+
+    // MARK: - The Edit menu
+
+    /// The Edit menu takes ⌘Z, ⌘X, ⌘C, ⌘V and ⌘A before any view sees the key, also while its
+    /// command is unavailable. While this view takes input, these commands are the phone's: each
+    /// goes there as its shortcut.
+    private static let editShortcuts: [Selector: (keyCode: UInt16, shift: Bool)] = [
+        #selector(undo(_:)): (0x06, false),
+        #selector(redo(_:)): (0x06, true),
+        #selector(cut(_:)): (0x07, false),
+        #selector(copy(_:)): (0x08, false),
+        #selector(paste(_:)): (0x09, false),
+        #selector(selectAll(_:)): (0x00, false),
+    ]
+
+    @objc func undo(_ sender: Any?) { sendEditShortcut(#selector(undo(_:))) }
+    @objc func redo(_ sender: Any?) { sendEditShortcut(#selector(redo(_:))) }
+    @objc func cut(_ sender: Any?) { sendEditShortcut(#selector(cut(_:))) }
+    @objc func copy(_ sender: Any?) { sendEditShortcut(#selector(copy(_:))) }
+    @objc func paste(_ sender: Any?) { sendEditShortcut(#selector(paste(_:))) }
+    override func selectAll(_ sender: Any?) { sendEditShortcut(#selector(selectAll(_:))) }
+
+    /// The key the user pressed for the command, as pressed; for a command chosen from the menu with
+    /// the pointer, its standard shortcut (⌘Z, ⇧⌘Z, ⌘X, ⌘C, ⌘V, ⌘A).
+    private func sendEditShortcut(_ command: Selector) {
+        guard inputEnabled, let model, let shortcut = Self.editShortcuts[command] else { return }
+
+        if let event = NSApp.currentEvent, event.type == .keyDown, event.modifierFlags.contains(.command) {
+            send(event, to: model)
+            return
+        }
+
+        let flags: NSEvent.ModifierFlags = shortcut.shift ? [.command, .shift] : .command
+        inputSource.keyDown(shortcut.keyCode)
+        model.key(sessionId, keyCode: shortcut.keyCode, .down, flags: flags.rawValue)
+    }
+
+    /// The Mac's input source changed: while this view takes the keys, the phone's input language
+    /// switches with it.
+    @objc private func inputSourceChanged() {
+        let follows = inputSource.sourceChanged()
+        guard follows, inputEnabled, let model, let window, window.isKeyWindow, window.firstResponder === self else { return }
+
+        let flags = NSEvent.modifierFlags.rawValue
+        model.key(sessionId, keyCode: MirrorInputSourceFollower.languageKey, .down, flags: flags)
     }
 
     override func keyUp(with event: NSEvent) {
@@ -442,6 +524,14 @@ final class MirrorInputView: NSView {
         case nil:
             break
         }
+    }
+}
+
+extension MirrorInputView: NSUserInterfaceValidations {
+    /// The Edit menu's commands are offered while the phone takes input.
+    func validateUserInterfaceItem(_ item: any NSValidatedUserInterfaceItem) -> Bool {
+        guard let action = item.action, Self.editShortcuts[action] != nil else { return true }
+        return inputEnabled
     }
 }
 

@@ -13,7 +13,7 @@ use std::time::Duration;
 use tokio::time::Instant;
 use tracing::{debug, trace};
 
-use super::keymap::{KeyMapping, is_option, mac_key, usage};
+use super::keymap::{Chord, KeyMapping, MacModifier, is_option, mac_chord, mac_key, usage};
 use phonelink_nano::channel::ChannelError;
 use phonelink_nano::channel::input::{Finger, FingerState, InputSource, InputState};
 
@@ -23,8 +23,12 @@ pub const MOVE_INTERVAL: Duration = Duration::from_millis(8);
 pub const PEN_FINGER: u8 = 200;
 /// `NSEvent.ModifierFlags.capsLock`.
 pub const FLAG_CAPS_LOCK: u64 = 1 << 16;
+/// `NSEvent.ModifierFlags.shift`.
+pub const FLAG_SHIFT: u64 = 1 << 17;
 /// `NSEvent.ModifierFlags.option`.
 pub const FLAG_OPTION: u64 = 1 << 19;
+/// `NSEvent.ModifierFlags.command`.
+pub const FLAG_COMMAND: u64 = 1 << 20;
 
 /// Where a window's input frames go: the session's input channel.
 pub trait InputSink: Send + Sync {
@@ -581,8 +585,66 @@ impl InputPipe {
         });
     }
 
+    /// Sets key `u` down or up in a frame of its own; whether that changed what the phone has.
+    fn set_key(&self, u: u8, down: bool) -> bool {
+        let mut changed = false;
+        self.send(|s| {
+            changed = s.keyboards.entry(0).or_default().key(u, down);
+        });
+        changed
+    }
+
+    /// A press and a release of `u` with Control, with Shift, or with both added for it. A modifier
+    /// the phone already has down is left as it is, and each change is a frame of its own, so the
+    /// phone gets the modifier before the key and the key's release before the modifier's.
+    fn stroke(&self, u: u8, control: bool, shift: bool) {
+        let control = control && self.set_key(usage::LEFT_CONTROL, true);
+        let shift = shift && self.set_key(usage::LEFT_SHIFT, true);
+
+        self.set_key(u, true);
+        self.set_key(u, false);
+
+        if shift {
+            self.set_key(usage::LEFT_SHIFT, false);
+        }
+        if control {
+            self.set_key(usage::LEFT_CONTROL, false);
+        }
+    }
+
+    /// Sends `chord` as presses and releases; nothing of it stays held, since the Mac reports no
+    /// release of a key pressed with Command. `shift` is the event's: a chord that came with Shift
+    /// goes with it even when no Shift key went down before it (a command chosen from a menu).
+    fn chord(&self, chord: Chord, shift: bool) {
+        match chord {
+            Chord::Plain(u) => self.stroke(u, false, shift),
+            Chord::Control(u) => self.stroke(u, true, shift),
+            Chord::ControlForAlt(u) => {
+                // Alt, down since Option went down, is lifted around the stroke.
+                let left = self.set_key(usage::LEFT_ALT, false);
+                let right = self.set_key(usage::RIGHT_ALT, false);
+
+                self.stroke(u, true, shift);
+
+                if left {
+                    self.set_key(usage::LEFT_ALT, true);
+                }
+                if right {
+                    self.set_key(usage::RIGHT_ALT, true);
+                }
+            }
+            Chord::DeleteToLineStart => {
+                self.stroke(usage::HOME, false, true);
+                self.stroke(usage::BACKSPACE, false, false);
+            }
+        }
+    }
+
     /// A key of the Mac keyboard (its virtual key code); `flags` are the event's modifier flags
     /// (`NSEvent.ModifierFlags.rawValue`, after the event).
+    ///
+    /// A key pressed with Command, and an arrow or delete key pressed with Option, goes as its chord
+    /// (`mac_chord`) on its press and on each repeat.
     pub fn key(&mut self, key_code: u16, action: KeyAction, flags: u64) {
         if self.sink.is_none() {
             return;
@@ -602,6 +664,14 @@ impl InputPipe {
 
         let repeat = action == KeyAction::Repeat;
         let caps_on = flags & FLAG_CAPS_LOCK != 0;
+        let modifier = if flags & FLAG_COMMAND != 0 {
+            Some(MacModifier::Command)
+        } else if flags & FLAG_OPTION != 0 {
+            Some(MacModifier::Option)
+        } else {
+            None
+        };
+        let chord = modifier.and_then(|m| mac_chord(key_code, m));
 
         if is_option(key_code) {
             self.option_pressed = true;
@@ -612,9 +682,10 @@ impl InputPipe {
 
         match mapping {
             KeyMapping::Usage(u) if u == usage::CAPS_LOCK || u == usage::NUM_LOCK => {
-                // A lock key does not repeat; right after a focus gain or loss, a Caps Lock toggle that
-                // leaves the Mac's state as the phone has it is not sent.
-                if repeat || (self.lock_resync && u == usage::CAPS_LOCK && caps_on == self.phone_caps) {
+                // A lock key does not repeat. A Caps Lock press that leaves the Mac's state as the
+                // phone has it is not sent: a toggle back right after a focus change, or a press the
+                // Mac took for switching its input source.
+                if repeat || (u == usage::CAPS_LOCK && caps_on == self.phone_caps) {
                     return;
                 }
                 if u == usage::CAPS_LOCK {
@@ -629,6 +700,12 @@ impl InputPipe {
                 }
             }
             _ => {}
+        }
+
+        if let Some(chord) = chord {
+            self.chord(chord, flags & FLAG_SHIFT != 0);
+            self.lock_resync = false;
+            return;
         }
 
         match mapping {

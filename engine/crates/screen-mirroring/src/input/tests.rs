@@ -216,9 +216,12 @@ async fn keys_send_their_usage_and_repeats() {
     p.key(A, KeyAction::Up, 0);
     assert_eq!(frames(&sink), 3, "a key-up without its press sends nothing");
 
+    p.key(0x37, KeyAction::Down, FLAG_COMMAND);
+    assert_eq!(frames(&sink), 3, "Command sends nothing");
+
     p.key(0x30, KeyAction::Down, 0);
-    p.key(0x37, KeyAction::Down, 0);
-    assert_eq!(frames(&sink), 3, "Tab and Command send nothing");
+    p.key(0x30, KeyAction::Up, 0);
+    assert_eq!(key_counter(&sink, 0x2B), 2, "Tab is sent");
 
     p.key(0x68, KeyAction::Down, 0);
     p.key(0x68, KeyAction::Repeat, 0);
@@ -227,6 +230,121 @@ async fn keys_send_their_usage_and_repeats() {
 
     p.nav_button(NavButton::Back);
     assert_eq!(key_counter(&sink, 0x6E), 2, "Back is F19");
+}
+
+/// The usages whose state differs between each recorded frame and the one before it, in order;
+/// `from` is the state before the first frame.
+fn key_changes(sink: &RecordingSink, from: &InputState) -> Vec<u8> {
+    let counters = |s: &InputState| s.keyboards.get(&0).map_or([0u8; 256], |k| k.counters);
+    let mut before = counters(from);
+    let mut changes = Vec::new();
+
+    for frame in sink.frames.lock_or_panic().iter() {
+        let after = counters(frame);
+        changes.extend((0..=255u8).filter(|u| after[usize::from(*u)] != before[usize::from(*u)]));
+        before = after;
+    }
+    changes
+}
+
+#[tokio::test(start_paused = true)]
+async fn a_key_pressed_with_command_goes_as_a_chord_with_control() {
+    const C: u16 = 0x08;
+    let (mut p, sink) = pipe();
+
+    p.key(0x37, KeyAction::Down, FLAG_COMMAND);
+    p.key(C, KeyAction::Down, FLAG_COMMAND);
+    assert_eq!(
+        key_changes(&sink, &InputState::default()),
+        [0xE0, 0x06, 0x06, 0xE0],
+        "Control goes down before C and up after it, each in its own frame"
+    );
+    assert_eq!((key_counter(&sink, 0xE0), key_counter(&sink, 0x06)), (2, 2), "nothing stays down");
+
+    p.key(C, KeyAction::Repeat, FLAG_COMMAND);
+    assert_eq!(key_counter(&sink, 0x06), 4, "a repeat is the chord again");
+
+    p.key(C, KeyAction::Up, FLAG_COMMAND);
+    assert_eq!(frames(&sink), 8, "its key-up, if the Mac reports one, sends nothing");
+
+    // With Control held on the Mac, the chord adds none and releases none.
+    p.key(0x3B, KeyAction::Down, 1 << 18);
+    p.key(C, KeyAction::Down, FLAG_COMMAND | 1 << 18);
+    assert_eq!(key_counter(&sink, 0x06), 6);
+    assert_eq!(key_counter(&sink, 0xE0), 5, "the held Control went down once and stays down");
+}
+
+#[tokio::test(start_paused = true)]
+async fn a_chord_that_comes_with_shift_goes_with_it_though_no_shift_key_went_down() {
+    const Z: u16 = 0x06;
+    let (mut p, sink) = pipe();
+
+    // Redo chosen from the Mac's menu with the pointer: Command-Shift-Z with no key held.
+    p.key(Z, KeyAction::Down, FLAG_COMMAND | FLAG_SHIFT);
+    assert_eq!(key_changes(&sink, &InputState::default()), [0xE0, 0xE1, 0x1D, 0x1D, 0xE1, 0xE0]);
+}
+
+/// A key pressed with modifiers already down on the Mac, and the usage changes it sends.
+struct ChordCase {
+    key: u16,
+    flags: u64,
+    /// The modifier key held before it, with the flags of its own press.
+    held: Option<(u16, u64)>,
+    sent: &'static [u8],
+}
+
+#[tokio::test(start_paused = true)]
+async fn command_and_option_editing_keys_go_as_the_phones() {
+    const SHIFT: u64 = 1 << 17;
+    let option = Some((LEFT_OPTION, FLAG_OPTION));
+
+    let cases = [
+        ChordCase { key: 0x7B, flags: FLAG_COMMAND, held: None, sent: &[0x4A, 0x4A] },
+        ChordCase { key: 0x7C, flags: FLAG_COMMAND | SHIFT, held: Some((0x38, SHIFT)), sent: &[0x4D, 0x4D] },
+        ChordCase { key: 0x7E, flags: FLAG_COMMAND, held: None, sent: &[0xE0, 0x4A, 0x4A, 0xE0] },
+        ChordCase { key: 0x7D, flags: FLAG_COMMAND, held: None, sent: &[0xE0, 0x4D, 0x4D, 0xE0] },
+        ChordCase { key: 0x33, flags: FLAG_COMMAND, held: None, sent: &[0xE1, 0x4A, 0x4A, 0xE1, 0x2A, 0x2A] },
+        ChordCase { key: 0x7B, flags: FLAG_OPTION, held: option, sent: &[0xE2, 0xE0, 0x50, 0x50, 0xE0, 0xE2] },
+        ChordCase {
+            key: 0x33,
+            flags: FLAG_OPTION,
+            held: Some((0x3D, FLAG_OPTION)),
+            sent: &[0xE6, 0xE0, 0x2A, 0x2A, 0xE0, 0xE6],
+        },
+        // Option with a key that has no chord stays Alt with that key.
+        ChordCase { key: A, flags: FLAG_OPTION, held: option, sent: &[0x04] },
+    ];
+
+    for case in cases {
+        let (mut p, sink) = pipe();
+        if let Some((modifier, flags)) = case.held {
+            p.key(modifier, KeyAction::Down, flags);
+        }
+        sink.frames.lock_or_panic().clear();
+        let before = sink.state.lock_or_panic().clone();
+
+        p.key(case.key, KeyAction::Down, case.flags);
+
+        assert_eq!(key_changes(&sink, &before), case.sent, "key {:#x} with flags {:#x}", case.key, case.flags);
+    }
+}
+
+#[tokio::test(start_paused = true)]
+async fn a_caps_lock_press_that_leaves_the_macs_state_is_not_sent() {
+    let (mut p, sink) = pipe();
+    p.focus(true, false);
+    p.key(A, KeyAction::Down, 0);
+    p.key(A, KeyAction::Up, 0);
+    let before = frames(&sink);
+
+    // The Mac took the press for switching its input source: its Caps Lock stays off.
+    p.key(CAPS, KeyAction::Down, 0);
+    p.key(CAPS, KeyAction::Up, 0);
+    assert_eq!(frames(&sink), before, "the phone's Caps Lock is not toggled");
+
+    p.key(CAPS, KeyAction::Down, FLAG_CAPS_LOCK);
+    p.key(CAPS, KeyAction::Up, FLAG_CAPS_LOCK);
+    assert_eq!(key_counter(&sink, 0x39), 2, "a press that turns it on is sent");
 }
 
 #[tokio::test(start_paused = true)]

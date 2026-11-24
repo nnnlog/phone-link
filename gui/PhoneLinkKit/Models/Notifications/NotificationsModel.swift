@@ -163,6 +163,17 @@ public final class NotificationsModel {
         return notification.packageName
     }
 
+    /// What copying a notification puts on the pasteboard: its app and title on one line, then its
+    /// body, or for a conversation its messages one under another.
+    public static func copyText(of notification: PhoneNotification) -> String {
+        let heading = [appName(of: notification), notification.title ?? ""].filter { !$0.isEmpty }.joined(separator: " ")
+        let messages: [String] = notification.conversation.compactMap { line in
+            if case let .message(text) = line { text } else { nil }
+        }
+        let text = messages.isEmpty ? notification.body : messages.joined(separator: "\n")
+        return [heading, text].filter { !$0.isEmpty }.joined(separator: "\n")
+    }
+
     /// A row's text: the body, or a conversation's last message.
     public static func preview(of notification: PhoneNotification) -> String {
         if !notification.body.isEmpty { return notification.body }

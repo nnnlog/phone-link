@@ -231,6 +231,32 @@ public enum MirrorModifierKeys {
     }
 }
 
+/// Which of the Mac's input-source changes switch the phone's input language.
+///
+/// The phone composes text from the raw keys with its own keyboard and language, so the Mac's switch
+/// (Caps Lock, Control-Space, the Globe key, the input menu) would otherwise leave it where it was. A
+/// change sends the phone's language key, the one the Hangul/Kana key sends, unless that key was the
+/// last one pressed: it sent the language key itself.
+public struct MirrorInputSourceFollower: Sendable {
+    /// The Hangul/Kana key (`kVK_JIS_Kana`), which the engine sends as the phone's language key.
+    public static let languageKey: UInt16 = 0x68
+
+    private var languageKeyPressed = false
+
+    public init() {}
+
+    /// A key went down in the window.
+    public mutating func keyDown(_ keyCode: UInt16) {
+        languageKeyPressed = keyCode == Self.languageKey
+    }
+
+    /// The Mac's input source changed; whether the phone's language key goes for it.
+    public mutating func sourceChanged() -> Bool {
+        defer { languageKeyPressed = false }
+        return !languageKeyPressed
+    }
+}
+
 /// The length of an Opus packet in samples, from its table-of-contents byte (RFC 6716 § 3.1).
 public enum OpusPacket {
     /// Samples per channel at `sampleRate`; `nil` for an empty or malformed packet.

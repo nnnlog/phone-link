@@ -237,6 +237,21 @@ main window to the front.
 ### Local choices
 
 Decisions the protocol leaves to the app are in the doc comments of the model or view that makes them.
+Those a user meets across sections:
+
+- **Return** sends a message or a notification's reply, as Command-Return does; with Shift, Option or
+  Control it starts a new line (`MessagesReturnKey`, `Views/Messages/MessagesComposerField`).
+- **Text from the phone** — a message's body, a notification's text — is selectable, its web and e-mail
+  addresses are links, and its menu copies the selection, the whole text or a link's address
+  (`TextLinks`, `Views/Shared/LinkedText`).
+- **A message's attachment** this Mac has the bytes of has a menu (Open, Open With, Copy, Save As…,
+  Share…, and Copy Text from Picture for an image), drags out as a file, and an image opens in Quick Look
+  on a click (`Views/Messages/MessagesAttachmentActions`).
+- **The Dock icon's badge** is the sum of the sidebar's counts, a message's or a call's own notification
+  left out while Messages or Calls counts it (`DockBadge`).
+- **Phone screen keys**: a key pressed with Command goes to the phone unless a menu takes it, and a change
+  of the Mac's input source switches the phone's input language (`Views/Mirroring/MirrorInputView`,
+  `MirrorInputSourceFollower`); what the phone then receives is the engine's.
 
 ### Not surfaced
 

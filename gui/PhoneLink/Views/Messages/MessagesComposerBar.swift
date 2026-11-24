@@ -7,7 +7,8 @@ import UniformTypeIdentifiers
 private let log = AppLog(category: "messages")
 
 /// The composer under a conversation or a new message: why sending needs Bluetooth when it does, the
-/// draft's images, "+" for more, the text field (Return sends), and the SIM when the phone has two.
+/// draft's images, "+" for more, the text field (Return sends, Shift-Return starts a new line), and the
+/// SIM when the phone has two.
 struct MessagesComposerBar: View {
     /// Escape in the text field; `true` when it was handled (an empty new message closed).
     var onEscape: (() -> Bool)?
