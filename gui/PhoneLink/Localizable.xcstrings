@@ -7166,6 +7166,16 @@
         }
       }
     },
+    "Settings" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "설정"
+          }
+        }
+      }
+    },
     "Settings are available once Phone Link is connected." : {
       "localizations" : {
         "ko" : {
