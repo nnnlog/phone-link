@@ -76,7 +76,7 @@ linux-check:
 linux-install:
     cd gui/linux && QMAKE="${QMAKE:-qmake6}" cargo install --locked --path . --root ~/.local
     desktop-file-install --dir="$HOME/.local/share/applications" --set-key=Exec --set-value="$HOME/.local/bin/phonelink-linux %u" gui/linux/data/phonelink-linux.desktop
-    desktop-file-install --dir="$HOME/.config/autostart" --set-key=Exec --set-value="$HOME/.local/bin/phonelink-linux --background" gui/linux/data/phonelink-linux-autostart.desktop
+    desktop-file-install --dir="$HOME/.config/autostart" --set-key=TryExec --set-value="$HOME/.local/bin/phonelink-linux" --set-key=Exec --set-value="$HOME/.local/bin/phonelink-linux --background" gui/linux/data/phonelink-linux-autostart.desktop
     install -Dm644 gui/linux/data/phonelink.png ~/.local/share/icons/hicolor/512x512/apps/phonelink.png
 
 # Build the Debian package (needs cargo-deb) into gui/linux/target/debian/

@@ -2,6 +2,7 @@
 Type=Application
 Name=Phone Link
 Comment=Use your Android phone from this computer
+TryExec=phonelink-linux
 Exec=phonelink-linux --background
 Icon=phonelink
 Terminal=false
