@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls.Basic
+import QtQuick.Templates as T
 import QtQuick.Layouts
 import PhoneLink
 
@@ -12,7 +13,7 @@ Dialog {
     property string acceptText
     property bool destructive: false
 
-    parent: Overlay.overlay
+    parent: T.Overlay.overlay
     anchors.centerIn: parent
     width: Math.min(400, parent ? parent.width - 48 : 400)
     modal: true

@@ -1,5 +1,5 @@
 pragma Singleton
-import QtCore
+import Qt.labs.settings
 
 // The shell's own preferences, kept by the app rather than the engine.
 Settings {

@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Controls.Basic
-import QtQuick.Effects
 import QtQuick.Layouts
+import Qt5Compat.GraphicalEffects
 import PhoneLink
 
 // What plays on the phone: album art, title, artist and the app, then previous, play/pause and next,
@@ -120,12 +120,11 @@ Rectangle {
                                 fillMode: Image.PreserveAspectFit
                             }
 
-                            MultiEffect {
+                            ColorOverlay {
                                 anchors.fill: parent
                                 visible: appGlyph.status === Image.Ready
                                 source: appGlyph
-                                colorization: 1
-                                colorizationColor: Theme.secondaryText
+                                color: Theme.secondaryText
                             }
 
                             // No icon: a note on a small badge.

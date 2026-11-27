@@ -1,5 +1,5 @@
 import QtQuick
-import QtQuick.Effects
+import Qt5Compat.GraphicalEffects
 
 // A picture with rounded corners: a message's image or a draft's thumbnail. `ready` once it shows.
 Item {
@@ -26,14 +26,12 @@ Item {
         anchors.fill: parent
         radius: rounded.radius
         visible: false
-        layer.enabled: true
     }
 
-    MultiEffect {
+    OpacityMask {
         anchors.fill: parent
         visible: rounded.ready
         source: picture
-        maskEnabled: true
         maskSource: mask
     }
 }

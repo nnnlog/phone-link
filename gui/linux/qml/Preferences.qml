@@ -1,5 +1,5 @@
 pragma Singleton
-import QtCore
+import Qt.labs.settings
 
 Settings {
     category: "Appearance"

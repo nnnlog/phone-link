@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls.Basic
+import QtQuick.Templates as T
 import QtQuick.Layouts
 import QtQuick.Window
 import PhoneLink
@@ -219,7 +220,11 @@ Window {
                     text: visible ? format.elapsed(window.shownPrimary.talkingSinceMs, window.now) : ""
                     color: Theme.secondaryText
                     font.pixelSize: Theme.bodySize + 1
-                    font.features: { "tnum": 1 }
+                    // Qt before 6.6 has no font.features and keeps proportional digits.
+                    Component.onCompleted: {
+                        if (font.features !== undefined)
+                            font.features = { "tnum": 1 }
+                    }
                 }
             }
 
@@ -377,7 +382,7 @@ Window {
 
         readonly property bool several: window.secondary !== null
 
-        parent: Overlay.overlay
+        parent: T.Overlay.overlay
         anchors.centerIn: parent
         width: parent ? parent.width - 32 : 288
         modal: true
@@ -443,7 +448,7 @@ Window {
         property string heading
         property string message
 
-        parent: Overlay.overlay
+        parent: T.Overlay.overlay
         anchors.centerIn: parent
         width: parent ? parent.width - 32 : 288
         modal: true

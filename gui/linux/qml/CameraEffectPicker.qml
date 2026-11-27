@@ -69,9 +69,14 @@ ComboBox {
         }
     }
 
-    // Its own window, as a menu is, so that the list is not cut by the small window it opens from.
+    // Its own window, as a menu is, so that the list is not cut by the small window it opens from. Qt
+    // before 6.8 has no popupType and keeps the list inside the window.
     popup: Popup {
-        popupType: Popup.Window
+        id: list
+        Component.onCompleted: {
+            if (list.popupType !== undefined)
+                list.popupType = Popup.Window
+        }
         y: control.height + 4
         width: Math.max(control.width, 180)
         implicitHeight: contentItem.implicitHeight + 8

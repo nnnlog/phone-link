@@ -57,34 +57,38 @@ engine-bindings:
     cd engine && cargo rustc -p phonelink-engine --lib --crate-type staticlib --target-dir target/app
     cd engine && cargo run -p phonelink-engine --target-dir target/bindgen --features bindgen-cli --bin uniffi-bindgen -- generate --library target/app/debug/libphonelink_engine.a --language swift --out-dir target/uniffi
 
+# Check out gui/linux/vendor/cxx-qt and apply gui/linux/vendor/*.patch, which the Linux app's builds need
+linux-prepare:
+    gui/linux/vendor/prepare.sh
+
 # Build the Linux app (gui/linux/); cxx-qt finds Qt 6 through QMAKE
-linux-build:
+linux-build: linux-prepare
     cd gui/linux && QMAKE="${QMAKE:-qmake6}" cargo build
 
 # Run the Linux app
-linux-run:
+linux-run: linux-prepare
     cd gui/linux && QMAKE="${QMAKE:-qmake6}" cargo run
 
 # The Linux app's lints (warnings as errors), formatting, tests, and its log calls' constant messages
-linux-check:
+linux-check: linux-prepare
     cd gui/linux && QMAKE="${QMAKE:-qmake6}" cargo clippy --all-targets -- -D warnings
     cd gui/linux && cargo fmt --check
     cd gui/linux && QMAKE="${QMAKE:-qmake6}" cargo test
     python3 -I engine/scripts/log_calls.py gui/linux/src
 
 # Install the Linux app for this user (~/.local), starting in the tray at login; needs desktop-file-install
-linux-install:
+linux-install: linux-prepare
     cd gui/linux && QMAKE="${QMAKE:-qmake6}" cargo install --locked --path . --root ~/.local
     desktop-file-install --dir="$HOME/.local/share/applications" --set-key=Exec --set-value="$HOME/.local/bin/phonelink-linux %u" gui/linux/data/phonelink-linux.desktop
     desktop-file-install --dir="$HOME/.config/autostart" --set-key=TryExec --set-value="$HOME/.local/bin/phonelink-linux" --set-key=Exec --set-value="$HOME/.local/bin/phonelink-linux --background" gui/linux/data/phonelink-linux-autostart.desktop
     install -Dm644 gui/linux/data/phonelink.png ~/.local/share/icons/hicolor/512x512/apps/phonelink.png
 
 # Build the Debian package (needs cargo-deb) into gui/linux/target/debian/
-linux-deb:
+linux-deb: linux-prepare
     cd gui/linux && QMAKE="${QMAKE:-qmake6}" cargo deb
 
 # Build the RPM package (needs cargo-generate-rpm) into gui/linux/target/generate-rpm/
-linux-rpm:
+linux-rpm: linux-prepare
     cd gui/linux && QMAKE="${QMAKE:-qmake6}" cargo build --release
     strip -s gui/linux/target/release/phonelink-linux
     cd gui/linux && cargo generate-rpm

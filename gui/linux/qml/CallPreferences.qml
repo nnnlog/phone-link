@@ -1,5 +1,5 @@
 pragma Singleton
-import QtCore
+import Qt.labs.settings
 
 // The calls' preferences the app keeps itself, rather than the engine.
 Settings {

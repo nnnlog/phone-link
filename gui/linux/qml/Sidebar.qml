@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Controls.Basic
-import QtQuick.Effects
 import QtQuick.Layouts
+import Qt5Compat.GraphicalEffects
 import PhoneLink
 
 // The sidebar: the phone (its status and controls) on top whatever section is selected, the sections
@@ -104,13 +104,11 @@ Rectangle {
         fillMode: Image.PreserveAspectCrop
     }
 
-    MultiEffect {
+    FastBlur {
         anchors.fill: parent
         visible: wallpaperImage.status === Image.Ready
         source: wallpaperImage
-        blurEnabled: true
-        blur: 1
-        blurMax: 64
+        radius: 64
     }
 
     Rectangle {

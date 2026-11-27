@@ -69,7 +69,11 @@ Popup {
                 Layout.fillWidth: true
                 placeholderText: L10n.t("Phone number")
                 font.pixelSize: Theme.headlineSize
-                font.features: { "tnum": 1 }
+                // Qt before 6.6 has no font.features and keeps proportional digits.
+                Component.onCompleted: {
+                    if (font.features !== undefined)
+                        font.features = { "tnum": 1 }
+                }
                 color: Theme.text
                 placeholderTextColor: Theme.secondaryText
                 selectionColor: Theme.accent

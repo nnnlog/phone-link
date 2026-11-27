@@ -228,8 +228,12 @@ Window {
                             CallMenu {
                                 id: replies
 
-                                // Its own window: the incoming-call window is too small to hold it.
-                                popupType: Popup.Window
+                                // Its own window: the incoming-call window is too small to hold it. Qt before
+                                // 6.8 has no popupType and keeps the menu inside the window.
+                                Component.onCompleted: {
+                                    if (replies.popupType !== undefined)
+                                        replies.popupType = Popup.Window
+                                }
 
                                 CallMenuItem {
                                     text: L10n.t("Sorry, I can't talk right now.")

@@ -223,7 +223,11 @@ Rectangle {
                                     text: format.duration(entry.modelData.durationSecs)
                                     color: Theme.secondaryText
                                     font.pixelSize: Theme.bodySize
-                                    font.features: { "tnum": 1 }
+                                    // Qt before 6.6 has no font.features and keeps proportional digits.
+                                    Component.onCompleted: {
+                                        if (font.features !== undefined)
+                                            font.features = { "tnum": 1 }
+                                    }
                                 }
                             }
                         }

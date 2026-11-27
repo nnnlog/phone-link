@@ -35,7 +35,7 @@ mod views;
 mod voice;
 mod wifi;
 
-use cxx_qt_lib::{QQmlApplicationEngine, QUrl};
+use cxx_qt_lib::{QQmlApplicationEngine, QString, QUrl};
 
 fn main() {
     app_log::install();
@@ -51,7 +51,9 @@ fn main() {
     application::create_application(&std::env::args().collect());
     let mut engine = QQmlApplicationEngine::new();
 
-    if let Some(engine) = engine.as_mut() {
+    if let Some(mut engine) = engine.as_mut() {
+        // Qt 6.4 leaves the resources' `:/qt/qml` out of its import paths and so misses the module's qmldir.
+        engine.as_mut().add_import_path(&QString::from(":/qt/qml"));
         engine.load(&QUrl::from("qrc:/qt/qml/PhoneLink/qml/Main.qml"));
     }
 

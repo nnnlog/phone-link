@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls.Basic
+import QtQuick.Templates as T
 import QtQuick.Dialogs
 import QtQuick.Layouts
 import QtQuick.Shapes
@@ -245,14 +246,17 @@ Window {
                     strokeStyle: ShapePath.DashLine
                     dashPattern: [5, 4]
                     fillColor: "transparent"
+                    startX: 12.5
+                    startY: 0.5
 
-                    PathRectangle {
-                        x: 0.5
-                        y: 0.5
-                        width: zone.width - 1
-                        height: zone.height - 1
-                        radius: 12
-                    }
+                    PathLine { x: zone.width - 12.5; y: 0.5 }
+                    PathArc { x: zone.width - 0.5; y: 12.5; radiusX: 12; radiusY: 12 }
+                    PathLine { x: zone.width - 0.5; y: zone.height - 12.5 }
+                    PathArc { x: zone.width - 12.5; y: zone.height - 0.5; radiusX: 12; radiusY: 12 }
+                    PathLine { x: 12.5; y: zone.height - 0.5 }
+                    PathArc { x: 0.5; y: zone.height - 12.5; radiusX: 12; radiusY: 12 }
+                    PathLine { x: 0.5; y: 12.5 }
+                    PathArc { x: 12.5; y: 0.5; radiusX: 12; radiusY: 12 }
                 }
             }
 
@@ -383,7 +387,7 @@ Window {
         property string heading
         property string message
 
-        parent: Overlay.overlay
+        parent: T.Overlay.overlay
         anchors.centerIn: parent
         width: Math.min(360, window.width - 32)
         modal: true

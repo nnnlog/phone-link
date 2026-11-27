@@ -2,7 +2,7 @@ pragma Singleton
 import QtQuick
 
 QtObject {
-    readonly property bool dark: Qt.styleHints.colorScheme === Qt.ColorScheme.Dark
+    readonly property bool dark: Qt.styleHints.colorScheme !== undefined && Qt.styleHints.colorScheme === Qt.ColorScheme.Dark
 
     readonly property color windowBackground: dark ? "#1e1e1e" : "#ffffff"
     readonly property color listBackground: dark ? "#232323" : "#f7f7f7"

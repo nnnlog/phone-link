@@ -1,5 +1,5 @@
 import QtQuick
-import QtCore
+import Qt.labs.settings
 import PhoneLink
 
 // The windows and app-wide handlers of the notifications part. Main.qml keeps one for the app's lifetime,

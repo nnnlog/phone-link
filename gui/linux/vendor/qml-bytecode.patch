@@ -1,0 +1,15 @@
+qmlcachegen compiles QML to bytecode only. The C++ it otherwise generates calls Qt's private QML API,
+which ties the binary to the exact Qt version it was built with.
+
+diff --git a/crates/qt-build-utils/src/tool/qmlcachegen.rs b/crates/qt-build-utils/src/tool/qmlcachegen.rs
+index ba4675f..6927bca 100644
+--- a/crates/qt-build-utils/src/tool/qmlcachegen.rs
++++ b/crates/qt-build-utils/src/tool/qmlcachegen.rs
+@@ -74,6 +74,7 @@ impl QtToolQmlCacheGen {
+         let qml_resource_path = format!("/qt/qml/{qml_uri_dirs}/{}", file.as_ref().display());
+
+         let specific_args = vec![
++            "--only-bytecode".to_owned(),
+             "--resource-path".to_owned(),
+             qml_resource_path.clone(),
+             "-o".to_owned(),

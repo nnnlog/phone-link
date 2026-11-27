@@ -18,7 +18,8 @@ The same as the macOS app, except:
 
 ## Requirements
 
-- Qt 6 with its QML modules and QtWebEngine (tested with Qt 6.10 and 6.11)
+- Qt 6.4 or later with its QML modules, Qt 5 Compatibility's graphical effects and QtWebEngine (tested
+  with Qt 6.4, 6.10 and 6.11)
 - FUSE 3, for the phone's files in `~/PhoneLink`
 - A Secret Service provider (GNOME Keyring, KWallet or KeePassXC), running and unlocked, to keep the sign-in
 - PipeWire or PulseAudio, for the audio of mirrored apps and of calls
@@ -49,17 +50,27 @@ Bluetooth headsets then play media but no longer work as a microphone for other 
 
 ## Installing
 
-Debian and Ubuntu (`amd64` or `arm64`):
+The packages are for `x86_64`, on Debian 12 or later, Ubuntu 24.04 or later and Fedora.
+Installed from the repositories, Phone Link updates with the rest of the system.
+
+Debian and Ubuntu:
 
 ```bash
-sudo apt install ./phonelink_<version>_<arch>.deb
+sudo curl -fsSL https://nnnlog.github.io/phone-link/phonelink.gpg -o /usr/share/keyrings/phonelink.gpg
+sudo curl -fsSL https://nnnlog.github.io/phone-link/phonelink.sources -o /etc/apt/sources.list.d/phonelink.sources
+sudo apt update
+sudo apt install phonelink
 ```
 
-Fedora (the package names Fedora's Qt packages as its dependencies):
+Fedora:
 
 ```bash
-sudo dnf install ./phonelink-<version>.<arch>.rpm
+sudo curl -fsSL https://nnnlog.github.io/phone-link/phonelink.repo -o /etc/yum.repos.d/phonelink.repo
+sudo dnf install phonelink
 ```
+
+Each release also carries the packages, to install by hand (`sudo apt install ./phonelink_<version>_<arch>.deb`
+or `sudo dnf install ./phonelink-<version>.<arch>.rpm`); those do not update.
 
 Arch: build the package with the PKGBUILD in `packaging/arch`:
 
@@ -165,7 +176,11 @@ just linux-rpm      # build the .rpm (needs cargo-generate-rpm)
 
 `just linux-install` also needs `desktop-file-install` (from `desktop-file-utils`).
 
-A package depends on the exact Qt version it was built with, so build it on the release it is for.
+Each of these first runs `just linux-prepare`, which checks out cxx-qt in `vendor/cxx-qt` (a git submodule)
+and applies `vendor/*.patch` to it. Building with cargo directly, run it once before.
+
+A package runs on the release it was built on and on later ones: its glibc and Qt are the oldest it
+accepts. The release packages are built on Debian 12 (`.github/workflows/linux-release.yml`).
 
 ## Note for Tailscale users
 

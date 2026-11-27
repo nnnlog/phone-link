@@ -1,0 +1,5 @@
+[submodule "gui/linux/vendor/cxx-qt"]
+	path = gui/linux/vendor/cxx-qt
+	url = https://github.com/KDAB/cxx-qt
+	shallow = true
+	ignore = dirty

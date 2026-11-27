@@ -1,6 +1,6 @@
 [package]
 name = "phonelink-linux"
-version = "0.4.1"
+version = "0.5.0"
 edition = "2024"
 rust-version = "1.89"
 publish = false
@@ -109,6 +109,11 @@ doc_markdown = "warn"
 cxx-qt-build = "0.10"
 serde_json = "1"
 
+[patch.crates-io]
+# qt-build-utils 0.10.0 with QML compiled to bytecode only (vendor/qml-bytecode.patch, applied by
+# vendor/prepare.sh), so that one build runs on every Qt 6.4 or later.
+qt-build-utils = { path = "vendor/cxx-qt/crates/qt-build-utils" }
+
 [profile.dev.package.openh264]
 opt-level = 3
 
@@ -121,7 +126,9 @@ maintainer = "alvin0319, Chansol Park (nlog)"
 section = "net"
 priority = "optional"
 extended-description = "Messages, calls, notifications, photos, screen mirroring, the phone's camera and files from an Android phone, on this computer."
-depends = "$auto, fuse3, qml6-module-qtcore, qml6-module-qt-labs-platform, qml6-module-qtquick, qml6-module-qtquick-controls, qml6-module-qtquick-dialogs, qml6-module-qtquick-effects, qml6-module-qtquick-layouts, qml6-module-qtquick-shapes, qml6-module-qtquick-window, qml6-module-qtwebengine"
+# One package for Debian 12 and later and Ubuntu 24.04 and later, built on Debian 12 (glibc 2.35): the
+# libraries are named by hand because some carry a `t64` suffix on some of those releases and not others.
+depends = "libc6 (>= 2.35), libstdc++6 (>= 5.2), libpulse0 (>= 5.99.1), libsbc1 (>= 2.0), libqt6core6t64 (>= 6.4.0) | libqt6core6 (>= 6.4.0), libqt6gui6t64 (>= 6.4.0) | libqt6gui6 (>= 6.4.0), libqt6widgets6t64 (>= 6.4.0) | libqt6widgets6 (>= 6.4.0), libqt6qml6 (>= 6.4.0), libqt6quick6 (>= 6.4.0), libqt6quickcontrols2-6 (>= 6.4.0), libqt6webenginecore6 (>= 6.4.0), libqt6webenginecore6-bin (>= 6.4.0), libqt6webenginequick6 (>= 6.4.0), fuse3, qml6-module-qtcore, qml6-module-qt-labs-platform, qml6-module-qt-labs-settings, qml6-module-qt5compat-graphicaleffects, qml6-module-qtqml-workerscript, qml6-module-qtquick, qml6-module-qtquick-controls, qml6-module-qtquick-dialogs, qml6-module-qtquick-layouts, qml6-module-qtquick-templates, qml6-module-qtquick-shapes, qml6-module-qtquick-window, qml6-module-qtwebengine"
 recommends = "bluez, network-manager, pipewire-pulse | pulseaudio, gnome-keyring | kwalletmanager | keepassxc"
 suggests = "v4l2loopback-dkms"
 maintainer-scripts = "packaging/debian/"
@@ -135,6 +142,8 @@ assets = [
 [package.metadata.generate-rpm]
 name = "phonelink"
 pre_uninstall_script = "packaging/rpm/pre_uninstall.sh"
+# Built on Debian 12, where reading the binary's libraries would name Debian's own library versions.
+auto-req = "no"
 assets = [
     { source = "target/release/phonelink-linux", dest = "/usr/bin/phonelink-linux", mode = "755" },
     { source = "data/phonelink-linux.desktop", dest = "/usr/share/applications/phonelink-linux.desktop", mode = "644" },
@@ -144,8 +153,13 @@ assets = [
 
 [package.metadata.generate-rpm.requires]
 fuse3 = "*"
-qt6-qtdeclarative = "*"
-qt6-qtwebengine = "*"
+"libc.so.6(GLIBC_2.35)(64bit)" = "*"
+pulseaudio-libs = "*"
+sbc = "*"
+qt6-qtbase-gui = ">= 6.4"
+qt6-qtdeclarative = ">= 6.4"
+qt6-qt5compat = ">= 6.4"
+qt6-qtwebengine = ">= 6.4"
 
 [package.metadata.generate-rpm.recommends]
 bluez = "*"

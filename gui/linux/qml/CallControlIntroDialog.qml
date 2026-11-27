@@ -1,7 +1,8 @@
 import QtQuick
 import QtQuick.Controls.Basic
+import QtQuick.Templates as T
 import QtQuick.Layouts
-import QtCore
+import Qt.labs.settings
 import PhoneLink
 
 // The explanation shown the first time call control is switched on on this computer: calls placed or
@@ -21,7 +22,7 @@ Dialog {
         dialog.accept()
     }
 
-    parent: Overlay.overlay
+    parent: T.Overlay.overlay
     anchors.centerIn: parent
     width: Math.min(480, parent ? parent.width - 48 : 480)
     modal: true

@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls.Basic
+import QtQuick.Templates as T
 import QtQuick.Dialogs
 import QtQuick.Layouts
 import PhoneLink
@@ -163,7 +164,7 @@ SettingsPane {
     Dialog {
         id: recycleNotice
 
-        parent: Overlay.overlay
+        parent: T.Overlay.overlay
         anchors.centerIn: parent
         width: Math.min(400, parent ? parent.width - 48 : 400)
         modal: true

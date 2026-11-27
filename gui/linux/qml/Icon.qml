@@ -50,11 +50,17 @@ Item {
     implicitHeight: size
 
     Shape {
+        id: shape
         width: 24
         height: 24
         scale: icon.size / 24
         transformOrigin: Item.TopLeft
-        preferredRendererType: Shape.CurveRenderer
+
+        // Qt before 6.6 has no curve renderer and draws with the geometry renderer.
+        Component.onCompleted: {
+            if (shape.preferredRendererType !== undefined)
+                shape.preferredRendererType = Shape.CurveRenderer
+        }
 
         ShapePath {
             strokeColor: icon.filled ? "transparent" : icon.color

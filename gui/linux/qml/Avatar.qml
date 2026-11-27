@@ -1,5 +1,5 @@
 import QtQuick
-import QtQuick.Effects
+import Qt5Compat.GraphicalEffects
 
 Item {
     id: avatar
@@ -33,14 +33,12 @@ Item {
         anchors.fill: parent
         radius: width / 2
         visible: false
-        layer.enabled: true
     }
 
-    MultiEffect {
+    OpacityMask {
         anchors.fill: parent
         visible: image.status === Image.Ready
         source: image
-        maskEnabled: true
         maskSource: mask
     }
 }
