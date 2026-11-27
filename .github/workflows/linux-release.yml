@@ -1,0 +1,154 @@
+name: Linux release
+
+# A published release gets the Linux packages as assets, and the APT and DNF repositories on GitHub Pages
+# are rebuilt from the packages of the latest releases.
+#
+# Needs the LINUX_REPO_SIGNING_KEY secret (an armored GPG private key without a passphrase) and Pages set
+# to deploy from GitHub Actions, with tags allowed to deploy to the github-pages environment.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag, such as v0.5.0
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: linux-release
+  cancel-in-progress: false
+
+env:
+  TAG: ${{ github.event.release.tag_name || inputs.tag }}
+  KEEP_RELEASES: 3
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    # The oldest supported release: its glibc and Qt are the floor for every distribution the packages
+    # install on.
+    container: debian:12
+    steps:
+      - name: Install the build dependencies
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential cmake curl ca-certificates git \
+            pkg-config qt6-base-dev qt6-declarative-dev qt6-webengine-dev libpulse-dev libsbc-dev \
+            libfuse3-dev libdbus-1-dev
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+
+      # The runner creates the workspace as its own user and the container runs as root, so git refuses
+      # the checkout until it is marked safe.
+      - name: Check out and patch cxx-qt
+        run: |
+          git config --global --add safe.directory '*'
+          gui/linux/vendor/prepare.sh
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deb,cargo-generate-rpm
+
+      - name: Check the version against the tag
+        working-directory: gui/linux
+        run: |
+          version=$(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -n 1)
+          if [ "v$version" != "$TAG" ]; then
+            echo "::error::gui/linux/Cargo.toml has version $version, the tag is $TAG"
+            exit 1
+          fi
+
+      - name: Build the packages
+        working-directory: gui/linux
+        env:
+          QMAKE: qmake6
+        run: |
+          cargo build --release --locked
+          strip -s target/release/phonelink-linux
+          cargo deb --no-build -o ../../dist/
+          cargo generate-rpm -o ../../dist/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: dist/*
+          if-no-files-found: error
+
+  assets:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: linux
+          path: dist
+
+      - name: Attach the packages to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$TAG" dist/* --clobber --repo "$GITHUB_REPOSITORY"
+
+  repositories:
+    needs: assets
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+
+      - name: Install the repository tools
+        run: sudo apt-get update && sudo apt-get install -y apt-utils createrepo-c rpm
+
+      - name: Import the signing key
+        env:
+          SIGNING_KEY: ${{ secrets.LINUX_REPO_SIGNING_KEY }}
+        run: |
+          printf '%s\n' "$SIGNING_KEY" | gpg --batch --import
+          fingerprint=$(gpg --list-secret-keys --with-colons | awk -F: '/^fpr/ { print $10; exit }')
+          echo "SIGNING_KEY_FINGERPRINT=$fingerprint" >> "$GITHUB_ENV"
+
+      - name: Download the packages of the latest releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir packages
+          kept=0
+          for tag in $(gh release list --repo "$GITHUB_REPOSITORY" --exclude-drafts --exclude-pre-releases \
+              --limit 100 --json tagName --jq '.[].tagName'); do
+            count=$(gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json assets \
+              --jq '[.assets[].name | select(endswith(".deb") or endswith(".rpm"))] | length')
+            [ "$count" -gt 0 ] || continue
+            gh release download "$tag" --repo "$GITHUB_REPOSITORY" --dir packages --pattern '*.deb' --pattern '*.rpm'
+            kept=$((kept + 1))
+            [ "$kept" -lt "$KEEP_RELEASES" ] || break
+          done
+          ls packages
+
+      - name: Build the repositories
+        env:
+          PAGES_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+        run: gui/linux/packaging/repo/make-repos.sh packages site "$SIGNING_KEY_FINGERPRINT"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - id: deploy
+        uses: actions/deploy-pages@v4
