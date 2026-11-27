@@ -3,6 +3,9 @@ name: Linux release
 # A published release gets the Linux packages as assets, and the APT and DNF repositories on GitHub Pages
 # are rebuilt from the packages of the latest releases.
 #
+# A push to main that touches the Linux app only builds it: a run on a tag can read the build cache of the
+# default branch but not of another tag, so main keeps the cache the releases build from.
+#
 # Needs the LINUX_REPO_SIGNING_KEY secret (an armored GPG private key without a passphrase) and Pages set
 # to deploy from GitHub Actions, with tags allowed to deploy to the github-pages environment.
 
@@ -14,17 +17,24 @@ on:
       tag:
         description: Release tag, such as v0.5.0
         required: true
+  push:
+    branches: [main]
+    paths:
+      - gui/linux/**
+      - engine/**
+      - .gitmodules
+      - .github/workflows/linux-release.yml
 
 permissions:
   contents: read
 
 concurrency:
-  group: linux-release
+  group: ${{ github.event_name == 'push' && 'linux-build' || 'linux-release' }}
   cancel-in-progress: false
 
 env:
   TAG: ${{ github.event.release.tag_name || inputs.tag }}
-  KEEP_RELEASES: 3
+  KEEP_RELEASES: 2
 
 jobs:
   build:
@@ -40,7 +50,7 @@ jobs:
             pkg-config qt6-base-dev qt6-declarative-dev qt6-webengine-dev libpulse-dev libsbc-dev \
             libfuse3-dev libdbus-1-dev
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ env.TAG }}
 
@@ -53,11 +63,17 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
 
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: gui/linux -> target
+          save-if: ${{ github.event_name == 'push' }}
+
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-deb,cargo-generate-rpm
 
       - name: Check the version against the tag
+        if: env.TAG != ''
         working-directory: gui/linux
         run: |
           version=$(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -n 1)
@@ -76,7 +92,8 @@ jobs:
           cargo deb --no-build -o ../../dist/
           cargo generate-rpm -o ../../dist/
 
-      - uses: actions/upload-artifact@v4
+      - if: env.TAG != ''
+        uses: actions/upload-artifact@v7
         with:
           name: linux
           path: dist/*
@@ -84,11 +101,12 @@ jobs:
 
   assets:
     needs: build
+    if: github.event_name != 'push'
     runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: linux
           path: dist
@@ -103,13 +121,9 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: read
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
+      pages: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ env.TAG }}
 
@@ -141,14 +155,30 @@ jobs:
           done
           ls packages
 
+      - id: pages
+        uses: actions/configure-pages@v6
+
       - name: Build the repositories
         env:
-          PAGES_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+          PAGES_URL: ${{ steps.pages.outputs.base_url }}
         run: gui/linux/packaging/repo/make-repos.sh packages site "$SIGNING_KEY_FINGERPRINT"
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: site
 
+  # Its own job: deploy-pages can miss an artifact uploaded a moment earlier in the same job
+  # (https://github.com/actions/deploy-pages/issues/451), and a deploy re-run on its own then reuses the
+  # artifact instead of uploading a second one under the same name.
+  pages:
+    needs: repositories
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
       - id: deploy
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
